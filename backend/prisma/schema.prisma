@@ -1,0 +1,222 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  MANAGER
+  USER
+  RESTRICTED
+}
+
+enum LeadStage {
+  NEW
+  CONTACTED
+  QUALIFIED
+  PROPOSAL_SENT
+  NEGOTIATION
+  WON
+  LOST
+}
+
+enum DealStage {
+  PROSPECTING
+  QUALIFICATION
+  PROPOSAL
+  NEGOTIATION
+  CLOSED_WON
+  CLOSED_LOST
+}
+
+model User {
+  id          String   @id @default(cuid())
+  uid         String   @unique // SK-0001, SK-0002...
+  email       String   @unique
+  name        String
+  firstName   String
+  lastName    String
+  phone       String?
+  title       String?
+  department  String?
+  role        Role     @default(USER)
+  avatarUrl   String?
+  isActive    Boolean  @default(true)
+  lastLoginAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  leads       Lead[]
+  contacts    Contact[]
+  deals       Deal[]
+  accounts    Account[]
+  tasks       Task[]    @relation("TaskOwner")
+  activities  Activity[]
+  auditLogs   AuditLog[]
+
+  @@map("users")
+}
+
+model Lead {
+  id          String     @id @default(cuid())
+  firstName   String
+  lastName    String
+  email       String?
+  phone       String?
+  company     String?
+  title       String?
+  source      String?
+  stage       LeadStage  @default(NEW)
+  rating      Int?       // 1–5
+  amount      Decimal?
+  notes       String?
+  owner       User       @relation(fields: [ownerId], references: [id])
+  ownerId     String
+  convertedAt DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  tasks       Task[]
+  activities  Activity[]
+
+  @@map("leads")
+}
+
+model Contact {
+  id          String    @id @default(cuid())
+  firstName   String
+  lastName    String
+  email       String?
+  phone       String?
+  title       String?
+  department  String?
+  account     Account?  @relation(fields: [accountId], references: [id])
+  accountId   String?
+  owner       User      @relation(fields: [ownerId], references: [id])
+  ownerId     String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  deals       Deal[]
+  tasks       Task[]
+  activities  Activity[]
+
+  @@map("contacts")
+}
+
+model Account {
+  id          String    @id @default(cuid())
+  name        String
+  industry    String?
+  website     String?
+  phone       String?
+  employees   Int?
+  revenue     Decimal?
+  address     String?
+  city        String?
+  state       String?
+  country     String    @default("India")
+  owner       User      @relation(fields: [ownerId], references: [id])
+  ownerId     String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  contacts    Contact[]
+  deals       Deal[]
+
+  @@map("accounts")
+}
+
+model Deal {
+  id          String     @id @default(cuid())
+  name        String
+  stage       DealStage  @default(PROSPECTING)
+  amount      Decimal?
+  currency    String     @default("INR")
+  closeDate   DateTime?
+  probability Int?       // 0–100
+  source      String?
+  notes       String?
+  contact     Contact?   @relation(fields: [contactId], references: [id])
+  contactId   String?
+  account     Account?   @relation(fields: [accountId], references: [id])
+  accountId   String?
+  owner       User       @relation(fields: [ownerId], references: [id])
+  ownerId     String
+  wonAt       DateTime?
+  lostAt      DateTime?
+  lostReason  String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  tasks       Task[]
+  activities  Activity[]
+
+  @@map("deals")
+}
+
+model Task {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  dueDate     DateTime?
+  status      String    @default("PENDING") // PENDING, IN_PROGRESS, DONE
+  priority    String    @default("NORMAL")  // LOW, NORMAL, HIGH, URGENT
+  owner       User      @relation("TaskOwner", fields: [ownerId], references: [id])
+  ownerId     String
+  lead        Lead?     @relation(fields: [leadId], references: [id])
+  leadId      String?
+  contact     Contact?  @relation(fields: [contactId], references: [id])
+  contactId   String?
+  deal        Deal?     @relation(fields: [dealId], references: [id])
+  dealId      String?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("tasks")
+}
+
+model Activity {
+  id          String    @id @default(cuid())
+  type        String    // CALL, MEETING, EMAIL, NOTE
+  subject     String
+  description String?
+  date        DateTime
+  duration    Int?      // minutes
+  outcome     String?
+  owner       User      @relation(fields: [ownerId], references: [id])
+  ownerId     String
+  lead        Lead?     @relation(fields: [leadId], references: [id])
+  leadId      String?
+  contact     Contact?  @relation(fields: [contactId], references: [id])
+  contactId   String?
+  deal        Deal?     @relation(fields: [dealId], references: [id])
+  dealId      String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("activities")
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  action     String   // CREATE, UPDATE, DELETE, LOGIN, LOGOUT
+  module     String   // leads, contacts, deals, accounts, users, setup
+  recordId   String?
+  recordName String?
+  oldValue   Json?
+  newValue   Json?
+  ip         String?
+  userAgent  String?
+  user       User     @relation(fields: [userId], references: [id])
+  userId     String
+  createdAt  DateTime @default(now())
+
+  @@map("audit_logs")
+}

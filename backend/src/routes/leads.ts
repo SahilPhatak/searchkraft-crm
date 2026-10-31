@@ -1,0 +1,10 @@
+import { Router } from 'express';
+import { authenticate, requireRole } from '../middleware/auth';
+import { getLeads, createLead, updateLead, deleteLead } from '../controllers/leads';
+const router = Router();
+router.use(authenticate);
+router.get('/',     getLeads);
+router.post('/',    createLead);
+router.put('/:id',  updateLead);
+router.delete('/:id', requireRole('SUPER_ADMIN','ADMIN'), deleteLead);
+export default router;

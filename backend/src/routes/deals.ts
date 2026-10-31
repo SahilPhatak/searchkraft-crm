@@ -1,0 +1,10 @@
+import { Router } from 'express';
+import { authenticate, requireRole } from '../middleware/auth';
+import { getDeals, createDeal, updateDeal, deleteDeal } from '../controllers/deals';
+const router = Router();
+router.use(authenticate);
+router.get('/',     getDeals);
+router.post('/',    createDeal);
+router.put('/:id',  updateDeal);
+router.delete('/:id', requireRole('SUPER_ADMIN','ADMIN'), deleteDeal);
+export default router;
