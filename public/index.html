@@ -1300,7 +1300,7 @@ textarea { min-height: 80px; resize: vertical; }
       <div id="dash-welcome" style="background:linear-gradient(135deg,#0C1A35 0%,#1E3A6E 100%);border-radius:12px;padding:24px 28px;margin-bottom:20px;color:#fff">
         <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
           <div style="flex:1;min-width:140px">
-            <div id="dash-welcome-name" style="font-size:26px;font-weight:700;letter-spacing:-0.4px">Welcome, Vikram 👋</div>
+            <div id="dash-welcome-name" style="font-size:26px;font-weight:700;letter-spacing:-0.4px">Welcome 👋</div>
             <div id="dash-welcome-date" style="font-size:14px;color:#94A3C4;margin-top:6px"></div>
           </div>
         </div>
@@ -2980,6 +2980,10 @@ function applyLoggedInUser(user) {
   if (upUid)  upUid.textContent  = 'User ID: ' + uid;
   if (upRole) upRole.textContent = user.role;
   if (upInitials) { upInitials.textContent = initials; upInitials.style.color = user.color; }
+
+  // Welcome banner name (update immediately so no flash of old name)
+  const welcomeNameEl = document.getElementById('dash-welcome-name');
+  if (welcomeNameEl) welcomeNameEl.textContent = 'Welcome, ' + user.name.split(' ')[0] + ' 👋';
 
   // Workqueue mini-avatar
   const wqA = document.getElementById('wq-user-avatar');
@@ -5846,7 +5850,7 @@ function doLogin(e) {
   const user = SETUP_USERS.find(u => u.email && u.email.toLowerCase() === email.toLowerCase());
   if (!user) { errEl.textContent = 'No account found for that email.'; errEl.style.display='block'; return; }
   errEl.style.display = 'none';
-  localStorage.setItem('sk_logged_in', user.id);
+  localStorage.setItem('sk_logged_in', String(user.id));
   applyLoggedInUser(user);
   showAppPage();
   updateNavBadges();
@@ -5859,16 +5863,24 @@ function doRegister(e) {
   const email = document.getElementById('reg-email').value.trim();
   const errEl = document.getElementById('reg-err');
   if (!name || !email) { errEl.textContent = 'Name and email are required.'; errEl.style.display='block'; return; }
+  // If email already exists, auto-switch to sign in tab with helpful message
   if (SETUP_USERS.find(u => u.email && u.email.toLowerCase() === email.toLowerCase())) {
-    errEl.textContent = 'An account with this email already exists.'; errEl.style.display='block'; return;
+    // Switch to sign in tab and pre-fill email
+    switchAuthTab('signin');
+    const loginEmailEl = document.getElementById('login-email');
+    if (loginEmailEl) loginEmailEl.value = email;
+    const loginErrEl = document.getElementById('login-err');
+    if (loginErrEl) { loginErrEl.textContent = 'Account already exists — signed in with your email below.'; loginErrEl.style.display='block'; loginErrEl.style.color='#0d9488'; }
+    return;
   }
   const newUser = { id: Date.now(), name, email, role: 'User', color: '#1a56db', avatar: name.split(' ').map(p=>p[0]).join('').substring(0,2).toUpperCase() };
   SETUP_USERS.push(newUser);
   save();
   errEl.style.display = 'none';
-  localStorage.setItem('sk_logged_in', newUser.id);
+  localStorage.setItem('sk_logged_in', String(newUser.id));
   applyLoggedInUser(newUser);
   showAppPage();
+  updateNavBadges();
   navigateTo('dashboard');
 }
 
@@ -5882,6 +5894,7 @@ function doRegister(e) {
   }
   applyLoggedInUser(user);
   showAppPage();
+  updateNavBadges();
   const page = getHashPage();
   if (page && page !== 'login') {
     history.replaceState({ page }, '', '#/' + page);
