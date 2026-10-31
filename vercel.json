@@ -1,6 +1,3 @@
 {
-  "outputDirectory": "public",
-  "installCommand": "echo skip",
-  "buildCommand": "echo done",
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }
