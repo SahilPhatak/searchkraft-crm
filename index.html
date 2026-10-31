@@ -2941,7 +2941,7 @@ textarea { min-height: 80px; resize: vertical; }
 // ---- SUPABASE CLIENT ----
 const SUPA_URL  = 'https://yeidlmkdwyiqavkxnlhs.supabase.co';
 const SUPA_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InllaWRsbWtkd3lpcWF2a3hubGhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM0MjE0OTAsImV4cCI6MjEwODk5NzQ5MH0.7yBHL273FCl9oQYmhxET5QKn3AbW44yh7Zxr2nrb2LE';
-const supabase  = window.supabase.createClient(SUPA_URL, SUPA_KEY);
+const DB_CLIENT = window.supabase.createClient(SUPA_URL, SUPA_KEY);
 
 // ---- DATA STORE (local cache, synced from Supabase) ----
 let DB = {
@@ -3049,14 +3049,14 @@ function deliveryField(fieldId, currentVal) {
 // save() — upserts a single record into Supabase, then updates local DB cache
 async function saveRecord(table, record) {
   try {
-    const { error } = await supabase.from(table).upsert(record, { onConflict: 'id' });
+    const { error } = await DB_CLIENT.from(table).upsert(record, { onConflict: 'id' });
     if (error) console.error('Supabase save error:', error.message);
   } catch(e) { console.error('saveRecord failed:', e); }
 }
 
 async function deleteRecord(table, id) {
   try {
-    const { error } = await supabase.from(table).delete().eq('id', id);
+    const { error } = await DB_CLIENT.from(table).delete().eq('id', id);
     if (error) console.error('Supabase delete error:', error.message);
   } catch(e) { console.error('deleteRecord failed:', e); }
 }
@@ -3069,14 +3069,14 @@ async function load() {
     catch(e) { return []; }
   };
   const [leads, contacts, companies, deals, tasks, activities, users, audit] = await Promise.all([
-    safe(supabase.from('leads').select('*').order('created_at', { ascending: false })),
-    safe(supabase.from('contacts').select('*').order('created_at', { ascending: false })),
-    safe(supabase.from('companies').select('*').order('created_at', { ascending: false })),
-    safe(supabase.from('deals').select('*').order('created_at', { ascending: false })),
-    safe(supabase.from('tasks').select('*').order('created_at', { ascending: false })),
-    safe(supabase.from('activities').select('*').order('created_at', { ascending: false })),
-    safe(supabase.from('profiles').select('*').order('created_at', { ascending: true })),
-    safe(supabase.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(200)),
+    safe(DB_CLIENT.from('leads').select('*').order('created_at', { ascending: false })),
+    safe(DB_CLIENT.from('contacts').select('*').order('created_at', { ascending: false })),
+    safe(DB_CLIENT.from('companies').select('*').order('created_at', { ascending: false })),
+    safe(DB_CLIENT.from('deals').select('*').order('created_at', { ascending: false })),
+    safe(DB_CLIENT.from('tasks').select('*').order('created_at', { ascending: false })),
+    safe(DB_CLIENT.from('activities').select('*').order('created_at', { ascending: false })),
+    safe(DB_CLIENT.from('profiles').select('*').order('created_at', { ascending: true })),
+    safe(DB_CLIENT.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(200)),
   ]);
   DB.leads      = leads;
   DB.contacts   = contacts;
@@ -3107,7 +3107,7 @@ async function audit(action, module, record) {
   };
   DB.audit.unshift({ id: uid(), ts: new Date().toISOString(), user: entry.user_name, action, module, record: entry.record_name });
   if (DB.audit.length > 500) DB.audit = DB.audit.slice(0, 500);
-  try { await supabase.from('audit_logs').insert(entry); } catch(e) {}
+  try { await DB_CLIENT.from('audit_logs').insert(entry); } catch(e) {}
 }
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
 function fmt(n) { return n >= 1e7 ? '₹' + (n/1e7).toFixed(1)+'Cr' : n >= 1e5 ? '₹'+(n/1e5).toFixed(1)+'L' : '₹'+n.toLocaleString('en-IN'); }
@@ -5819,7 +5819,7 @@ async function upsert(collection, id, data) {
   // Persist to Supabase
   const tbl = SUPA_TABLE[collection];
   if (tbl) {
-    supabase.from(tbl).upsert({ id, ...data }, { onConflict: 'id' })
+    DB_CLIENT.from(tbl).upsert({ id, ...data }, { onConflict: 'id' })
       .then(({ error }) => { if (error) console.error('Supabase upsert error:', error.message); });
   }
   closeModal();
@@ -5832,7 +5832,7 @@ async function deleteCRMRecord(collection, id) {
   audit('Delete', collection, rec?.name||rec?.title||id);
   const tbl = SUPA_TABLE[collection];
   if (tbl) {
-    supabase.from(tbl).delete().eq('id', id)
+    DB_CLIENT.from(tbl).delete().eq('id', id)
       .then(({ error }) => { if (error) console.error('Supabase delete error:', error.message); });
   }
   refreshCurrentPage();
@@ -5929,7 +5929,7 @@ function setRegisterLoading(loading) {
 }
 
 async function doSignOut() {
-  await supabase.auth.signOut();
+  await DB_CLIENT.auth.signOut();
   showLoginPage();
 }
 
@@ -5952,7 +5952,7 @@ async function doLogin(e) {
   if (!password) { showErr('login-err', 'Enter your password.'); return; }
   setLoginLoading(true);
   document.getElementById('login-err').style.display = 'none';
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await DB_CLIENT.auth.signInWithPassword({ email, password });
   setLoginLoading(false);
   if (error) {
     showErr('login-err', error.message === 'Invalid login credentials'
@@ -5975,7 +5975,7 @@ async function doRegister(e) {
   if (password.length < 6) { showErr('reg-err', 'Password must be at least 6 characters.'); return; }
   setRegisterLoading(true);
   document.getElementById('reg-err').style.display = 'none';
-  const { data, error } = await supabase.auth.signUp({
+  const { data, error } = await DB_CLIENT.auth.signUp({
     email, password,
     options: { data: { name, role: 'User', color: '#1a56db' } }
   });
@@ -6041,7 +6041,7 @@ async function onSignedIn(authUser) {
 
 // Check Supabase session on load — runs before rendering anything
 (async function checkAuth() {
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session } } = await DB_CLIENT.auth.getSession();
   if (!session) {
     showLoginPage();
     return;
@@ -6050,7 +6050,7 @@ async function onSignedIn(authUser) {
 })();
 
 // Listen for auth state changes (tab focus, token refresh)
-supabase.auth.onAuthStateChange(async (event, session) => {
+DB_CLIENT.auth.onAuthStateChange(async (event, session) => {
   if (event === 'SIGNED_OUT') { showLoginPage(); }
 });
 </script>
@@ -6189,7 +6189,7 @@ async function doSendOtp(e) {
   const btn   = document.getElementById('forgot-btn');
   btn.disabled = true; btn.textContent = 'Sending…';
   msgEl.style.display = 'none';
-  const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
+  const { error } = await DB_CLIENT.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
   btn.disabled = false; btn.textContent = 'Send Code →';
   if (error) {
     msgEl.style.cssText = 'display:block;font-size:12px;padding:8px 12px;border-radius:8px;margin-bottom:10px;background:#fef2f2;border:1px solid #fca5a5;color:#dc2626';
@@ -6205,7 +6205,7 @@ async function doSendOtp(e) {
 
 async function doResendOtp() {
   if (!_otpEmail) return;
-  await supabase.auth.signInWithOtp({ email: _otpEmail, options: { shouldCreateUser: false } });
+  await DB_CLIENT.auth.signInWithOtp({ email: _otpEmail, options: { shouldCreateUser: false } });
   const m = document.getElementById('otp-msg');
   m.style.cssText = 'display:block;font-size:12px;padding:8px 12px;border-radius:8px;margin-bottom:10px;background:#f0fdf4;border:1px solid #86efac;color:#166534';
   m.textContent = '✓ A new code was sent to your email.';
@@ -6218,7 +6218,7 @@ async function doVerifyOtp(e) {
   const btn   = document.getElementById('otp-btn');
   btn.disabled = true; btn.textContent = 'Verifying…';
   msgEl.style.display = 'none';
-  const { data, error } = await supabase.auth.verifyOtp({ email: _otpEmail, token, type: 'email' });
+  const { data, error } = await DB_CLIENT.auth.verifyOtp({ email: _otpEmail, token, type: 'email' });
   btn.disabled = false; btn.textContent = 'Verify Code';
   if (error) {
     msgEl.style.cssText = 'display:block;font-size:12px;padding:8px 12px;border-radius:8px;margin-bottom:10px;background:#fef2f2;border:1px solid #fca5a5;color:#dc2626';
