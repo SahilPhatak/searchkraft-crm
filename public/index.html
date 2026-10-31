@@ -1238,11 +1238,6 @@ textarea { min-height: 80px; resize: vertical; }
               </div>
             </div>
           </div>
-          <!-- Switch User (for demo) -->
-          <div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.2)">
-            <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.7);margin-bottom:6px">Switch User (Demo)</div>
-            <select id="up-switch-user" onchange="switchDemoUser(this.value)" style="width:100%;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:6px;color:#fff;font-size:12px;padding:5px 8px;cursor:pointer;outline:none"></select>
-          </div>
         </div>
 
         <!-- Mode -->
@@ -3020,21 +3015,6 @@ function applyLoggedInUser(user) {
   if (wqA) wqA.textContent = initials;
   if (wqN) wqN.textContent = user.name.split(' ')[0];
 
-  // Populate / sync switch-user dropdown
-  const sw = document.getElementById('up-switch-user');
-  if (sw) {
-    if (!sw.options.length) {
-      // First call: build options
-      SETUP_USERS.forEach((u, i) => {
-        const opt = document.createElement('option');
-        opt.value = u.id;
-        opt.style.color = '#000';
-        opt.textContent = String(i+1).padStart(4,'0') + ' · ' + u.name + ' (' + u.role + ')';
-        sw.appendChild(opt);
-      });
-    }
-    sw.value = user.id;
-  }
 }
 // Get all team member names dynamically from DB.users
 function getTeamNames() {
@@ -3141,7 +3121,13 @@ async function audit(action, module, record) {
   if (DB.audit.length > 500) DB.audit = DB.audit.slice(0, 500);
   try { await DB_CLIENT.from('audit_logs').insert(entry); } catch(e) {}
 }
-function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+function uid() {
+  // Generate a proper UUID v4 for Supabase compatibility
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random() * 16 | 0;
+    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+  });
+}
 function fmt(n) { return n >= 1e7 ? '₹' + (n/1e7).toFixed(1)+'Cr' : n >= 1e5 ? '₹'+(n/1e5).toFixed(1)+'L' : '₹'+n.toLocaleString('en-IN'); }
 function fmtDate(d) { if(!d) return '—'; try { return new Date(d).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}); } catch(e) { return d; } }
 function today() { return new Date().toISOString().slice(0,10); }
@@ -5677,15 +5663,6 @@ function saveLocale() {
   showToast('Locale settings saved', '#2EA44F');
 }
 
-// Switch demo logged-in user
-function switchDemoUser(uid) {
-  const user = SETUP_USERS.find(u => u.id === uid);
-  if (user) {
-    applyLoggedInUser(user);
-    showToast('Logged in as ' + user.name + ' · ' + getUserId(user), user.color || '#1a56db');
-  }
-}
-
 // User profile panel
 function toggleUserPanel(e) {
   e.stopPropagation();
@@ -5883,23 +5860,53 @@ const SUPA_TABLE = {
   users: 'profiles', audit: 'audit_logs', invoices: null
 };
 
+// Convert camelCase app fields → snake_case Supabase columns
+function toSnake(collection, data) {
+  const d = { ...data };
+  // Common camelCase → snake_case mappings
+  const map = {
+    createdAt:'created_at', updatedAt:'updated_at', closeDate:'close_date',
+    dueDate:'due_date', companyId:'company_id', companyName:'company',
+    contactId:'contact_id', ownerId:'owner_id', leadId:'lead_id',
+    dealId:'deal_id', bdOwner:'bd_owner', handoverDate:'handover_date',
+    followupDate:'followup_date', firstName:'first_name', lastName:'last_name',
+    numEmployees:'num_employees', annualRevenue:'annual_revenue',
+    emailOptOut:'email_opt_out', addrLine1:'addr_line1', handoverDone:'handover_done',
+    clientName:'client_name', clientType:'client_type', deliveryPOC:'delivery_poc',
+    numPositions:'num_positions', commercialsSigned:'commercials_signed',
+    sourceSD:'source_sd', email2:'email2', wonAt:'won_at', lostAt:'lost_at',
+    lostReason:'lost_reason', ownerId:'owner_id'
+  };
+  // Remove purely local camelCase fields that have a snake counterpart
+  Object.entries(map).forEach(([cc, sc]) => {
+    if (cc in d) { d[sc] = d[cc]; delete d[cc]; }
+  });
+  // Drop undefined/null-ish keys that aren't in the schema to avoid errors
+  Object.keys(d).forEach(k => { if (d[k] === undefined) delete d[k]; });
+  return d;
+}
+
 async function upsert(collection, id, data) {
   if (id) {
     const i = DB[collection].findIndex(r=>r.id===id);
     if (i>=0) { DB[collection][i] = { ...DB[collection][i], ...data }; }
     audit('Update', collection, data.name||data.title||id);
   } else {
-    const rec = { id: uid(), created_at: new Date().toISOString(), ...data };
+    const newId = uid();
+    const rec = { id: newId, createdAt: new Date().toISOString(), created_at: new Date().toISOString(), ...data };
     DB[collection].unshift(rec);
-    audit('Create', collection, data.name||data.title||rec.id);
-    id = rec.id;
+    audit('Create', collection, data.name||data.title||newId);
+    id = newId;
     data = rec;
   }
-  // Persist to Supabase
+  // Persist to Supabase (convert to snake_case)
   const tbl = SUPA_TABLE[collection];
   if (tbl) {
-    DB_CLIENT.from(tbl).upsert({ id, ...data }, { onConflict: 'id' })
-      .then(({ error }) => { if (error) console.error('Supabase upsert error:', error.message); });
+    const payload = toSnake(collection, { id, ...data });
+    // Remove local-only fields not in Supabase schema
+    ['createdAt','updatedAt'].forEach(k => delete payload[k]);
+    DB_CLIENT.from(tbl).upsert(payload, { onConflict: 'id' })
+      .then(({ error }) => { if (error) console.error('Supabase upsert error:', error.message, payload); });
   }
   closeModal();
   refreshCurrentPage();
@@ -6008,6 +6015,10 @@ function setRegisterLoading(loading) {
 }
 
 async function doSignOut() {
+  // Clear in-memory data so next user starts fresh
+  DB.leads = []; DB.contacts = []; DB.companies = []; DB.deals = [];
+  DB.tasks = []; DB.activities = []; DB.users = []; DB.audit = [];
+  LOGGED_IN_USER = null;
   await DB_CLIENT.auth.signOut();
   showLoginPage();
 }
