@@ -1,6 +1,6 @@
 {
-  "buildCommand": "mkdir -p public && cp index.html public/index.html",
   "outputDirectory": "public",
   "installCommand": "echo skip",
+  "buildCommand": "echo done",
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }
