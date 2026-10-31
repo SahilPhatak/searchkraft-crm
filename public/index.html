@@ -2961,14 +2961,14 @@ function getUserId(user) {
   return 'SK-' + String(idx + 1).padStart(4, '0');
 }
 
-let LOGGED_IN_USER = SETUP_USERS[0]; // default: Vikram (Super Admin)
+let LOGGED_IN_USER = null; // set after auth
 
 function getCurrentUser() {
-  return LOGGED_IN_USER.name.split(' ')[0];
+  return LOGGED_IN_USER ? LOGGED_IN_USER.name.split(' ')[0] : '';
 }
 
 function getCurrentUserFull() {
-  return LOGGED_IN_USER;
+  return LOGGED_IN_USER || {};
 }
 
 function applyLoggedInUser(user) {
@@ -4034,7 +4034,7 @@ function toggleSection(hdrEl, sectionId) {
    ============================================================ */
 
 // 20 pre-seeded users
-const SETUP_USERS = [
+var SETUP_USERS = [
   { id:'u1',  name:'Vikram Sharma',     email:'vikram@searchkraft.in',     role:'Super Admin', title:'CEO',               dept:'Leadership',   status:'active',  phone:'91-9663212727', avatar:'VS', color:'#1a56db', online:true  },
   { id:'u2',  name:'Poovizhi Devaraj',  email:'poovizhi@searchkraft.in',   role:'Admin',       title:'Manager',           dept:'Sales',        status:'active',  phone:'91-9876543210', avatar:'PD', color:'#7c3aed', online:true  },
   { id:'u3',  name:'Shreya Mitra',      email:'shreya@searchkraft.in',     role:'Admin',       title:'Manager',           dept:'Operations',   status:'active',  phone:'91-9811223344', avatar:'SM', color:'#0891b2', online:false },
