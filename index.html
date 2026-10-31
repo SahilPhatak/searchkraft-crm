@@ -3077,18 +3077,37 @@ async function load() {
   // Normalize snake_case from Supabase → camelCase used throughout the app
   const norm = (r) => ({
     ...r,
-    createdAt:   r.createdAt   || r.created_at,
-    updatedAt:   r.updatedAt   || r.updated_at,
-    closeDate:   r.closeDate   || r.close_date,
-    dueDate:     r.dueDate     || r.due_date,
-    due:         r.due         || r.due_date,
-    companyId:   r.companyId   || r.company_id,
-    companyName: r.companyName || r.company,
-    contactId:   r.contactId   || r.contact_id,
-    ownerId:     r.ownerId     || r.owner_id,
-    leadId:      r.leadId      || r.lead_id,
-    dealId:      r.dealId      || r.deal_id,
-    bdOwner:     r.bdOwner     || r.bd_owner,
+    createdAt:        r.createdAt        || r.created_at,
+    updatedAt:        r.updatedAt        || r.updated_at,
+    closeDate:        r.closeDate        || r.close_date,
+    dueDate:          r.dueDate          || r.due_date,
+    due:              r.due              || r.due_date,
+    companyId:        r.companyId        || r.company_id,
+    companyName:      r.companyName      || r.company,
+    contactId:        r.contactId        || r.contact_id,
+    ownerId:          r.ownerId          || r.owner_id,
+    leadId:           r.leadId           || r.lead_id,
+    dealId:           r.dealId           || r.deal_id,
+    bdOwner:          r.bdOwner          || r.bd_owner,
+    firstName:        r.firstName        || r.first_name,
+    lastName:         r.lastName         || r.last_name,
+    numEmployees:     r.numEmployees     || r.num_employees,
+    annualRevenue:    r.annualRevenue    || r.annual_revenue,
+    emailOptOut:      r.emailOptOut      ?? r.email_opt_out,
+    handoverDate:     r.handoverDate     || r.handover_date,
+    followupDate:     r.followupDate     || r.followup_date,
+    handoverDone:     r.handoverDone     ?? r.handover_done,
+    clientName:       r.clientName       || r.client_name,
+    clientType:       r.clientType       || r.client_type,
+    deliveryPOC:      r.deliveryPOC      || r.delivery_poc,
+    numPositions:     r.numPositions     || r.num_positions,
+    commercialsSigned:r.commercialsSigned?? r.commercials_signed,
+    sourceSD:         r.sourceSD         || r.source_sd,
+    addrLine1:        r.addrLine1        || r.addr_line1,
+    wonAt:            r.wonAt            || r.won_at,
+    lostAt:           r.lostAt           || r.lost_at,
+    lostReason:       r.lostReason       || r.lost_reason,
+    completedAt:      r.completedAt      || r.completed_at,
   });
   DB.leads      = leads.map(norm);
   DB.contacts   = contacts.map(norm);
@@ -5860,29 +5879,49 @@ const SUPA_TABLE = {
   users: 'profiles', audit: 'audit_logs', invoices: null
 };
 
-// Convert camelCase app fields → snake_case Supabase columns
-function toSnake(collection, data) {
-  const d = { ...data };
-  // Common camelCase → snake_case mappings
-  const map = {
-    createdAt:'created_at', updatedAt:'updated_at', closeDate:'close_date',
-    dueDate:'due_date', companyId:'company_id', companyName:'company',
-    contactId:'contact_id', ownerId:'owner_id', leadId:'lead_id',
-    dealId:'deal_id', bdOwner:'bd_owner', handoverDate:'handover_date',
-    followupDate:'followup_date', firstName:'first_name', lastName:'last_name',
-    numEmployees:'num_employees', annualRevenue:'annual_revenue',
-    emailOptOut:'email_opt_out', addrLine1:'addr_line1', handoverDone:'handover_done',
-    clientName:'client_name', clientType:'client_type', deliveryPOC:'delivery_poc',
-    numPositions:'num_positions', commercialsSigned:'commercials_signed',
-    sourceSD:'source_sd', email2:'email2', wonAt:'won_at', lostAt:'lost_at',
-    lostReason:'lost_reason', ownerId:'owner_id'
-  };
-  // Remove purely local camelCase fields that have a snake counterpart
-  Object.entries(map).forEach(([cc, sc]) => {
-    if (cc in d) { d[sc] = d[cc]; delete d[cc]; }
+// Exact columns that exist in each Supabase table
+const SUPA_COLS = {
+  leads: ['id','name','email','phone','company','title','source','stage','rating','value','notes',
+    'owner','owner_id','created_at','updated_at','salutation','first_name','last_name','email2',
+    'website','skype','twitter','industry','num_employees','annual_revenue','email_opt_out',
+    'handover_date','followup_date','lane','source_sd','month','handover_done','client_name',
+    'compensation','client_type','delivery_poc','agreement','num_positions','commercials_signed',
+    'country','addr_line1','street','city','state','zip','lat','lng','description'],
+  contacts: ['id','name','email','phone','title','dept','company','company_id','owner','owner_id','created_at','updated_at'],
+  companies: ['id','name','industry','website','phone','employees','revenue','address','city','state','country','status','bd_owner','owner_id','created_at','updated_at'],
+  deals: ['id','name','stage','value','currency','close_date','probability','source','notes','contact','contact_id','company','company_id','owner','owner_id','won_at','lost_at','lost_reason','created_at','updated_at'],
+  tasks: ['id','title','description','due_date','status','priority','owner','owner_id','lead_id','contact_id','deal_id','completed_at','created_at','updated_at'],
+  activities: ['id','type','subject','description','date','duration','outcome','owner','owner_id','lead_id','contact_id','deal_id','created_at'],
+  profiles: ['id','name','email','role','title','dept','phone','avatar','color','status','online','created_at','updated_at'],
+};
+
+// camelCase → snake_case field name map
+const CAMEL_TO_SNAKE = {
+  createdAt:'created_at', updatedAt:'updated_at', closeDate:'close_date',
+  dueDate:'due_date', companyId:'company_id', companyName:'company',
+  contactId:'contact_id', ownerId:'owner_id', leadId:'lead_id',
+  dealId:'deal_id', bdOwner:'bd_owner', handoverDate:'handover_date',
+  followupDate:'followup_date', firstName:'first_name', lastName:'last_name',
+  numEmployees:'num_employees', annualRevenue:'annual_revenue',
+  emailOptOut:'email_opt_out', addrLine1:'addr_line1', handoverDone:'handover_done',
+  clientName:'client_name', clientType:'client_type', deliveryPOC:'delivery_poc',
+  numPositions:'num_positions', commercialsSigned:'commercials_signed',
+  sourceSD:'source_sd', wonAt:'won_at', lostAt:'lost_at', lostReason:'lost_reason',
+  completedAt:'completed_at'
+};
+
+// Convert app data to Supabase payload: camelCase→snake_case, whitelist only known columns
+function toSupabase(collection, data) {
+  const tbl = SUPA_TABLE[collection];
+  const allowed = SUPA_COLS[tbl] || SUPA_COLS[collection] || null;
+  const d = {};
+  Object.entries(data).forEach(([k, v]) => {
+    const sk = CAMEL_TO_SNAKE[k] || k; // convert to snake_case if mapping exists
+    if (!allowed || allowed.includes(sk)) {
+      if (v !== undefined && v !== null && v !== '') d[sk] = v;
+      else if (v === false || v === 0) d[sk] = v; // keep false/0
+    }
   });
-  // Drop undefined/null-ish keys that aren't in the schema to avoid errors
-  Object.keys(d).forEach(k => { if (d[k] === undefined) delete d[k]; });
   return d;
 }
 
@@ -5899,14 +5938,12 @@ async function upsert(collection, id, data) {
     id = newId;
     data = rec;
   }
-  // Persist to Supabase (convert to snake_case)
+  // Persist to Supabase — only whitelisted snake_case columns
   const tbl = SUPA_TABLE[collection];
   if (tbl) {
-    const payload = toSnake(collection, { id, ...data });
-    // Remove local-only fields not in Supabase schema
-    ['createdAt','updatedAt'].forEach(k => delete payload[k]);
+    const payload = toSupabase(collection, { id, ...data });
     DB_CLIENT.from(tbl).upsert(payload, { onConflict: 'id' })
-      .then(({ error }) => { if (error) console.error('Supabase upsert error:', error.message, payload); });
+      .then(({ error }) => { if (error) console.error('Supabase upsert error:', error.message, JSON.stringify(payload)); });
   }
   closeModal();
   refreshCurrentPage();
