@@ -3056,31 +3056,34 @@ async function deleteRecord(table, id) {
 }
 
 // load() — fetches all CRM data from Supabase into local DB cache
+// Graceful: if a table doesn't exist yet, that collection stays empty
 async function load() {
-  try {
-    const [leads, contacts, companies, deals, tasks, activities, users, audit] = await Promise.all([
-      supabase.from('leads').select('*').order('created_at', { ascending: false }),
-      supabase.from('contacts').select('*').order('created_at', { ascending: false }),
-      supabase.from('companies').select('*').order('created_at', { ascending: false }),
-      supabase.from('deals').select('*').order('created_at', { ascending: false }),
-      supabase.from('tasks').select('*').order('created_at', { ascending: false }),
-      supabase.from('activities').select('*').order('created_at', { ascending: false }),
-      supabase.from('profiles').select('*').order('created_at', { ascending: true }),
-      supabase.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(200),
-    ]);
-    if (leads.data)      DB.leads      = leads.data;
-    if (contacts.data)   DB.contacts   = contacts.data;
-    if (companies.data)  DB.companies  = companies.data;
-    if (deals.data)      DB.deals      = deals.data;
-    if (tasks.data)      DB.tasks      = tasks.data;
-    if (activities.data) DB.activities = activities.data;
-    if (users.data)      DB.users      = users.data;
-    if (audit.data)      DB.audit      = audit.data.map(r => ({
-      id: r.id, ts: r.created_at, user: r.user_name,
-      action: r.action, module: r.module, record: r.record_name
-    }));
-    updateNavBadges();
-  } catch(e) { console.error('load() failed:', e); }
+  const safe = async (query) => {
+    try { const r = await query; return r.error ? [] : (r.data || []); }
+    catch(e) { return []; }
+  };
+  const [leads, contacts, companies, deals, tasks, activities, users, audit] = await Promise.all([
+    safe(supabase.from('leads').select('*').order('created_at', { ascending: false })),
+    safe(supabase.from('contacts').select('*').order('created_at', { ascending: false })),
+    safe(supabase.from('companies').select('*').order('created_at', { ascending: false })),
+    safe(supabase.from('deals').select('*').order('created_at', { ascending: false })),
+    safe(supabase.from('tasks').select('*').order('created_at', { ascending: false })),
+    safe(supabase.from('activities').select('*').order('created_at', { ascending: false })),
+    safe(supabase.from('profiles').select('*').order('created_at', { ascending: true })),
+    safe(supabase.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(200)),
+  ]);
+  DB.leads      = leads;
+  DB.contacts   = contacts;
+  DB.companies  = companies;
+  DB.deals      = deals;
+  DB.tasks      = tasks;
+  DB.activities = activities;
+  DB.users      = users;
+  DB.audit      = audit.map(r => ({
+    id: r.id, ts: r.created_at, user: r.user_name,
+    action: r.action, module: r.module, record: r.record_name
+  }));
+  updateNavBadges();
 }
 
 // Legacy save() — kept for compatibility; actual saves go through saveRecord()
@@ -5981,36 +5984,43 @@ async function doRegister(e) {
 
 // Called after successful Supabase auth — fetches profile + loads app
 async function onSignedIn(authUser) {
-  // Get profile from profiles table
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', authUser.id)
-    .single();
-
-  const user = profile ? {
-    id: profile.id, supaId: profile.id,
-    name: profile.name || authUser.email.split('@')[0],
-    email: profile.email || authUser.email,
-    role: profile.role || 'User',
-    title: profile.title || '',
-    dept: profile.dept || '',
-    avatar: profile.avatar || (profile.name||authUser.email).substring(0,2).toUpperCase(),
-    color: profile.color || '#1a56db',
-    status: profile.status || 'active',
-    online: true
-  } : {
+  // Build user from auth metadata first (works even before DB tables exist)
+  const meta = authUser.user_metadata || {};
+  let user = {
     id: authUser.id, supaId: authUser.id,
-    name: authUser.user_metadata?.name || authUser.email.split('@')[0],
+    name: meta.name || meta.full_name || authUser.email.split('@')[0],
     email: authUser.email,
-    role: authUser.user_metadata?.role || 'User',
-    avatar: (authUser.user_metadata?.name || authUser.email).substring(0,2).toUpperCase(),
-    color: '#1a56db', status: 'active', online: true
+    role: meta.role || 'User',
+    title: meta.title || '',
+    dept: meta.dept || '',
+    color: meta.color || '#1a56db',
+    status: 'active', online: true
   };
+  user.avatar = (user.name).split(' ').map(p=>p[0]).join('').substring(0,2).toUpperCase();
+
+  // Try to get richer profile from DB (only if table exists)
+  try {
+    const { data: profile, error } = await supabase
+      .from('profiles').select('*').eq('id', authUser.id).single();
+    if (!error && profile) {
+      user = {
+        id: profile.id, supaId: profile.id,
+        name: profile.name || user.name,
+        email: profile.email || authUser.email,
+        role: profile.role || user.role,
+        title: profile.title || '',
+        dept: profile.dept || '',
+        avatar: profile.avatar || user.avatar,
+        color: profile.color || user.color,
+        status: profile.status || 'active',
+        online: true
+      };
+    }
+  } catch(e) { /* profiles table may not exist yet — use auth metadata */ }
 
   applyLoggedInUser(user);
   showAppPage();
-  // Load all CRM data from Supabase
+  // Load CRM data (graceful — if tables don't exist yet, DB stays empty)
   await load();
   updateNavBadges();
   const page = getHashPage();
@@ -6061,18 +6071,18 @@ supabase.auth.onAuthStateChange(async (event, session) => {
             onfocus="this.style.borderColor='#1a56db'" onblur="this.style.borderColor='#d1d5db'">
         </div>
         <div style="margin-bottom:4px">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
-            <label style="font-size:12px;font-weight:600;color:#374151">Password</label>
-            <button type="button" onclick="switchAuthTab('forgot')" style="font-size:12px;color:#1a56db;background:none;border:none;cursor:pointer;padding:0;font-weight:500">Forgot password?</button>
-          </div>
+          <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:5px">Password</label>
           <input id="login-pass" type="password" required autocomplete="current-password" placeholder="••••••••"
             style="width:100%;padding:10px 13px;border:1.5px solid #d1d5db;border-radius:9px;font-size:14px;outline:none;box-sizing:border-box"
             onfocus="this.style.borderColor='#1a56db'" onblur="this.style.borderColor='#d1d5db'">
         </div>
         <div id="login-err" style="display:none;font-size:12px;padding:8px 12px;border-radius:8px;margin:10px 0"></div>
         <button type="submit" id="login-btn" style="width:100%;padding:11px;background:linear-gradient(135deg,#1a56db,#1e40af);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;margin-top:8px;transition:opacity 0.15s">Sign In →</button>
+        <div style="text-align:center;margin-top:12px">
+          <button type="button" onclick="switchAuthTab('forgot')" style="font-size:12px;color:#64748b;background:none;border:none;cursor:pointer;padding:0">Forgot your password?</button>
+        </div>
       </form>
-      <p style="text-align:center;margin-top:20px;font-size:13px;color:#64748b">
+      <p style="text-align:center;margin-top:16px;font-size:13px;color:#64748b;border-top:1px solid #f1f5f9;padding-top:16px">
         Don't have an account? <button type="button" onclick="switchAuthTab('register')" style="color:#1a56db;background:none;border:none;cursor:pointer;font-size:13px;font-weight:600;padding:0">Create one</button>
       </p>
     </div>
@@ -6108,17 +6118,38 @@ supabase.auth.onAuthStateChange(async (event, session) => {
 
     <!-- Forgot Password Panel -->
     <div id="auth-forgot" style="display:none">
-      <p style="font-size:13px;color:#64748b;margin:0 0 20px">Enter your email and we'll send you a password reset link.</p>
-      <form onsubmit="doForgotPassword(event)">
-        <div style="margin-bottom:14px">
-          <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:5px">Email address</label>
-          <input id="forgot-email" type="email" required autocomplete="email" placeholder="you@searchkraft.com"
-            style="width:100%;padding:10px 13px;border:1.5px solid #d1d5db;border-radius:9px;font-size:14px;outline:none;box-sizing:border-box"
-            onfocus="this.style.borderColor='#1a56db'" onblur="this.style.borderColor='#d1d5db'">
-        </div>
-        <div id="forgot-msg" style="display:none;font-size:12px;padding:8px 12px;border-radius:8px;margin-bottom:10px"></div>
-        <button type="submit" id="forgot-btn" style="width:100%;padding:11px;background:linear-gradient(135deg,#1a56db,#1e40af);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer">Send Reset Link →</button>
-      </form>
+      <!-- Step 1: Enter email -->
+      <div id="forgot-step1">
+        <p style="font-size:13px;color:#64748b;margin:0 0 20px">Enter your email and we'll send a 6-digit code to verify your identity.</p>
+        <form onsubmit="doSendOtp(event)">
+          <div style="margin-bottom:14px">
+            <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:5px">Email address</label>
+            <input id="forgot-email" type="email" required autocomplete="email" placeholder="you@searchkraft.com"
+              style="width:100%;padding:10px 13px;border:1.5px solid #d1d5db;border-radius:9px;font-size:14px;outline:none;box-sizing:border-box"
+              onfocus="this.style.borderColor='#1a56db'" onblur="this.style.borderColor='#d1d5db'">
+          </div>
+          <div id="forgot-msg" style="display:none;font-size:12px;padding:8px 12px;border-radius:8px;margin-bottom:10px"></div>
+          <button type="submit" id="forgot-btn" style="width:100%;padding:11px;background:linear-gradient(135deg,#1a56db,#1e40af);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer">Send Code →</button>
+        </form>
+      </div>
+      <!-- Step 2: Enter OTP code -->
+      <div id="forgot-step2" style="display:none">
+        <p style="font-size:13px;color:#64748b;margin:0 0 4px">A 6-digit code was sent to</p>
+        <p id="forgot-email-display" style="font-size:13px;font-weight:700;color:#1a56db;margin:0 0 20px"></p>
+        <form onsubmit="doVerifyOtp(event)">
+          <div style="margin-bottom:14px">
+            <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:5px">Verification Code</label>
+            <input id="forgot-otp" type="text" required inputmode="numeric" maxlength="6" placeholder="123456"
+              style="width:100%;padding:10px 13px;border:1.5px solid #d1d5db;border-radius:9px;font-size:22px;letter-spacing:8px;text-align:center;outline:none;box-sizing:border-box;font-weight:700"
+              onfocus="this.style.borderColor='#1a56db'" onblur="this.style.borderColor='#d1d5db'">
+          </div>
+          <div id="otp-msg" style="display:none;font-size:12px;padding:8px 12px;border-radius:8px;margin-bottom:10px"></div>
+          <button type="submit" id="otp-btn" style="width:100%;padding:11px;background:linear-gradient(135deg,#1a56db,#1e40af);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer">Verify Code</button>
+        </form>
+        <p style="text-align:center;margin-top:12px;font-size:12px;color:#64748b">
+          Didn't receive it? <button type="button" onclick="doResendOtp()" style="color:#1a56db;background:none;border:none;cursor:pointer;font-size:12px;font-weight:600;padding:0">Resend code</button>
+        </p>
+      </div>
       <p style="text-align:center;margin-top:20px;font-size:13px;color:#64748b">
         <button type="button" onclick="switchAuthTab('signin')" style="color:#1a56db;background:none;border:none;cursor:pointer;font-size:13px;font-weight:600;padding:0">← Back to Sign In</button>
       </p>
@@ -6130,32 +6161,68 @@ function switchAuthTab(tab) {
   document.getElementById('auth-signin').style.display   = tab === 'signin'   ? '' : 'none';
   document.getElementById('auth-register').style.display = tab === 'register' ? '' : 'none';
   document.getElementById('auth-forgot').style.display   = tab === 'forgot'   ? '' : 'none';
-  // Pre-fill forgot email from sign-in email if available
   if (tab === 'forgot') {
+    // Pre-fill email from sign-in field
     const e = document.getElementById('login-email').value;
     if (e) document.getElementById('forgot-email').value = e;
+    // Always start at step 1
+    document.getElementById('forgot-step1').style.display = '';
+    document.getElementById('forgot-step2').style.display = 'none';
+    document.getElementById('forgot-msg').style.display = 'none';
+    document.getElementById('forgot-otp').value = '';
+    _otpEmail = '';
   }
 }
 
-async function doForgotPassword(e) {
+let _otpEmail = '';
+
+async function doSendOtp(e) {
   e.preventDefault();
-  const email  = document.getElementById('forgot-email').value.trim();
-  const msgEl  = document.getElementById('forgot-msg');
-  const btn    = document.getElementById('forgot-btn');
+  const email = document.getElementById('forgot-email').value.trim();
+  const msgEl = document.getElementById('forgot-msg');
+  const btn   = document.getElementById('forgot-btn');
   btn.disabled = true; btn.textContent = 'Sending…';
   msgEl.style.display = 'none';
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: window.location.origin + window.location.pathname
-  });
-  btn.disabled = false; btn.textContent = 'Send Reset Link →';
+  const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
+  btn.disabled = false; btn.textContent = 'Send Code →';
   if (error) {
-    msgEl.style.background = '#fef2f2'; msgEl.style.border = '1px solid #fca5a5'; msgEl.style.color = '#dc2626';
+    msgEl.style.cssText = 'display:block;font-size:12px;padding:8px 12px;border-radius:8px;margin-bottom:10px;background:#fef2f2;border:1px solid #fca5a5;color:#dc2626';
     msgEl.textContent = error.message;
   } else {
-    msgEl.style.background = '#f0fdf4'; msgEl.style.border = '1px solid #86efac'; msgEl.style.color = '#166534';
-    msgEl.textContent = '✓ Reset link sent! Check your email inbox.';
+    _otpEmail = email;
+    document.getElementById('forgot-email-display').textContent = email;
+    document.getElementById('forgot-step1').style.display = 'none';
+    document.getElementById('forgot-step2').style.display = '';
+    setTimeout(() => document.getElementById('forgot-otp').focus(), 50);
   }
-  msgEl.style.display = 'block';
+}
+
+async function doResendOtp() {
+  if (!_otpEmail) return;
+  await supabase.auth.signInWithOtp({ email: _otpEmail, options: { shouldCreateUser: false } });
+  const m = document.getElementById('otp-msg');
+  m.style.cssText = 'display:block;font-size:12px;padding:8px 12px;border-radius:8px;margin-bottom:10px;background:#f0fdf4;border:1px solid #86efac;color:#166534';
+  m.textContent = '✓ A new code was sent to your email.';
+}
+
+async function doVerifyOtp(e) {
+  e.preventDefault();
+  const token = document.getElementById('forgot-otp').value.trim();
+  const msgEl = document.getElementById('otp-msg');
+  const btn   = document.getElementById('otp-btn');
+  btn.disabled = true; btn.textContent = 'Verifying…';
+  msgEl.style.display = 'none';
+  const { data, error } = await supabase.auth.verifyOtp({ email: _otpEmail, token, type: 'email' });
+  btn.disabled = false; btn.textContent = 'Verify Code';
+  if (error) {
+    msgEl.style.cssText = 'display:block;font-size:12px;padding:8px 12px;border-radius:8px;margin-bottom:10px;background:#fef2f2;border:1px solid #fca5a5;color:#dc2626';
+    msgEl.textContent = error.message;
+  } else {
+    // Verified — user is now signed in, onAuthStateChange will fire
+    msgEl.style.cssText = 'display:block;font-size:12px;padding:8px 12px;border-radius:8px;margin-bottom:10px;background:#f0fdf4;border:1px solid #86efac;color:#166534';
+    msgEl.textContent = '✓ Identity verified! Signing you in…';
+    if (data.user) await onSignedIn(data.user);
+  }
 }
 </script>
 
