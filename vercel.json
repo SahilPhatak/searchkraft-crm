@@ -1,7 +1,4 @@
 {
-  "outputDirectory": "frontend",
-  "buildCommand": "",
-  "installCommand": "",
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
   "headers": [
     {
