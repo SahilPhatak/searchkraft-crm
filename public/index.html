@@ -3160,6 +3160,7 @@ function renderPage(pg) {
   else if (pg==='reports') renderReports();
   else if (pg==='team') renderTable('team','');
   else if (pg==='audit') renderAudit();
+  else if (pg==='setup') { const firstTab = document.querySelector('.setup-tab'); if(firstTab) firstTab.click(); }
 }
 
 // ---- NAVIGATION + URL HASH ROUTING ----
