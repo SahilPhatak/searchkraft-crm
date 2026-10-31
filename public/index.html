@@ -3078,13 +3078,29 @@ async function load() {
     safe(DB_CLIENT.from('profiles').select('*').order('created_at', { ascending: true })),
     safe(DB_CLIENT.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(200)),
   ]);
-  DB.leads      = leads;
-  DB.contacts   = contacts;
-  DB.companies  = companies;
-  DB.deals      = deals;
-  DB.tasks      = tasks;
-  DB.activities = activities;
-  DB.users      = users;
+  // Normalize snake_case from Supabase → camelCase used throughout the app
+  const norm = (r) => ({
+    ...r,
+    createdAt:   r.createdAt   || r.created_at,
+    updatedAt:   r.updatedAt   || r.updated_at,
+    closeDate:   r.closeDate   || r.close_date,
+    dueDate:     r.dueDate     || r.due_date,
+    due:         r.due         || r.due_date,
+    companyId:   r.companyId   || r.company_id,
+    companyName: r.companyName || r.company,
+    contactId:   r.contactId   || r.contact_id,
+    ownerId:     r.ownerId     || r.owner_id,
+    leadId:      r.leadId      || r.lead_id,
+    dealId:      r.dealId      || r.deal_id,
+    bdOwner:     r.bdOwner     || r.bd_owner,
+  });
+  DB.leads      = leads.map(norm);
+  DB.contacts   = contacts.map(norm);
+  DB.companies  = companies.map(norm);
+  DB.deals      = deals.map(norm);
+  DB.tasks      = tasks.map(norm);
+  DB.activities = activities.map(norm);
+  DB.users      = users.map(norm);
   DB.audit      = audit.map(r => ({
     id: r.id, ts: r.created_at, user: r.user_name,
     action: r.action, module: r.module, record: r.record_name
@@ -3236,7 +3252,25 @@ const PAGE_TITLES = {
   team:'Team', audit:'Audit Log', setup:'Setup', 'personal-settings':'Personal Settings'
 };
 
+function hasUnsavedForm() {
+  // Check if any visible form panel has user input
+  const panels = document.querySelectorAll('.detail-panel, .lf-form, [id$="-form"]');
+  for (const p of panels) {
+    if (p.style.display === 'none' || p.closest('[style*="display: none"]')) continue;
+    const inputs = p.querySelectorAll('input, textarea, select');
+    for (const inp of inputs) {
+      if (inp.type === 'checkbox' || inp.type === 'radio') continue;
+      if (inp.defaultValue !== undefined && inp.value !== inp.defaultValue) return true;
+    }
+  }
+  return false;
+}
+
 function navigateTo(page) {
+  // Warn if a form has unsaved changes
+  if (hasUnsavedForm()) {
+    if (!confirm('You have unsaved changes. Leave without saving?')) return;
+  }
   // Update URL hash
   if (window.location.hash !== '#/' + page) {
     history.pushState({ page }, '', '#/' + page);
@@ -3731,7 +3765,7 @@ function renderTable(type, q='') {
     document.getElementById('leads-body').innerHTML = rows.length ? rows.map(r=>`<tr>
       <td><input type="checkbox" style="accent-color:var(--accent)"></td>
       <td class="name-cell" onclick="openModal('lead','${r.id}')">${r.name||r.title||'—'}</td>
-      <td>${getCompanyName(r.companyId)||'—'}</td>
+      <td>${r.company||r.companyName||getCompanyName(r.companyId)||'—'}</td>
       <td class="mono">${r.email||'—'}</td>
       <td class="mono">${r.phone||'—'}</td>
       <td>${badge(r.stage)}</td>
