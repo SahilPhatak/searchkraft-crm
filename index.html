@@ -1064,16 +1064,16 @@ textarea { min-height: 80px; resize: vertical; }
   <div class="nav-section">
     <div class="nav-section-label">Sales</div>
     <button class="nav-item" data-page="leads">
-      <span class="icon">◎</span><span class="label"> Leads</span>
+      <span class="icon">◎</span><span class="label"> Leads</span><span class="nav-badge" id="nb-leads"></span>
     </button>
     <button class="nav-item" data-page="contacts">
-      <span class="icon">👤</span><span class="label"> Contacts</span>
+      <span class="icon">👤</span><span class="label"> Contacts</span><span class="nav-badge" id="nb-contacts"></span>
     </button>
     <button class="nav-item" data-page="companies">
-      <span class="icon">🏢</span><span class="label"> Accounts</span>
+      <span class="icon">🏢</span><span class="label"> Accounts</span><span class="nav-badge" id="nb-companies"></span>
     </button>
     <button class="nav-item" data-page="deals">
-      <span class="icon">💼</span><span class="label"> Deals</span>
+      <span class="icon">💼</span><span class="label"> Deals</span><span class="nav-badge" id="nb-deals"></span>
     </button>
     <button class="nav-item" data-page="commercial">
       <span class="icon">📄</span><span class="label"> Documents</span>
@@ -1083,10 +1083,10 @@ textarea { min-height: 80px; resize: vertical; }
   <div class="nav-section">
     <div class="nav-section-label">Activities</div>
     <button class="nav-item" data-page="tasks">
-      <span class="icon">✓</span><span class="label"> Tasks</span>
+      <span class="icon">✓</span><span class="label"> Tasks</span><span class="nav-badge" id="nb-tasks"></span>
     </button>
     <button class="nav-item" data-page="activities">
-      <span class="icon">📞</span><span class="label"> Calls &amp; Meetings</span>
+      <span class="icon">📞</span><span class="label"> Calls &amp; Meetings</span><span class="nav-badge" id="nb-activities"></span>
     </button>
   </div>
 
@@ -3181,6 +3181,7 @@ function navigateTo(page) {
   document.getElementById('topbar-title').textContent = PAGE_TITLES[page] || page;
   showViewSwitcher(page === 'dashboard');
   renderPage(page);
+  updateNavBadges();
 }
 
 // Handle browser back/forward
@@ -3201,6 +3202,18 @@ function _doNavigate(page) {
   document.getElementById('topbar-title').textContent = PAGE_TITLES[page] || page;
   showViewSwitcher(page === 'dashboard');
   renderPage(page);
+  updateNavBadges();
+}
+
+function updateNavBadges() {
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val > 0 ? val : ''; };
+  set('nb-leads',      DB.leads.length);
+  set('nb-contacts',   DB.contacts.length);
+  set('nb-companies',  DB.companies.length);
+  set('nb-deals',      DB.deals.length);
+  const openTasks = DB.tasks.filter(t => t.status !== 'Done').length;
+  set('nb-tasks', openTasks);
+  set('nb-activities', DB.activities.length);
 }
 
 function renderDashboard() {
@@ -3975,7 +3988,8 @@ const SETUP_USERS = [
   { id:'u17', name:'Meera Pillai',      email:'meera@searchkraft.in',      role:'User',        title:'Content Writer',    dept:'Marketing',    status:'active',  phone:'91-9900445566', avatar:'MP', color:'#d97706', online:false },
   { id:'u18', name:'Varun Agarwal',     email:'varun@searchkraft.in',      role:'Restricted',  title:'Trainee',           dept:'Sales',        status:'inactive',phone:'91-9811556677', avatar:'VA', color:'#6b7280', online:false },
   { id:'u19', name:'Lakshmi Balan',     email:'lakshmi@searchkraft.in',    role:'User',        title:'HR Executive',      dept:'HR',           status:'active',  phone:'91-9823667788', avatar:'LB', color:'#1a56db', online:false },
-  { id:'u20', name:'Tejas Bhatt',       email:'tejas@searchkraft.in',      role:'User',        title:'Finance Exec',      dept:'Finance',      status:'active',  phone:'91-9900778899', avatar:'TB', color:'#dc2626', online:true  }
+  { id:'u20', name:'Tejas Bhatt',       email:'tejas@searchkraft.in',      role:'User',        title:'Finance Exec',      dept:'Finance',      status:'active',  phone:'91-9900778899', avatar:'TB', color:'#dc2626', online:true  },
+  { id:'u21', name:'Sahil Phatak',      email:'sahil@searchkraft.in',      role:'Super Admin', title:'Founder',           dept:'Leadership',   status:'active',  phone:'91-9900000000', avatar:'SP', color:'#1a56db', online:true  }
 ];
 
 // Module access permissions per role
@@ -5834,6 +5848,7 @@ function doLogin(e) {
   localStorage.setItem('sk_logged_in', user.id);
   applyLoggedInUser(user);
   showAppPage();
+  updateNavBadges();
   navigateTo('dashboard');
 }
 
