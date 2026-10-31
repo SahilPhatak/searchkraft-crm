@@ -12,7 +12,8 @@ router.post('/login', async (req: Request, res: Response) => {
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user || !user.isActive) return res.status(401).json({ error: 'Invalid credentials' });
 
-  const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, { expiresIn: process.env.JWT_EXPIRES_IN || '7d' });
+  const expiresIn = (process.env.JWT_EXPIRES_IN || '7d') as any;
+  const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, { expiresIn });
   await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
 
   res.json({
