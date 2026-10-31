@@ -1,4 +1,6 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+</head><body>
 
 <title>SearchKraft - CRM</title>
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -2930,7 +2932,12 @@ textarea { min-height: 80px; resize: vertical; }
 //  SearchKraft - CRM — Application Logic
 // ============================================================
 
-// ---- DATA STORE ----
+// ---- SUPABASE CLIENT ----
+const SUPA_URL  = 'https://yeidlmkdwyiqavkxnlhs.supabase.co';
+const SUPA_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InllaWRsbWtkd3lpcWF2a3hubGhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM0MjE0OTAsImV4cCI6MjEwODk5NzQ5MH0.7yBHL273FCl9oQYmhxET5QKn3AbW44yh7Zxr2nrb2LE';
+const supabase  = window.supabase.createClient(SUPA_URL, SUPA_KEY);
+
+// ---- DATA STORE (local cache, synced from Supabase) ----
 let DB = {
   companies: [], contacts: [], leads: [], deals: [], activities: [],
   tasks: [], invoices: [], users: [], audit: []
@@ -3032,21 +3039,66 @@ function deliveryField(fieldId, currentVal) {
   return `<select id="f-${fieldId}">${names.map(m=>`<option ${(currentVal||cu)===m?'selected':''}>${m}</option>`).join('')}</select>`;
 }
 
-function save() {
-  try { localStorage.setItem('sk_db', JSON.stringify(DB)); } catch(e){}
-}
-function load() {
+// ---- SUPABASE DATA SYNC ----
+// save() — upserts a single record into Supabase, then updates local DB cache
+async function saveRecord(table, record) {
   try {
-    const d = localStorage.getItem('sk_db');
-    if (d) DB = { ...DB, ...JSON.parse(d) };
-  } catch(e){}
+    const { error } = await supabase.from(table).upsert(record, { onConflict: 'id' });
+    if (error) console.error('Supabase save error:', error.message);
+  } catch(e) { console.error('saveRecord failed:', e); }
 }
-function audit(action, module, record) {
-  DB.audit.unshift({
-    id: uid(), ts: new Date().toISOString(),
-    user: 'Admin', action, module, record
-  });
+
+async function deleteRecord(table, id) {
+  try {
+    const { error } = await supabase.from(table).delete().eq('id', id);
+    if (error) console.error('Supabase delete error:', error.message);
+  } catch(e) { console.error('deleteRecord failed:', e); }
+}
+
+// load() — fetches all CRM data from Supabase into local DB cache
+async function load() {
+  try {
+    const [leads, contacts, companies, deals, tasks, activities, users, audit] = await Promise.all([
+      supabase.from('leads').select('*').order('created_at', { ascending: false }),
+      supabase.from('contacts').select('*').order('created_at', { ascending: false }),
+      supabase.from('companies').select('*').order('created_at', { ascending: false }),
+      supabase.from('deals').select('*').order('created_at', { ascending: false }),
+      supabase.from('tasks').select('*').order('created_at', { ascending: false }),
+      supabase.from('activities').select('*').order('created_at', { ascending: false }),
+      supabase.from('profiles').select('*').order('created_at', { ascending: true }),
+      supabase.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(200),
+    ]);
+    if (leads.data)      DB.leads      = leads.data;
+    if (contacts.data)   DB.contacts   = contacts.data;
+    if (companies.data)  DB.companies  = companies.data;
+    if (deals.data)      DB.deals      = deals.data;
+    if (tasks.data)      DB.tasks      = tasks.data;
+    if (activities.data) DB.activities = activities.data;
+    if (users.data)      DB.users      = users.data;
+    if (audit.data)      DB.audit      = audit.data.map(r => ({
+      id: r.id, ts: r.created_at, user: r.user_name,
+      action: r.action, module: r.module, record: r.record_name
+    }));
+    updateNavBadges();
+  } catch(e) { console.error('load() failed:', e); }
+}
+
+// Legacy save() — kept for compatibility; actual saves go through saveRecord()
+function save() {
+  // no-op: data is saved directly to Supabase via saveRecord()
+}
+
+async function audit(action, module, record) {
+  const user = LOGGED_IN_USER;
+  const entry = {
+    action, module,
+    record_name: record || '',
+    user_name: user ? user.name : 'System',
+    user_id: user ? user.supaId || null : null
+  };
+  DB.audit.unshift({ id: uid(), ts: new Date().toISOString(), user: entry.user_name, action, module, record: entry.record_name });
   if (DB.audit.length > 500) DB.audit = DB.audit.slice(0, 500);
+  try { await supabase.from('audit_logs').insert(entry); } catch(e) {}
 }
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
 function fmt(n) { return n >= 1e7 ? '₹' + (n/1e7).toFixed(1)+'Cr' : n >= 1e5 ? '₹'+(n/1e5).toFixed(1)+'L' : '₹'+n.toLocaleString('en-IN'); }
@@ -3645,7 +3697,7 @@ function renderTable(type, q='') {
       <td>${r.industry||'—'}</td><td>${r.city||'—'}</td>
       <td>${badge(r.status)}</td><td>${r.bdOwner||'—'}</td>
       <td><button class="btn btn-ghost btn-sm" onclick="openModal('company','${r.id}')">Edit</button>
-          <button class="btn btn-ghost btn-sm" onclick="deleteRecord('companies','${r.id}')">Del</button></td>
+          <button class="btn btn-ghost btn-sm" onclick="deleteCRMRecord('companies','${r.id}')">Del</button></td>
     </tr>`).join('') : '<tr><td colspan="7" class="empty-state">No accounts found</td></tr>';
   }
 
@@ -3659,7 +3711,7 @@ function renderTable(type, q='') {
       <td>${r.title||'—'}</td><td>${getCompanyName(r.companyId)}</td>
       <td class="mono">${r.email||'—'}</td><td class="mono">${r.phone||'—'}</td>
       <td><button class="btn btn-ghost btn-sm" onclick="openModal('contact','${r.id}')">Edit</button>
-          <button class="btn btn-ghost btn-sm" onclick="deleteRecord('contacts','${r.id}')">Del</button></td>
+          <button class="btn btn-ghost btn-sm" onclick="deleteCRMRecord('contacts','${r.id}')">Del</button></td>
     </tr>`).join('') : '<tr><td colspan="7" class="empty-state">No contacts found</td></tr>';
   }
 
@@ -3676,7 +3728,7 @@ function renderTable(type, q='') {
       <td>${badge(r.stage)}</td>
       <td>${r.owner||'—'}</td>
       <td><button class="btn btn-ghost btn-sm" onclick="openModal('lead','${r.id}')">Edit</button>
-          <button class="btn btn-ghost btn-sm" onclick="deleteRecord('leads','${r.id}')">Del</button></td>
+          <button class="btn btn-ghost btn-sm" onclick="deleteCRMRecord('leads','${r.id}')">Del</button></td>
     </tr>`).join('') : '<tr><td colspan="8" class="empty-state">No leads found</td></tr>';
   }
 
@@ -3693,7 +3745,7 @@ function renderTable(type, q='') {
       <td>${fmtDate(r.closeDate)}</td>
       <td>${r.owner||'—'}</td>
       <td><button class="btn btn-ghost btn-sm" onclick="openModal('deal','${r.id}')">Edit</button>
-          <button class="btn btn-ghost btn-sm" onclick="deleteRecord('deals','${r.id}')">Del</button></td>
+          <button class="btn btn-ghost btn-sm" onclick="deleteCRMRecord('deals','${r.id}')">Del</button></td>
     </tr>`).join('') : '<tr><td colspan="8" class="empty-state">No deals found</td></tr>';
   }
 
@@ -3707,7 +3759,7 @@ function renderTable(type, q='') {
       <td>${badge(r.status)}</td>
       <td><button class="btn btn-ghost btn-sm" onclick="openModal('task','${r.id}')">Edit</button>
           ${r.status!=='Done'?`<button class="btn btn-ghost btn-sm" onclick="completeTask('${r.id}')">✓</button>`:''}
-          <button class="btn btn-ghost btn-sm" onclick="deleteRecord('tasks','${r.id}')">Del</button></td>
+          <button class="btn btn-ghost btn-sm" onclick="deleteCRMRecord('tasks','${r.id}')">Del</button></td>
     </tr>`).join('') : '<tr><td colspan="7" class="empty-state">No tasks</td></tr>';
   }
 
@@ -3756,7 +3808,7 @@ function renderActivities() {
         <div class="flex-row">
           <span class="badge ${a.type==='Call'?'badge-green':a.type==='Email'?'badge-blue':'badge-amber'}">${a.type}</span>
           <div class="act-text">${a.summary}</div>
-          <button class="btn btn-ghost btn-sm ml-auto" onclick="deleteRecord('activities','${a.id}')">✕</button>
+          <button class="btn btn-ghost btn-sm ml-auto" onclick="deleteCRMRecord('activities','${a.id}')">✕</button>
         </div>
         <div class="act-time" style="margin-top:4px">${a.contact||''} · ${a.company||''} · ${a.owner} · ${fmtDate(a.date)}</div>
       </div>
@@ -3779,7 +3831,7 @@ function renderCommercial() {
     <td style="color:${isOverdue(r.due)&&r.status!=='Paid'?'var(--red)':'inherit'}">${fmtDate(r.due)}</td>
     <td>${badge(r.status)}</td>
     <td><button class="btn btn-ghost btn-sm" onclick="openModal('invoice','${r.id}')">Edit</button>
-        <button class="btn btn-ghost btn-sm" onclick="deleteRecord('invoices','${r.id}')">Del</button></td>
+        <button class="btn btn-ghost btn-sm" onclick="deleteCRMRecord('invoices','${r.id}')">Del</button></td>
   </tr>`).join('') || '<tr><td colspan="8" class="empty-state">No invoices</td></tr>';
 }
 
@@ -5736,25 +5788,44 @@ function pluralize(t) {
   return map[t] || t+'s';
 }
 
-function upsert(collection, id, data) {
+// Table name map: JS collection name → Supabase table name
+const SUPA_TABLE = {
+  companies: 'companies', contacts: 'contacts', leads: 'leads',
+  deals: 'deals', tasks: 'tasks', activities: 'activities',
+  users: 'profiles', audit: 'audit_logs', invoices: null
+};
+
+async function upsert(collection, id, data) {
   if (id) {
     const i = DB[collection].findIndex(r=>r.id===id);
-    if (i>=0) { DB[collection][i] = { ...DB[collection][i], ...data }; audit('Update', collection, data.name||data.title||id); }
+    if (i>=0) { DB[collection][i] = { ...DB[collection][i], ...data }; }
+    audit('Update', collection, data.name||data.title||id);
   } else {
-    const rec = { id:uid(), ...data };
+    const rec = { id: uid(), created_at: new Date().toISOString(), ...data };
     DB[collection].unshift(rec);
     audit('Create', collection, data.name||data.title||rec.id);
+    id = rec.id;
+    data = rec;
   }
-  save();
+  // Persist to Supabase
+  const tbl = SUPA_TABLE[collection];
+  if (tbl) {
+    supabase.from(tbl).upsert({ id, ...data }, { onConflict: 'id' })
+      .then(({ error }) => { if (error) console.error('Supabase upsert error:', error.message); });
+  }
   closeModal();
   refreshCurrentPage();
 }
 
-function deleteRecord(collection, id) {
+async function deleteCRMRecord(collection, id) {
   const rec = DB[collection].find(r=>r.id===id);
   DB[collection] = DB[collection].filter(r=>r.id!==id);
   audit('Delete', collection, rec?.name||rec?.title||id);
-  save();
+  const tbl = SUPA_TABLE[collection];
+  if (tbl) {
+    supabase.from(tbl).delete().eq('id', id)
+      .then(({ error }) => { if (error) console.error('Supabase delete error:', error.message); });
+  }
   refreshCurrentPage();
 }
 
@@ -5838,62 +5909,106 @@ function showAppPage() {
   document.getElementById('login-page').style.display = 'none';
 }
 
-function doSignOut() {
-  localStorage.removeItem('sk_logged_in');
+function setLoginLoading(loading) {
+  const btn = document.querySelector('#auth-signin button[type=submit]');
+  if (btn) { btn.disabled = loading; btn.textContent = loading ? 'Signing in…' : 'Sign In →'; }
+}
+
+function setRegisterLoading(loading) {
+  const btn = document.querySelector('#auth-register button[type=submit]');
+  if (btn) { btn.disabled = loading; btn.textContent = loading ? 'Creating…' : 'Create Account →'; }
+}
+
+async function doSignOut() {
+  await supabase.auth.signOut();
   showLoginPage();
 }
 
-function doLogin(e) {
+async function doLogin(e) {
   e && e.preventDefault();
-  const email = document.getElementById('login-email').value.trim();
-  const errEl = document.getElementById('login-err');
-  const user = SETUP_USERS.find(u => u.email && u.email.toLowerCase() === email.toLowerCase());
-  if (!user) { errEl.textContent = 'No account found for that email.'; errEl.style.display='block'; return; }
+  const email    = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-pass').value;
+  const errEl    = document.getElementById('login-err');
+  if (!email) { errEl.textContent = 'Enter your email.'; errEl.style.display='block'; errEl.style.color='#dc2626'; return; }
+  if (!password) { errEl.textContent = 'Enter your password.'; errEl.style.display='block'; errEl.style.color='#dc2626'; return; }
+  setLoginLoading(true);
   errEl.style.display = 'none';
-  localStorage.setItem('sk_logged_in', String(user.id));
-  applyLoggedInUser(user);
-  showAppPage();
-  updateNavBadges();
-  navigateTo('dashboard');
-}
-
-function doRegister(e) {
-  e && e.preventDefault();
-  const name = document.getElementById('reg-name').value.trim();
-  const email = document.getElementById('reg-email').value.trim();
-  const errEl = document.getElementById('reg-err');
-  if (!name || !email) { errEl.textContent = 'Name and email are required.'; errEl.style.display='block'; return; }
-  // If email already exists, auto-switch to sign in tab with helpful message
-  if (SETUP_USERS.find(u => u.email && u.email.toLowerCase() === email.toLowerCase())) {
-    // Switch to sign in tab and pre-fill email
-    switchAuthTab('signin');
-    const loginEmailEl = document.getElementById('login-email');
-    if (loginEmailEl) loginEmailEl.value = email;
-    const loginErrEl = document.getElementById('login-err');
-    if (loginErrEl) { loginErrEl.textContent = 'Account already exists — signed in with your email below.'; loginErrEl.style.display='block'; loginErrEl.style.color='#0d9488'; }
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  setLoginLoading(false);
+  if (error) {
+    errEl.textContent = error.message === 'Invalid login credentials'
+      ? 'Wrong email or password. Check and try again.'
+      : error.message;
+    errEl.style.color = '#dc2626';
+    errEl.style.display = 'block';
     return;
   }
-  const newUser = { id: Date.now(), name, email, role: 'User', color: '#1a56db', avatar: name.split(' ').map(p=>p[0]).join('').substring(0,2).toUpperCase() };
-  SETUP_USERS.push(newUser);
-  save();
-  errEl.style.display = 'none';
-  localStorage.setItem('sk_logged_in', String(newUser.id));
-  applyLoggedInUser(newUser);
-  showAppPage();
-  updateNavBadges();
-  navigateTo('dashboard');
+  await onSignedIn(data.user);
 }
 
-// Check login state — runs before rendering anything
-(function checkAuth() {
-  const savedId = localStorage.getItem('sk_logged_in');
-  const user = savedId ? SETUP_USERS.find(u => String(u.id) === String(savedId)) : null;
-  if (!user) {
-    showLoginPage();
+async function doRegister(e) {
+  e && e.preventDefault();
+  const name     = document.getElementById('reg-name').value.trim();
+  const email    = document.getElementById('reg-email').value.trim();
+  const password = document.getElementById('reg-pass').value;
+  const errEl    = document.getElementById('reg-err');
+  if (!name || !email || !password) { errEl.textContent = 'All fields are required.'; errEl.style.display='block'; return; }
+  if (password.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; errEl.style.display='block'; return; }
+  setRegisterLoading(true);
+  errEl.style.display = 'none';
+  const { data, error } = await supabase.auth.signUp({
+    email, password,
+    options: { data: { name, role: 'User', color: '#1a56db' } }
+  });
+  setRegisterLoading(false);
+  if (error) {
+    errEl.textContent = error.message;
+    errEl.style.display = 'block';
     return;
   }
+  if (data.user && !data.session) {
+    // Email confirmation required
+    errEl.textContent = '✓ Check your email to confirm your account, then sign in.';
+    errEl.style.color = '#0d9488';
+    errEl.style.display = 'block';
+    return;
+  }
+  await onSignedIn(data.user);
+}
+
+// Called after successful Supabase auth — fetches profile + loads app
+async function onSignedIn(authUser) {
+  // Get profile from profiles table
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', authUser.id)
+    .single();
+
+  const user = profile ? {
+    id: profile.id, supaId: profile.id,
+    name: profile.name || authUser.email.split('@')[0],
+    email: profile.email || authUser.email,
+    role: profile.role || 'User',
+    title: profile.title || '',
+    dept: profile.dept || '',
+    avatar: profile.avatar || (profile.name||authUser.email).substring(0,2).toUpperCase(),
+    color: profile.color || '#1a56db',
+    status: profile.status || 'active',
+    online: true
+  } : {
+    id: authUser.id, supaId: authUser.id,
+    name: authUser.user_metadata?.name || authUser.email.split('@')[0],
+    email: authUser.email,
+    role: authUser.user_metadata?.role || 'User',
+    avatar: (authUser.user_metadata?.name || authUser.email).substring(0,2).toUpperCase(),
+    color: '#1a56db', status: 'active', online: true
+  };
+
   applyLoggedInUser(user);
   showAppPage();
+  // Load all CRM data from Supabase
+  await load();
   updateNavBadges();
   const page = getHashPage();
   if (page && page !== 'login') {
@@ -5903,7 +6018,22 @@ function doRegister(e) {
     history.replaceState({ page: 'dashboard' }, '', '#/dashboard');
     renderDashboard();
   }
+}
+
+// Check Supabase session on load — runs before rendering anything
+(async function checkAuth() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    showLoginPage();
+    return;
+  }
+  await onSignedIn(session.user);
 })();
+
+// Listen for auth state changes (tab focus, token refresh)
+supabase.auth.onAuthStateChange(async (event, session) => {
+  if (event === 'SIGNED_OUT') { showLoginPage(); }
+});
 </script>
 
 <!-- LOGIN PAGE -->
@@ -5929,7 +6059,7 @@ function doRegister(e) {
           <input id="login-email" type="email" required placeholder="you@searchkraft.com" style="width:100%;padding:10px 13px;border:1.5px solid #d1d5db;border-radius:9px;font-size:14px;outline:none;box-sizing:border-box" onfocus="this.style.borderColor='#1a56db'" onblur="this.style.borderColor='#d1d5db'">
         </div>
         <div style="margin-bottom:6px">
-          <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:5px">Password <span style="font-weight:400;color:#94a3b8">(any password works for demo)</span></label>
+          <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:5px">Password</label>
           <input id="login-pass" type="password" placeholder="••••••••" style="width:100%;padding:10px 13px;border:1.5px solid #d1d5db;border-radius:9px;font-size:14px;outline:none;box-sizing:border-box" onfocus="this.style.borderColor='#1a56db'" onblur="this.style.borderColor='#d1d5db'">
         </div>
         <div id="login-err" style="display:none;background:#fef2f2;border:1px solid #fca5a5;color:#dc2626;font-size:12px;padding:8px 12px;border-radius:8px;margin-bottom:10px"></div>
@@ -5973,22 +6103,27 @@ function switchAuthTab(tab) {
     ? 'flex:1;padding:8px;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;background:transparent;color:#64748b;transition:all 0.15s'
     : 'flex:1;padding:8px;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;background:#fff;color:#0f172a;box-shadow:0 1px 4px rgba(0,0,0,0.1);transition:all 0.15s';
 }
-// Populate demo user chips
+// Populate demo user chips — shows known team emails, pre-fills email field
 (function() {
   const list = document.getElementById('demo-user-list');
   if (!list) return;
-  SETUP_USERS.slice(0,5).forEach(u => {
+  const demoAccounts = [
+    { name:'Vikram Sharma',   email:'vikram@searchkraft.in',   role:'Super Admin', color:'#1a56db', avatar:'VS' },
+    { name:'Sahil Phatak',    email:'sahil@searchkraft.in',    role:'Super Admin', color:'#1a56db', avatar:'SP' },
+    { name:'Arjun Mehta',     email:'arjun@searchkraft.in',    role:'Manager',     color:'#059669', avatar:'AM' },
+    { name:'Priya Nair',      email:'priya@searchkraft.in',    role:'User',        color:'#dc2626', avatar:'PN' },
+    { name:'Poovizhi Devaraj',email:'poovizhi@searchkraft.in', role:'Admin',       color:'#7c3aed', avatar:'PD' },
+  ];
+  demoAccounts.forEach(u => {
     const chip = document.createElement('button');
     chip.type = 'button';
     chip.style.cssText = 'display:flex;align-items:center;gap:8px;padding:7px 10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;cursor:pointer;text-align:left;width:100%;transition:background 0.15s';
     chip.onmouseover = () => chip.style.background = '#eff6ff';
     chip.onmouseout = () => chip.style.background = '#f8fafc';
-    const initials = (u.avatar || u.name.split(' ').map(p=>p[0]).join('').substring(0,2)).toUpperCase();
-    chip.innerHTML = `<div style="width:28px;height:28px;border-radius:50%;background:${u.color||'#1a56db'};color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">${initials}</div><div style="text-align:left"><div style="font-size:12px;font-weight:600;color:#0f172a">${u.name}</div><div style="font-size:11px;color:#64748b">${u.email||''} · ${u.role||''}</div></div>`;
+    chip.innerHTML = `<div style="width:28px;height:28px;border-radius:50%;background:${u.color};color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">${u.avatar}</div><div style="text-align:left"><div style="font-size:12px;font-weight:600;color:#0f172a">${u.name}</div><div style="font-size:11px;color:#64748b">${u.email} · ${u.role}</div></div>`;
     chip.onclick = () => {
-      document.getElementById('login-email').value = u.email || '';
-      document.getElementById('login-pass').value = 'demo';
-      doLogin();
+      document.getElementById('login-email').value = u.email;
+      document.getElementById('login-pass').focus();
     };
     list.appendChild(chip);
   });
