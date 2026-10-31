@@ -1026,8 +1026,14 @@ textarea { min-height: 80px; resize: vertical; }
 .lf-addr-box .lf-grid { grid-template-columns: 200px 1fr 200px 1fr; }
 @media (max-width: 760px) {
   .lead-form-body { padding: 16px; }
-  .lf-grid { grid-template-columns: 1fr; }
-  .lf-full { grid-template-columns: 1fr; }
+  .lf-grid { grid-template-columns: 1fr 1fr !important; gap: 12px 8px; }
+  .lf-full { grid-template-columns: 1fr !important; }
+  .lf-field label { text-align: left; padding-right: 0; }
+}
+@media (max-width: 480px) {
+  .lf-grid { grid-template-columns: 1fr !important; }
+  .lead-form-topbar { flex-wrap: wrap; gap: 8px; padding: 10px 14px; }
+  .lead-form-topbar > div:last-child { width: 100%; justify-content: flex-end; }
 }
 
 /* scrollbar */
@@ -2078,7 +2084,7 @@ textarea { min-height: 80px; resize: vertical; }
               <table>
                 <thead><tr>
                   <th style="width:36px"><input type="checkbox" style="accent-color:var(--accent)"></th>
-                  <th>Lead Name</th><th>Company</th><th>Email</th><th>Phone</th><th>Stage</th><th>Owner</th><th>Actions</th>
+                  <th>Lead Name</th><th>Title</th><th>Company</th><th>Email</th><th>Phone</th><th>Owner</th><th>Actions</th>
                 </tr></thead>
                 <tbody id="leads-body"></tbody>
               </table>
@@ -3133,7 +3139,7 @@ function isToday(d) { return d && d.slice(0,10) === today(); }
 function isOverdue(d) { return d && d.slice(0,10) < today(); }
 
 // ---- STAGE CONFIGS ----
-const LEAD_STAGES = ['New','Contacted','Qualified','Proposal Sent','Negotiation','Won','Lost'];
+const LEAD_STAGES = ['New','Contacted','Pre Qualified','Qualified','Not Qualified','Junk Lead','Proposal Sent','Negotiation','Won','Lost','Lost Lead'];
 const DEAL_STAGES = ['Qualification','Needs Analysis','Value Proposition','Identify Decision Maker','Perception Analysis','Proposal','Negotiation/Review','Closed Won','Closed Lost'];
 const BADGE_MAP = {
   'Active':'badge-green','Prospect':'badge-blue','Inactive':'badge-gray',
@@ -3271,6 +3277,9 @@ function navigateTo(page) {
   if (hasUnsavedForm()) {
     if (!confirm('You have unsaved changes. Leave without saving?')) return;
   }
+  // Close any open full-page forms
+  const fp = document.getElementById('lead-form-overlay');
+  if (fp) fp.style.display = 'none';
   // Update URL hash
   if (window.location.hash !== '#/' + page) {
     history.pushState({ page }, '', '#/' + page);
@@ -3724,7 +3733,7 @@ function renderCalendarGrid() {
 }
 
 // ---- GENERIC TABLE RENDERERS ----
-function getCompanyName(id) { return DB.companies.find(c=>c.id===id)?.name||'—'; }
+function getCompanyName(id) { return DB.companies.find(c=>c.id===id)?.name||''; }
 
 function renderTable(type, q='') {
   const Q = (q||'').toLowerCase();
@@ -3765,10 +3774,10 @@ function renderTable(type, q='') {
     document.getElementById('leads-body').innerHTML = rows.length ? rows.map(r=>`<tr>
       <td><input type="checkbox" style="accent-color:var(--accent)"></td>
       <td class="name-cell" onclick="openModal('lead','${r.id}')">${r.name||r.title||'—'}</td>
+      <td>${r.title||'—'}</td>
       <td>${r.company||r.companyName||getCompanyName(r.companyId)||'—'}</td>
       <td class="mono">${r.email||'—'}</td>
       <td class="mono">${r.phone||'—'}</td>
-      <td>${badge(r.stage)}</td>
       <td>${r.owner||'—'}</td>
       <td><button class="btn btn-ghost btn-sm" onclick="openModal('lead','${r.id}')">Edit</button>
           <button class="btn btn-ghost btn-sm" onclick="deleteCRMRecord('leads','${r.id}')">Del</button></td>
@@ -5004,10 +5013,8 @@ const MODAL_FORMS = {
         <div class="lf-field"><label>First Name</label><div style="display:flex;gap:6px"><select id="f-salutation" style="width:90px;flex-shrink:0"><option value="">-None-</option>${['Mr.','Ms.','Mrs.','Dr.','Prof.'].map(s=>`<option ${r.salutation===s?'selected':''}>${s}</option>`).join('')}</select><input id="f-firstName" type="text" value="${r.firstName||''}"></div></div>
         <div class="lf-field"><label>Last Name *</label><input id="f-lastName" type="text" value="${r.lastName||''}" style="border-color:${r.lastName?'':'var(--red)'}"></div>
         <div class="lf-field"><label>Title / Designation</label><input id="f-title" type="text" value="${r.title||''}"></div>
-        <div class="lf-field"><label>Email</label><input id="f-email" type="email" value="${r.email||''}"></div>
-        <div class="lf-field"><label>Phone</label><input id="f-phone" type="tel" value="${r.phone||''}"></div>
-        <div class="lf-field"><label>Fax</label><input id="f-fax" type="tel" value="${r.fax||''}"></div>
-        <div class="lf-field"><label>Mobile</label><input id="f-mobile" type="tel" value="${r.mobile||''}"></div>
+        <div class="lf-field"><label>Email *</label><input id="f-email" type="email" required value="${r.email||''}" style="border-color:${r.email?'':'var(--red)'}"></div>
+        <div class="lf-field"><label>Phone *</label><input id="f-phone" type="tel" required value="${r.phone||''}" style="border-color:${r.phone?'':'var(--red)'}"></div>
         <div class="lf-field"><label>Website</label><input id="f-website" type="text" value="${r.website||''}"></div>
         <div class="lf-field"><label>Lead Source</label><select id="f-source"><option value="">-None-</option>${['Cold Call','Email','Existing Client','Partner','Public Relations','Direct Mail','Conference','Trade Show','Web Site','Internal Seminar','Employees','Google AdWords','Word of Mouth','Other'].map(s=>`<option ${r.source===s?'selected':''}>${s}</option>`).join('')}</select></div>
         <div class="lf-field"><label>Lead Status</label><select id="f-stage"><option value="">-None-</option>${LEAD_STAGES.map(s=>`<option ${r.stage===s?'selected':''}>${s}</option>`).join('')}</select></div>
@@ -5018,6 +5025,7 @@ const MODAL_FORMS = {
         <div class="lf-field" style="display:flex;align-items:center;gap:8px;padding-top:22px"><input type="checkbox" id="f-emailOptOut" ${r.emailOptOut?'checked':''} style="accent-color:var(--accent);width:15px;height:15px;flex-shrink:0"><label for="f-emailOptOut" style="margin:0;font-size:13px;color:var(--fg)">Email Opt Out</label></div>
         <div class="lf-field"><label>Skype ID</label><input id="f-skype" type="text" value="${r.skype||''}"></div>
         <div class="lf-field"><label>Date of Handover</label><input id="f-handoverDate" type="date" value="${r.handoverDate||''}"></div>
+        <div class="lf-field"><label>Follow-up Date</label><input id="f-followupDate" type="date" value="${r.followupDate||''}"></div>
         <div class="lf-field"><label>Secondary Email</label><input id="f-email2" type="email" value="${r.email2||''}"></div>
         <div class="lf-field"><label>Lane / Domain</label><input id="f-lane" type="text" value="${r.lane||''}"></div>
         <div class="lf-field"><label>Twitter</label><input id="f-twitter" type="text" placeholder="@" value="${r.twitter||''}"></div>
@@ -5060,12 +5068,12 @@ const MODAL_FORMS = {
         owner:v('owner'), stage:v('stage'), salutation:v('salutation'),
         firstName:v('firstName'), lastName:v('lastName'), title:v('title'),
         companyName:v('companyName'), clientName:v('clientName'),
-        email:v('email'), email2:v('email2'), phone:v('phone'), mobile:v('mobile'),
-        fax:v('fax'), website:v('website'), skype:v('skype'), twitter:v('twitter'),
+        email:v('email'), email2:v('email2'), phone:v('phone'),
+        website:v('website'), skype:v('skype'), twitter:v('twitter'),
         source:v('source'), industry:v('industry'), rating:v('rating'),
         numEmployees:Number(v('numEmployees')||0), annualRevenue:Number(v('annualRevenue')||0),
         value:Number(v('value')||0), lane:v('lane'), sourceSD:v('sourceSD'),
-        handoverDate:v('handoverDate'), month:v('month'),
+        handoverDate:v('handoverDate'), followupDate:v('followupDate'), month:v('month'),
         clientType:v('clientType'), numPositions:Number(v('numPositions')||0),
         compensation:v('compensation'), deliveryPOC:v('deliveryPOC'),
         agreement:v('agreement'),
@@ -5076,6 +5084,8 @@ const MODAL_FORMS = {
       };
       r.name = [r.salutation, r.firstName, r.lastName].filter(Boolean).join(' ') || r.clientName;
       if (!r.lastName && !r.clientName) return alert('Last Name or Client Name required');
+      if (!r.email) return alert('Email is required');
+      if (!r.phone) return alert('Phone is required');
       upsert('leads', id, r);
     }
   },
@@ -5749,9 +5759,9 @@ function closeModal() {
   document.getElementById('modal-overlay').style.display = 'none';
   const fp = document.getElementById('lead-form-overlay');
   if (fp) fp.style.display = 'none';
-  // Restore the current page
-  const contentArea = document.getElementById('content-area');
-  if (contentArea) contentArea.querySelectorAll('.page').forEach(p => p.style.display = '');
+  // Restore the current page (only show the active one)
+  const hash = window.location.hash.replace('#/','') || 'dashboard';
+  renderPage(hash);
   currentModal = null; editId = null;
 }
 
