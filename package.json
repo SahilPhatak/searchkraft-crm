@@ -1,8 +1,0 @@
-{
-  "name": "searchkraft-crm-frontend",
-  "version": "1.0.0",
-  "private": true,
-  "scripts": {
-    "build": "echo 'Static HTML - no build step required'"
-  }
-}
