@@ -336,9 +336,14 @@ tbody tr td.name-cell:hover { text-decoration: underline; }
 }
 
 /* ---- MOBILE: hide sidebar, full-width main ---- */
+#mobile-nav-overlay { display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:900 }
+#sidebar.mobile-open { display:flex !important;position:fixed;top:0;left:0;height:100%;z-index:950;box-shadow:4px 0 32px rgba(0,0,0,0.35) }
+.mob-hamburger { display:none;background:none;border:none;cursor:pointer;padding:6px;color:var(--fg);margin-right:4px }
 @media (max-width: 700px) {
   #sidebar { display: none !important; }
+  #sidebar.mobile-open { display:flex !important; }
   #main { width: 100vw; max-width: 100vw; }
+  .mob-hamburger { display:flex;align-items:center;justify-content:center }
   .topbar { padding: 0 14px; gap: 8px; }
   .topbar .search-bar { display: none; }
   .content { padding: 14px; }
@@ -1119,9 +1124,16 @@ textarea { min-height: 80px; resize: vertical; }
   </div>
 </nav>
 
+<!-- Mobile nav overlay -->
+<div id="mobile-nav-overlay" onclick="closeMobileNav()"></div>
+
 <!-- MAIN AREA -->
 <div id="main" style="display:none">
   <div class="topbar">
+    <!-- Hamburger for mobile -->
+    <button class="mob-hamburger" onclick="openMobileNav()" title="Menu">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
     <!-- View switcher (replaces plain title on dashboard) -->
     <div style="position:relative;display:flex;align-items:center;flex:1;min-width:0">
       <div class="topbar-title" id="topbar-title">Home</div>
@@ -3072,7 +3084,7 @@ async function load() {
     safe(DB_CLIENT.from('tasks').select('*').order('created_at', { ascending: false })),
     safe(DB_CLIENT.from('activities').select('*').order('created_at', { ascending: false })),
     safe(DB_CLIENT.from('profiles').select('*').order('created_at', { ascending: true })),
-    safe(DB_CLIENT.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(200)),
+    Promise.resolve([]), // audit_logs: not loaded from DB (in-memory session only)
   ]);
   // Normalize snake_case from Supabase → camelCase used throughout the app
   const norm = (r) => ({
@@ -3116,10 +3128,7 @@ async function load() {
   DB.tasks      = tasks.map(norm);
   DB.activities = activities.map(norm);
   DB.users      = users.map(norm);
-  DB.audit      = audit.map(r => ({
-    id: r.id, ts: r.created_at, user: r.user_name,
-    action: r.action, module: r.module, record: r.record_name
-  }));
+  // DB.audit stays in-memory only — not reloaded from Supabase
   updateNavBadges();
 }
 
@@ -3136,9 +3145,9 @@ async function audit(action, module, record) {
     user_name: user ? user.name : 'System',
     user_id: user ? user.supaId || null : null
   };
+  // Keep only in-memory; do not persist to Supabase automatically
   DB.audit.unshift({ id: uid(), ts: new Date().toISOString(), user: entry.user_name, action, module, record: entry.record_name });
-  if (DB.audit.length > 500) DB.audit = DB.audit.slice(0, 500);
-  try { await DB_CLIENT.from('audit_logs').insert(entry); } catch(e) {}
+  if (DB.audit.length > 200) DB.audit = DB.audit.slice(0, 200);
 }
 function uid() {
   // Generate a proper UUID v4 for Supabase compatibility
@@ -3233,6 +3242,7 @@ function seedData() {
 // ---- NAVIGATION ----
 document.querySelectorAll('.nav-item').forEach(btn => {
   btn.addEventListener('click', () => {
+    closeMobileNav();
     navigateTo(btn.dataset.page);
   });
 });
@@ -4951,9 +4961,7 @@ const MODAL_FORMS = {
         <div class="lf-field"><label>Asst Phone</label><input id="f-asstPhone" type="tel" value="${r.asstPhone||''}"></div>
         <div class="lf-field"></div>
         <div class="lf-field" style="display:flex;align-items:center;gap:8px;padding-top:4px"><label style="text-align:right;padding-right:12px">Email Opt Out</label><input type="checkbox" id="f-emailOptOut" ${r.emailOptOut?'checked':''} style="accent-color:var(--accent);width:15px;height:15px;flex-shrink:0;margin:0"></div>
-        <div class="lf-field"><label>Skype ID</label><input id="f-skype" type="text" value="${r.skype||''}"></div>
         <div class="lf-field"><label>Secondary Email</label><input id="f-email2" type="email" value="${r.email2||''}"></div>
-        <div class="lf-field"><label>Twitter</label><input id="f-twitter" type="text" placeholder="@" value="${r.twitter||''}"></div>
         <div class="lf-field"><label>Reporting To</label><input id="f-reportingTo" type="text" value="${r.reportingTo||''}"></div>
       </div>
 
@@ -5058,14 +5066,12 @@ const MODAL_FORMS = {
         <div class="lf-field"><label>No. of Employees</label><input id="f-numEmployees" type="number" value="${r.numEmployees||''}"></div>
         <div class="lf-field"><label>Annual Revenue (₹)</label><div style="display:flex;gap:6px;align-items:center"><span style="font-size:13px;color:var(--fg3);white-space:nowrap">Rs.</span><input id="f-annualRevenue" type="number" value="${r.annualRevenue||''}"></div></div>
         <div class="lf-field"><label>Rating</label><select id="f-rating"><option value="">-None-</option>${['Hot','Warm','Cold'].map(s=>`<option ${r.rating===s?'selected':''}>${s}</option>`).join('')}</select></div>
-        <div class="lf-field" style="display:flex;align-items:center;gap:8px;padding-top:22px"><input type="checkbox" id="f-emailOptOut" ${r.emailOptOut?'checked':''} style="accent-color:var(--accent);width:15px;height:15px;flex-shrink:0"><label for="f-emailOptOut" style="margin:0;font-size:13px;color:var(--fg)">Email Opt Out</label></div>
-        <div class="lf-field"><label>Skype ID</label><input id="f-skype" type="text" value="${r.skype||''}"></div>
+        <div class="lf-field"><label>Secondary Email</label><input id="f-email2" type="email" value="${r.email2||''}"></div>
         <div class="lf-field"><label>Date of Handover</label><input id="f-handoverDate" type="date" value="${r.handoverDate||''}"></div>
         <div class="lf-field"><label>Follow-up Date</label><input id="f-followupDate" type="date" value="${r.followupDate||''}"></div>
-        <div class="lf-field"><label>Secondary Email</label><input id="f-email2" type="email" value="${r.email2||''}"></div>
         <div class="lf-field"><label>Lane / Domain</label><input id="f-lane" type="text" value="${r.lane||''}"></div>
-        <div class="lf-field"><label>Twitter</label><input id="f-twitter" type="text" placeholder="@" value="${r.twitter||''}"></div>
         <div class="lf-field"><label>Source – Sales & Delivery</label><input id="f-sourceSD" type="text" value="${r.sourceSD||''}"></div>
+        <div class="lf-field" style="display:flex;align-items:center;gap:8px;padding-top:22px"><input type="checkbox" id="f-emailOptOut" ${r.emailOptOut?'checked':''} style="accent-color:var(--accent);width:15px;height:15px;flex-shrink:0"><label for="f-emailOptOut" style="margin:0;font-size:13px;color:var(--fg)">Email Opt Out</label></div>
         <div class="lf-field"><label>Month</label><input id="f-month" type="text" placeholder="e.g. Oct 2026" value="${r.month||''}"></div>
         <div class="lf-field" style="display:flex;align-items:center;gap:8px;padding-top:22px"><input type="checkbox" id="f-handoverDone" ${r.handoverDone?'checked':''} style="accent-color:var(--accent);width:15px;height:15px;flex-shrink:0"><label for="f-handoverDone" style="margin:0;font-size:13px;color:var(--fg)">Handover Done</label></div>
         <div class="lf-field"><label>Client Name</label><input id="f-clientName" type="text" value="${r.clientName||''}"></div>
@@ -5105,7 +5111,7 @@ const MODAL_FORMS = {
         firstName:v('firstName'), lastName:v('lastName'), title:v('title'),
         companyName:v('companyName'), clientName:v('clientName'),
         email:v('email'), email2:v('email2'), phone:v('phone'),
-        website:v('website'), skype:v('skype'), twitter:v('twitter'),
+        website:v('website'),
         source:v('source'), industry:v('industry'), rating:v('rating'),
         numEmployees:Number(v('numEmployees')||0), annualRevenue:Number(v('annualRevenue')||0),
         value:Number(v('value')||0), lane:v('lane'), sourceSD:v('sourceSD'),
@@ -5254,6 +5260,18 @@ function toggleSidebar() {
   const sb = document.getElementById('sidebar');
   sb.classList.toggle('collapsed');
   localStorage.setItem('sk_sidebar_collapsed', sb.classList.contains('collapsed'));
+}
+function openMobileNav() {
+  const sb = document.getElementById('sidebar');
+  const ov = document.getElementById('mobile-nav-overlay');
+  sb.classList.add('mobile-open');
+  ov.style.display = 'block';
+}
+function closeMobileNav() {
+  const sb = document.getElementById('sidebar');
+  const ov = document.getElementById('mobile-nav-overlay');
+  sb.classList.remove('mobile-open');
+  ov.style.display = 'none';
 }
 
 // ── Create Panel ───────────────────────────────────────────
