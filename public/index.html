@@ -1036,6 +1036,7 @@ textarea { min-height: 80px; resize: vertical; }
   .lead-form-topbar > div:last-child { width: 100%; justify-content: flex-end; }
 }
 
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 /* scrollbar */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -1129,7 +1130,7 @@ textarea { min-height: 80px; resize: vertical; }
         <button id="view-switcher-btn" onclick="toggleViewDropdown(event)"
           style="display:flex;align-items:center;gap:7px;background:var(--surface);border:1.5px solid var(--border);border-radius:8px;padding:5px 12px;font-size:13px;font-weight:600;color:var(--fg);cursor:pointer;white-space:nowrap;transition:border-color 0.15s">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" id="view-switcher-icon" style="flex-shrink:0"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-          <span id="view-switcher-label">Vikram's Home</span>
+          <span id="view-switcher-label">My Home</span>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 9 12 15 6 9"/></svg>
         </button>
         <!-- Dropdown -->
@@ -1143,7 +1144,7 @@ textarea { min-height: 80px; resize: vertical; }
           <div class="view-opt" id="vopt-user" onclick="setDashView('user')"
             style="display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;font-size:13px;color:var(--fg2);transition:background 0.12s">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-            Vikram's Home
+            <span id="vopt-user-label">My Home</span>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" id="vopt-user-check" style="margin-left:auto"><polyline points="20 6 9 17 4 12"/></svg>
           </div>
           <div class="view-opt" id="vopt-manager" onclick="setDashView('manager')"
@@ -1317,15 +1318,24 @@ textarea { min-height: 80px; resize: vertical; }
             <div id="dash-welcome-name" style="font-size:26px;font-weight:700;letter-spacing:-0.4px">Welcome 👋</div>
             <div id="dash-welcome-date" style="font-size:14px;color:#94A3C4;margin-top:6px"></div>
           </div>
+          <button onclick="refreshDashboard()" title="Refresh data" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:7px 14px;color:#fff;font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.12)'">
+            <svg id="refresh-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            Refresh
+          </button>
         </div>
       </div>
 
       <!-- 4 KPI Tiles -->
-      <div class="grid-4 mb-16" id="dash-kpi">
+      <div class="grid-4 mb-16" id="dash-kpi" style="grid-template-columns:repeat(5,1fr)">
+        <div class="stat-tile" onclick="navigateTo('leads')" style="cursor:pointer;border-left:4px solid #6366f1">
+          <div class="label">Leads This Month</div>
+          <div class="value" id="stat-leads-month" style="color:#6366f1">0</div>
+          <div class="sub">Created in <span id="stat-month-name"></span></div>
+        </div>
         <div class="stat-tile" onclick="navigateTo('deals')" style="cursor:pointer;border-left:4px solid #3b82f6">
           <div class="label">Deals This Month</div>
           <div class="value" id="stat-deals-month" style="color:#3b82f6">0</div>
-          <div class="sub" id="stat-deals-month-sub">Created in <span id="stat-month-name"></span></div>
+          <div class="sub" id="stat-deals-month-sub">Created in <span id="stat-month-name2"></span></div>
         </div>
         <div class="stat-tile" onclick="navigateTo('deals')" style="cursor:pointer;border-left:4px solid #10b981">
           <div class="label">Revenue This Month</div>
@@ -3299,6 +3309,16 @@ window.addEventListener('popstate', (e) => {
   if (page) _doNavigate(page);
 });
 
+// Auto-refresh data when tab gets focus (catches data added by other users)
+window.addEventListener('visibilitychange', async () => {
+  if (document.visibilityState === 'visible' && LOGGED_IN_USER) {
+    await load();
+    const curPage = getHashPage();
+    if (curPage === 'dashboard') renderDashboard();
+    else updateNavBadges();
+  }
+});
+
 function getHashPage() {
   const hash = window.location.hash; // e.g. #/leads
   return hash.replace(/^#\//, '') || 'dashboard';
@@ -3325,6 +3345,13 @@ function updateNavBadges() {
   set('nb-activities', DB.activities.length);
 }
 
+async function refreshDashboard() {
+  const icon = document.getElementById('refresh-icon');
+  if (icon) { icon.style.animation = 'spin 0.8s linear infinite'; icon.style.transformOrigin = 'center'; }
+  await load();
+  renderDashboard();
+  if (icon) icon.style.animation = '';
+}
 function renderDashboard() {
   const cu = getCurrentUser();
   showViewSwitcher(true);
@@ -3351,6 +3378,8 @@ function renderDashboard() {
   const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const monthStr = `${thisYear}-${String(thisMonth+1).padStart(2,'0')}`;
 
+  // Leads created this month (all users)
+  const leadsThisMonth = DB.leads.filter(l => (l.createdAt||'').startsWith(monthStr));
   // Deals created this month
   const dealsThisMonth = DB.deals.filter(d => (d.createdAt||'').startsWith(monthStr));
   // Revenue this month (Closed Won)
@@ -3372,8 +3401,10 @@ function renderDashboard() {
   const lqLabel = `${qNames[(q-1+4)%4]} ${(q===0)?thisYear-1:thisYear}`;
 
   const setEl = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
+  setEl('stat-leads-month', leadsThisMonth.length);
   setEl('stat-deals-month', dealsThisMonth.length);
   setEl('stat-month-name', monthNames[thisMonth]);
+  setEl('stat-month-name2', monthNames[thisMonth]);
   setEl('stat-revenue-month', fmt(revenueThisMonth));
   setEl('stat-overdue-tasks', overdueTasks.length);
   setEl('stat-winrate', lqWinRate+'%');
@@ -5277,7 +5308,11 @@ function setDashView(view) {
   currentDashView = view;
   document.getElementById('view-dropdown').style.display = 'none';
   // Update label + checkmarks
-  const labels = { classic: 'Classic View', user: 'Vikram\'s Home', manager: 'Manager\'s Home' };
+  const firstName = getCurrentUser() || 'My';
+  const labels = { classic: 'Classic View', user: firstName + "'s Home", manager: "Manager's Home" };
+  // Also update the dropdown option label
+  const uLabel = document.getElementById('vopt-user-label');
+  if (uLabel) uLabel.textContent = firstName + "'s Home";
   document.getElementById('view-switcher-label').textContent = labels[view];
   ['classic','user','manager'].forEach(v => {
     const el = document.getElementById('vopt-'+v);
