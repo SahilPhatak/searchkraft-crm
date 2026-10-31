@@ -5924,23 +5924,33 @@ async function doSignOut() {
   showLoginPage();
 }
 
+function showErr(elId, msg, isSuccess) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  el.textContent = msg;
+  if (isSuccess) {
+    el.style.cssText = 'display:block;font-size:12px;padding:8px 12px;border-radius:8px;margin:10px 0;background:#f0fdf4;border:1px solid #86efac;color:#166534';
+  } else {
+    el.style.cssText = 'display:block;font-size:12px;padding:8px 12px;border-radius:8px;margin:10px 0;background:#fef2f2;border:1px solid #fca5a5;color:#dc2626';
+  }
+}
+
 async function doLogin(e) {
   e && e.preventDefault();
   const email    = document.getElementById('login-email').value.trim();
   const password = document.getElementById('login-pass').value;
-  const errEl    = document.getElementById('login-err');
-  if (!email) { errEl.textContent = 'Enter your email.'; errEl.style.display='block'; errEl.style.color='#dc2626'; return; }
-  if (!password) { errEl.textContent = 'Enter your password.'; errEl.style.display='block'; errEl.style.color='#dc2626'; return; }
+  if (!email) { showErr('login-err', 'Enter your email address.'); return; }
+  if (!password) { showErr('login-err', 'Enter your password.'); return; }
   setLoginLoading(true);
-  errEl.style.display = 'none';
+  document.getElementById('login-err').style.display = 'none';
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   setLoginLoading(false);
   if (error) {
-    errEl.textContent = error.message === 'Invalid login credentials'
-      ? 'Wrong email or password. Check and try again.'
-      : error.message;
-    errEl.style.color = '#dc2626';
-    errEl.style.display = 'block';
+    showErr('login-err', error.message === 'Invalid login credentials'
+      ? 'Wrong email or password. Please try again.'
+      : error.message === 'Email not confirmed'
+      ? 'Please confirm your email first — check your inbox for a verification link.'
+      : error.message);
     return;
   }
   await onSignedIn(data.user);
@@ -5952,25 +5962,18 @@ async function doRegister(e) {
   const email    = document.getElementById('reg-email').value.trim();
   const password = document.getElementById('reg-pass').value;
   const errEl    = document.getElementById('reg-err');
-  if (!name || !email || !password) { errEl.textContent = 'All fields are required.'; errEl.style.display='block'; return; }
-  if (password.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; errEl.style.display='block'; return; }
+  if (!name || !email || !password) { showErr('reg-err', 'All fields are required.'); return; }
+  if (password.length < 6) { showErr('reg-err', 'Password must be at least 6 characters.'); return; }
   setRegisterLoading(true);
-  errEl.style.display = 'none';
+  document.getElementById('reg-err').style.display = 'none';
   const { data, error } = await supabase.auth.signUp({
     email, password,
     options: { data: { name, role: 'User', color: '#1a56db' } }
   });
   setRegisterLoading(false);
-  if (error) {
-    errEl.textContent = error.message;
-    errEl.style.display = 'block';
-    return;
-  }
+  if (error) { showErr('reg-err', error.message); return; }
   if (data.user && !data.session) {
-    // Email confirmation required
-    errEl.textContent = '✓ Check your email to confirm your account, then sign in.';
-    errEl.style.color = '#0d9488';
-    errEl.style.display = 'block';
+    showErr('reg-err', '✓ Account created! Check your email to confirm, then sign in.', true);
     return;
   }
   await onSignedIn(data.user);
@@ -6038,96 +6041,122 @@ supabase.auth.onAuthStateChange(async (event, session) => {
 
 <!-- LOGIN PAGE -->
 <div id="login-page" style="display:flex;position:fixed;inset:0;background:linear-gradient(135deg,#0f1b3d 0%,#1a3a6b 50%,#0d2451 100%);z-index:9999;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,sans-serif;overflow-y:auto;padding:24px 16px">
-  <div style="background:#fff;border-radius:20px;padding:40px 40px 32px;width:100%;max-width:440px;box-shadow:0 32px 80px rgba(0,0,0,0.35)">
+  <div style="background:#fff;border-radius:20px;padding:40px 40px 32px;width:100%;max-width:420px;box-shadow:0 32px 80px rgba(0,0,0,0.35)">
     <!-- Logo -->
     <div style="text-align:center;margin-bottom:28px">
       <div style="display:inline-flex;align-items:center;justify-content:center;width:52px;height:52px;background:linear-gradient(135deg,#1a56db,#1e40af);border-radius:13px;margin-bottom:12px">
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
       </div>
       <div style="font-size:20px;font-weight:800;color:#0f172a;letter-spacing:-0.5px">SearchKraft CRM</div>
+      <div style="font-size:12px;color:#94a3b8;margin-top:4px">Sign in to your account</div>
     </div>
-    <!-- Tabs -->
-    <div style="display:flex;background:#f1f5f9;border-radius:10px;padding:3px;margin-bottom:24px">
-      <button id="tab-signin" onclick="switchAuthTab('signin')" style="flex:1;padding:8px;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;background:#fff;color:#0f172a;box-shadow:0 1px 4px rgba(0,0,0,0.1);transition:all 0.15s">Sign In</button>
-      <button id="tab-register" onclick="switchAuthTab('register')" style="flex:1;padding:8px;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;background:transparent;color:#64748b;transition:all 0.15s">Create Account</button>
-    </div>
-    <!-- Sign In Form -->
+
+    <!-- Sign In Panel -->
     <div id="auth-signin">
       <form onsubmit="doLogin(event)">
         <div style="margin-bottom:14px">
           <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:5px">Email address</label>
-          <input id="login-email" type="email" required placeholder="you@searchkraft.com" style="width:100%;padding:10px 13px;border:1.5px solid #d1d5db;border-radius:9px;font-size:14px;outline:none;box-sizing:border-box" onfocus="this.style.borderColor='#1a56db'" onblur="this.style.borderColor='#d1d5db'">
+          <input id="login-email" type="email" required autocomplete="email" placeholder="you@searchkraft.com"
+            style="width:100%;padding:10px 13px;border:1.5px solid #d1d5db;border-radius:9px;font-size:14px;outline:none;box-sizing:border-box"
+            onfocus="this.style.borderColor='#1a56db'" onblur="this.style.borderColor='#d1d5db'">
         </div>
-        <div style="margin-bottom:6px">
-          <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:5px">Password</label>
-          <input id="login-pass" type="password" placeholder="••••••••" style="width:100%;padding:10px 13px;border:1.5px solid #d1d5db;border-radius:9px;font-size:14px;outline:none;box-sizing:border-box" onfocus="this.style.borderColor='#1a56db'" onblur="this.style.borderColor='#d1d5db'">
+        <div style="margin-bottom:4px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+            <label style="font-size:12px;font-weight:600;color:#374151">Password</label>
+            <button type="button" onclick="switchAuthTab('forgot')" style="font-size:12px;color:#1a56db;background:none;border:none;cursor:pointer;padding:0;font-weight:500">Forgot password?</button>
+          </div>
+          <input id="login-pass" type="password" required autocomplete="current-password" placeholder="••••••••"
+            style="width:100%;padding:10px 13px;border:1.5px solid #d1d5db;border-radius:9px;font-size:14px;outline:none;box-sizing:border-box"
+            onfocus="this.style.borderColor='#1a56db'" onblur="this.style.borderColor='#d1d5db'">
         </div>
-        <div id="login-err" style="display:none;background:#fef2f2;border:1px solid #fca5a5;color:#dc2626;font-size:12px;padding:8px 12px;border-radius:8px;margin-bottom:10px"></div>
-        <button type="submit" style="width:100%;padding:11px;background:linear-gradient(135deg,#1a56db,#1e40af);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;margin-top:6px">Sign In →</button>
+        <div id="login-err" style="display:none;font-size:12px;padding:8px 12px;border-radius:8px;margin:10px 0"></div>
+        <button type="submit" id="login-btn" style="width:100%;padding:11px;background:linear-gradient(135deg,#1a56db,#1e40af);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;margin-top:8px;transition:opacity 0.15s">Sign In →</button>
       </form>
-      <div style="margin-top:20px;padding-top:18px;border-top:1px solid #f1f5f9">
-        <div style="font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Quick login — demo accounts</div>
-        <div style="display:flex;flex-direction:column;gap:5px" id="demo-user-list"></div>
-      </div>
+      <p style="text-align:center;margin-top:20px;font-size:13px;color:#64748b">
+        Don't have an account? <button type="button" onclick="switchAuthTab('register')" style="color:#1a56db;background:none;border:none;cursor:pointer;font-size:13px;font-weight:600;padding:0">Create one</button>
+      </p>
     </div>
-    <!-- Register Form -->
+
+    <!-- Create Account Panel -->
     <div id="auth-register" style="display:none">
       <form onsubmit="doRegister(event)">
         <div style="margin-bottom:14px">
           <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:5px">Full Name</label>
-          <input id="reg-name" type="text" required placeholder="Sahil Phatak" style="width:100%;padding:10px 13px;border:1.5px solid #d1d5db;border-radius:9px;font-size:14px;outline:none;box-sizing:border-box" onfocus="this.style.borderColor='#1a56db'" onblur="this.style.borderColor='#d1d5db'">
+          <input id="reg-name" type="text" required autocomplete="name" placeholder="Your full name"
+            style="width:100%;padding:10px 13px;border:1.5px solid #d1d5db;border-radius:9px;font-size:14px;outline:none;box-sizing:border-box"
+            onfocus="this.style.borderColor='#1a56db'" onblur="this.style.borderColor='#d1d5db'">
         </div>
         <div style="margin-bottom:14px">
           <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:5px">Email address</label>
-          <input id="reg-email" type="email" required placeholder="you@searchkraft.com" style="width:100%;padding:10px 13px;border:1.5px solid #d1d5db;border-radius:9px;font-size:14px;outline:none;box-sizing:border-box" onfocus="this.style.borderColor='#1a56db'" onblur="this.style.borderColor='#d1d5db'">
+          <input id="reg-email" type="email" required autocomplete="email" placeholder="you@searchkraft.com"
+            style="width:100%;padding:10px 13px;border:1.5px solid #d1d5db;border-radius:9px;font-size:14px;outline:none;box-sizing:border-box"
+            onfocus="this.style.borderColor='#1a56db'" onblur="this.style.borderColor='#d1d5db'">
         </div>
         <div style="margin-bottom:6px">
-          <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:5px">Password</label>
-          <input id="reg-pass" type="password" placeholder="••••••••" style="width:100%;padding:10px 13px;border:1.5px solid #d1d5db;border-radius:9px;font-size:14px;outline:none;box-sizing:border-box" onfocus="this.style.borderColor='#1a56db'" onblur="this.style.borderColor='#d1d5db'">
+          <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:5px">Password <span style="font-weight:400;color:#94a3b8">min 6 chars</span></label>
+          <input id="reg-pass" type="password" required autocomplete="new-password" placeholder="••••••••"
+            style="width:100%;padding:10px 13px;border:1.5px solid #d1d5db;border-radius:9px;font-size:14px;outline:none;box-sizing:border-box"
+            onfocus="this.style.borderColor='#1a56db'" onblur="this.style.borderColor='#d1d5db'">
         </div>
-        <div id="reg-err" style="display:none;background:#fef2f2;border:1px solid #fca5a5;color:#dc2626;font-size:12px;padding:8px 12px;border-radius:8px;margin-bottom:10px"></div>
-        <button type="submit" style="width:100%;padding:11px;background:linear-gradient(135deg,#0d9488,#0f766e);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;margin-top:6px">Create Account →</button>
+        <div id="reg-err" style="display:none;font-size:12px;padding:8px 12px;border-radius:8px;margin:10px 0"></div>
+        <button type="submit" id="reg-btn" style="width:100%;padding:11px;background:linear-gradient(135deg,#0d9488,#0f766e);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;margin-top:8px">Create Account →</button>
       </form>
+      <p style="text-align:center;margin-top:20px;font-size:13px;color:#64748b">
+        Already have an account? <button type="button" onclick="switchAuthTab('signin')" style="color:#1a56db;background:none;border:none;cursor:pointer;font-size:13px;font-weight:600;padding:0">Sign in</button>
+      </p>
+    </div>
+
+    <!-- Forgot Password Panel -->
+    <div id="auth-forgot" style="display:none">
+      <p style="font-size:13px;color:#64748b;margin:0 0 20px">Enter your email and we'll send you a password reset link.</p>
+      <form onsubmit="doForgotPassword(event)">
+        <div style="margin-bottom:14px">
+          <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:5px">Email address</label>
+          <input id="forgot-email" type="email" required autocomplete="email" placeholder="you@searchkraft.com"
+            style="width:100%;padding:10px 13px;border:1.5px solid #d1d5db;border-radius:9px;font-size:14px;outline:none;box-sizing:border-box"
+            onfocus="this.style.borderColor='#1a56db'" onblur="this.style.borderColor='#d1d5db'">
+        </div>
+        <div id="forgot-msg" style="display:none;font-size:12px;padding:8px 12px;border-radius:8px;margin-bottom:10px"></div>
+        <button type="submit" id="forgot-btn" style="width:100%;padding:11px;background:linear-gradient(135deg,#1a56db,#1e40af);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer">Send Reset Link →</button>
+      </form>
+      <p style="text-align:center;margin-top:20px;font-size:13px;color:#64748b">
+        <button type="button" onclick="switchAuthTab('signin')" style="color:#1a56db;background:none;border:none;cursor:pointer;font-size:13px;font-weight:600;padding:0">← Back to Sign In</button>
+      </p>
     </div>
   </div>
 </div>
 <script>
 function switchAuthTab(tab) {
-  const isSignin = tab === 'signin';
-  document.getElementById('auth-signin').style.display = isSignin ? '' : 'none';
-  document.getElementById('auth-register').style.display = isSignin ? 'none' : '';
-  document.getElementById('tab-signin').style.cssText = isSignin
-    ? 'flex:1;padding:8px;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;background:#fff;color:#0f172a;box-shadow:0 1px 4px rgba(0,0,0,0.1);transition:all 0.15s'
-    : 'flex:1;padding:8px;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;background:transparent;color:#64748b;transition:all 0.15s';
-  document.getElementById('tab-register').style.cssText = isSignin
-    ? 'flex:1;padding:8px;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;background:transparent;color:#64748b;transition:all 0.15s'
-    : 'flex:1;padding:8px;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;background:#fff;color:#0f172a;box-shadow:0 1px 4px rgba(0,0,0,0.1);transition:all 0.15s';
+  document.getElementById('auth-signin').style.display   = tab === 'signin'   ? '' : 'none';
+  document.getElementById('auth-register').style.display = tab === 'register' ? '' : 'none';
+  document.getElementById('auth-forgot').style.display   = tab === 'forgot'   ? '' : 'none';
+  // Pre-fill forgot email from sign-in email if available
+  if (tab === 'forgot') {
+    const e = document.getElementById('login-email').value;
+    if (e) document.getElementById('forgot-email').value = e;
+  }
 }
-// Populate demo user chips — shows known team emails, pre-fills email field
-(function() {
-  const list = document.getElementById('demo-user-list');
-  if (!list) return;
-  const demoAccounts = [
-    { name:'Vikram Sharma',   email:'vikram@searchkraft.in',   role:'Super Admin', color:'#1a56db', avatar:'VS' },
-    { name:'Sahil Phatak',    email:'sahil@searchkraft.in',    role:'Super Admin', color:'#1a56db', avatar:'SP' },
-    { name:'Arjun Mehta',     email:'arjun@searchkraft.in',    role:'Manager',     color:'#059669', avatar:'AM' },
-    { name:'Priya Nair',      email:'priya@searchkraft.in',    role:'User',        color:'#dc2626', avatar:'PN' },
-    { name:'Poovizhi Devaraj',email:'poovizhi@searchkraft.in', role:'Admin',       color:'#7c3aed', avatar:'PD' },
-  ];
-  demoAccounts.forEach(u => {
-    const chip = document.createElement('button');
-    chip.type = 'button';
-    chip.style.cssText = 'display:flex;align-items:center;gap:8px;padding:7px 10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;cursor:pointer;text-align:left;width:100%;transition:background 0.15s';
-    chip.onmouseover = () => chip.style.background = '#eff6ff';
-    chip.onmouseout = () => chip.style.background = '#f8fafc';
-    chip.innerHTML = `<div style="width:28px;height:28px;border-radius:50%;background:${u.color};color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">${u.avatar}</div><div style="text-align:left"><div style="font-size:12px;font-weight:600;color:#0f172a">${u.name}</div><div style="font-size:11px;color:#64748b">${u.email} · ${u.role}</div></div>`;
-    chip.onclick = () => {
-      document.getElementById('login-email').value = u.email;
-      document.getElementById('login-pass').focus();
-    };
-    list.appendChild(chip);
+
+async function doForgotPassword(e) {
+  e.preventDefault();
+  const email  = document.getElementById('forgot-email').value.trim();
+  const msgEl  = document.getElementById('forgot-msg');
+  const btn    = document.getElementById('forgot-btn');
+  btn.disabled = true; btn.textContent = 'Sending…';
+  msgEl.style.display = 'none';
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + window.location.pathname
   });
-})();
+  btn.disabled = false; btn.textContent = 'Send Reset Link →';
+  if (error) {
+    msgEl.style.background = '#fef2f2'; msgEl.style.border = '1px solid #fca5a5'; msgEl.style.color = '#dc2626';
+    msgEl.textContent = error.message;
+  } else {
+    msgEl.style.background = '#f0fdf4'; msgEl.style.border = '1px solid #86efac'; msgEl.style.color = '#166534';
+    msgEl.textContent = '✓ Reset link sent! Check your email inbox.';
+  }
+  msgEl.style.display = 'block';
+}
 </script>
 
 </body></html>
