@@ -5475,18 +5475,20 @@ function handleTopbarSearch(q) {
 
 function toggleSidebar() {
   const sb = document.getElementById('sidebar');
-  // On mobile (width ≤ 700): toggle mobile open/close
   if (window.innerWidth <= 860) {
-    if (sb.classList.contains('mobile-open')) {
-      closeMobileNav();
-    } else {
-      openMobileNav();
-    }
+    // Mobile: overlay toggle
+    if (sb.classList.contains('mobile-open')) { closeMobileNav(); } else { openMobileNav(); }
     return;
   }
-  // On desktop: collapse/expand
-  sb.classList.toggle('collapsed');
-  localStorage.setItem('sk_sidebar_collapsed', sb.classList.contains('collapsed'));
+  // Desktop: fully show or fully hide (no icon-strip mode)
+  if (sb.classList.contains('app-visible')) {
+    sb.classList.remove('app-visible');
+    localStorage.setItem('sk_sidebar_hidden', '1');
+  } else {
+    sb.classList.add('app-visible');
+    sb.classList.remove('collapsed');
+    localStorage.removeItem('sk_sidebar_hidden');
+  }
 }
 function openMobileNav() {
   const sb = document.getElementById('sidebar');
@@ -6009,7 +6011,15 @@ try {
   if (a) setAccent(a);
 } catch(e){ setMode('light'); }
 // Restore sidebar state
-try { if (localStorage.getItem('sk_sidebar_collapsed') === 'true') document.getElementById('sidebar').classList.add('collapsed'); } catch(e){}
+try {
+  const sb = document.getElementById('sidebar');
+  // Restore sidebar hidden state (new: fully hide/show, not icon-strip)
+  if (localStorage.getItem('sk_sidebar_hidden') === '1' && window.innerWidth > 860) {
+    sb.classList.remove('app-visible');
+  }
+  // Legacy: remove old collapsed class
+  sb.classList.remove('collapsed');
+} catch(e){}
 
 function v(id) { const el=document.getElementById('f-'+id); return el ? el.value : ''; }
 
