@@ -6205,19 +6205,20 @@ function refreshCurrentPage() {
 const qapBtn = document.getElementById('quick-add-btn');
 const qapPanel = document.getElementById('quick-add-panel');
 
-qapBtn.addEventListener('click', (e) => {
-  e.stopPropagation();
-  const isOpen = qapPanel.style.display !== 'none';
-  qapPanel.style.display = isOpen ? 'none' : 'block';
-  if (!isOpen) {
-    document.getElementById('qap-search').value = '';
-    filterQAP('');
-    setTimeout(() => document.getElementById('qap-search').focus(), 50);
-  }
-});
+if (qapBtn && qapPanel) {
+  qapBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isOpen = qapPanel.style.display !== 'none';
+    qapPanel.style.display = isOpen ? 'none' : 'block';
+    if (!isOpen) {
+      const qs = document.getElementById('qap-search');
+      if (qs) { qs.value = ''; filterQAP(''); setTimeout(() => qs.focus(), 50); }
+    }
+  });
+}
 
 document.addEventListener('click', (e) => {
-  if (!qapPanel.contains(e.target) && e.target !== qapBtn) {
+  if (qapPanel && qapBtn && !qapPanel.contains(e.target) && e.target !== qapBtn) {
     qapPanel.style.display = 'none';
   }
 });
@@ -6243,7 +6244,7 @@ function filterQAP(q) {
 
 
 // ---- GLOBAL SEARCH ----
-document.getElementById('global-search').addEventListener('keydown', (e) => {
+document.getElementById('global-search')?.addEventListener('keydown', (e) => {
   if (e.key==='Enter') {
     const q = e.target.value.toLowerCase();
     if (!q) return;
@@ -6254,13 +6255,12 @@ document.getElementById('global-search').addEventListener('keydown', (e) => {
 });
 
 // Close modal on overlay click
-document.getElementById('modal-overlay').addEventListener('click', (e) => {
+document.getElementById('modal-overlay')?.addEventListener('click', (e) => {
   if (e.target===document.getElementById('modal-overlay')) closeModal();
 });
 
 // ---- INIT ----
-load();
-seedData();
+// NOTE: load() and seedData() are called inside onSignedIn() after auth — not here
 
 // ---- LOGIN / SIGN OUT ----
 function showLoginPage() {
@@ -6395,8 +6395,12 @@ async function onSignedIn(authUser) {
 
   applyLoggedInUser(user);
   showAppPage();
-  // Load CRM data (graceful — if tables don't exist yet, DB stays empty)
+  // Load CRM data from Supabase
   await load();
+  // Only seed if ALL tables are truly empty (first-time DB setup — no real data yet)
+  if (!DB.companies.length && !DB.leads.length && !DB.deals.length && !DB.contacts.length) {
+    seedData();
+  }
   syncSetupUsersFromDB(); // merge real DB users into Setup panel
   updateNavBadges();
   const page = getHashPage();
