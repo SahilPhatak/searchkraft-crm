@@ -1225,16 +1225,12 @@ textarea { min-height: 80px; resize: vertical; }
 
         </div>
       </div>
-      <!-- AI -->
-      <button class="tb-btn" title="AI Assistant">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2a4 4 0 0 1 4 4c0 1.5-.8 2.8-2 3.5V12l3 3H9l3-3V9.5A4 4 0 0 1 12 2z"/><path d="M9 15v2a3 3 0 0 0 6 0v-2"/></svg>
-      </button>
       <!-- Calendar -->
       <button class="tb-btn" title="Calendar" onclick="navigateTo('calendar')">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
       </button>
       <!-- Settings -->
-      <button class="tb-btn" title="Settings">
+      <button class="tb-btn" title="Settings" onclick="openPersonalSettings()">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       </button>
       <div class="tb-divider"></div>
@@ -1269,32 +1265,6 @@ textarea { min-height: 80px; resize: vertical; }
           <div style="display:flex;gap:4px;background:var(--surface2);border-radius:20px;padding:3px">
             <button onclick="setMode('light')" id="mode-day" style="flex:1;padding:6px 0;border-radius:16px;border:none;cursor:pointer;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:5px;background:#4A7FE8;color:#fff;transition:all 0.2s">☀️ Day</button>
             <button onclick="setMode('dark')" id="mode-night" style="flex:1;padding:6px 0;border-radius:16px;border:none;cursor:pointer;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:5px;background:none;color:var(--fg2);transition:all 0.2s">🌙 Night</button>
-            <button onclick="setMode('auto')" id="mode-auto" style="flex:1;padding:6px 0;border-radius:16px;border:none;cursor:pointer;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:5px;background:none;color:var(--fg2);transition:all 0.2s">🖥 Auto</button>
-          </div>
-
-          <!-- Themes -->
-          <div style="margin-top:12px">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-              <span style="font-size:13px;font-weight:700;color:var(--fg)">Themes</span>
-              <div style="display:flex;gap:10px;align-items:center;font-size:12px;color:var(--fg2)">
-                <label style="display:flex;align-items:center;gap:4px;cursor:pointer"><input type="radio" name="theme-variant" value="dark" checked style="accent-color:var(--accent)"> Dark</label>
-                <label style="display:flex;align-items:center;gap:4px;cursor:pointer"><input type="radio" name="theme-variant" value="lite" style="accent-color:var(--accent)"> Lite</label>
-              </div>
-            </div>
-            <div style="display:flex;gap:6px;flex-wrap:wrap">
-              <div onclick="setAccent('#1a1a2e')" style="width:26px;height:26px;border-radius:50%;background:#1a1a2e;cursor:pointer;border:2px solid #fff;display:flex;align-items:center;justify-content:center;transition:transform 0.15s" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2"><polyline points="2,6 5,9 10,3"/></svg></div>
-              <div onclick="setAccent('#0d9488')" style="width:26px;height:26px;border-radius:50%;background:#0d9488;cursor:pointer;border:2px solid transparent;transition:transform 0.15s" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'"></div>
-              <div onclick="setAccent('#16a34a')" style="width:26px;height:26px;border-radius:50%;background:#16a34a;cursor:pointer;border:2px solid transparent;transition:transform 0.15s" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'"></div>
-              <div onclick="setAccent('#65a30d')" style="width:26px;height:26px;border-radius:50%;background:#65a30d;cursor:pointer;border:2px solid transparent;transition:transform 0.15s" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'"></div>
-              <div onclick="setAccent('#ca8a04')" style="width:26px;height:26px;border-radius:50%;background:#ca8a04;cursor:pointer;border:2px solid transparent;transition:transform 0.15s" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'"></div>
-              <div onclick="setAccent('#dc2626')" style="width:26px;height:26px;border-radius:50%;background:#dc2626;cursor:pointer;border:2px solid transparent;transition:transform 0.15s" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'"></div>
-              <div onclick="setAccent('#be185d')" style="width:26px;height:26px;border-radius:50%;background:#be185d;cursor:pointer;border:2px solid transparent;transition:transform 0.15s" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'"></div>
-              <div onclick="setAccent('#9333ea')" style="width:26px;height:26px;border-radius:50%;background:#9333ea;cursor:pointer;border:2px solid transparent;transition:transform 0.15s" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'"></div>
-              <div onclick="setAccent('#7c3aed')" style="width:26px;height:26px;border-radius:50%;background:#7c3aed;cursor:pointer;border:2px solid transparent;transition:transform 0.15s" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'"></div>
-              <div onclick="setAccent('#2563eb')" style="width:26px;height:26px;border-radius:50%;background:#2563eb;cursor:pointer;border:2px solid transparent;transition:transform 0.15s" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'"></div>
-              <div onclick="setAccent('#0891b2')" style="width:26px;height:26px;border-radius:50%;background:#0891b2;cursor:pointer;border:2px solid transparent;transition:transform 0.15s" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'"></div>
-              <div onclick="setAccent('#92400e')" style="width:26px;height:26px;border-radius:50%;background:#92400e;cursor:pointer;border:2px solid transparent;transition:transform 0.15s" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'"></div>
-            </div>
           </div>
         </div>
 
@@ -1358,7 +1328,7 @@ textarea { min-height: 80px; resize: vertical; }
         <div class="stat-tile" onclick="navigateTo('deals')" style="cursor:pointer;border-left:4px solid #10b981">
           <div class="label">Revenue This Month</div>
           <div class="value" id="stat-revenue-month" style="color:#10b981;font-size:22px">₹0</div>
-          <div class="sub" id="stat-revenue-month-sub">Closed Won deals</div>
+          <div class="sub" id="stat-revenue-month-sub">Expected pipeline revenue</div>
         </div>
         <div class="stat-tile" onclick="navigateTo('tasks')" style="cursor:pointer;border-left:4px solid #ef4444">
           <div class="label">Overdue Tasks</div>
@@ -1918,7 +1888,7 @@ textarea { min-height: 80px; resize: vertical; }
     <!-- ===================== LEADS ===================== -->
     <div class="page page-crm" id="page-leads" style="display:none">
       <div style="display:flex;align-items:center;gap:0;border-bottom:1px solid var(--border);padding:0 24px;background:var(--surface)">
-        <div class="crm-subtab active-subtab">All Leads</div>
+        <div class="crm-subtab active-subtab" onclick="switchLeadTab('list',this)">All Leads</div>
         <div class="crm-subtab" onclick="switchLeadTab('board',this)">Pipeline Board</div>
         <span style="margin-left:8px;color:var(--fg3);font-size:16px;cursor:pointer;position:relative" onclick="toggleViewsDropdown(event,'leads-views-dd')">···
           <div id="leads-views-dd" class="views-dropdown" style="display:none">
@@ -2134,7 +2104,7 @@ textarea { min-height: 80px; resize: vertical; }
     <!-- ===================== DEALS ===================== -->
     <div class="page page-crm" id="page-deals" style="display:none">
       <div style="display:flex;align-items:center;gap:0;border-bottom:1px solid var(--border);padding:0 24px;background:var(--surface)">
-        <div class="crm-subtab active-subtab">All Deals</div>
+        <div class="crm-subtab active-subtab" onclick="switchDealTab('list',this)">All Deals</div>
         <div class="crm-subtab" onclick="switchDealTab('board',this)">Pipeline Board</div>
         <span style="margin-left:8px;color:var(--fg3);font-size:16px;cursor:pointer;position:relative" onclick="toggleViewsDropdown(event,'deals-views-dd')">···
           <div id="deals-views-dd" class="views-dropdown" style="display:none">
@@ -3461,10 +3431,10 @@ function renderDashboard() {
   const leadsThisMonth = DB.leads.filter(l => (l.createdAt||'').startsWith(monthStr));
   // Deals created this month
   const dealsThisMonth = DB.deals.filter(d => (d.createdAt||'').startsWith(monthStr));
-  // Revenue this month (Closed Won)
+  // Expected Revenue this month (all open deals, sum of expectedRevenue or amount*probability/100)
   const revenueThisMonth = DB.deals
-    .filter(d => d.stage==='Closed Won' && ((d.closeDate||'').startsWith(monthStr)||(d.createdAt||'').startsWith(monthStr)))
-    .reduce((a,d)=>a+Number(d.amount||d.value||0),0);
+    .filter(d => !['Closed Lost'].includes(d.stage))
+    .reduce((a,d)=>a+Number(d.expectedRevenue || Math.round((d.amount||0)*(d.probability||10)/100) || 0),0);
   // Overdue tasks
   const todayStr = today();
   const overdueTasks = DB.tasks.filter(t=>t.status!=='Done' && t.due && t.due < todayStr);
@@ -4961,6 +4931,13 @@ function filterViewsDD(inp, ddId) {
 document.addEventListener('click', function() {
   document.querySelectorAll('.views-dropdown').forEach(d => d.style.display = 'none');
 });
+function calcExpectedRevenue() {
+  const amt = Number(document.getElementById('f-amount')?.value||0);
+  const prob = Number(document.getElementById('f-probability')?.value||0);
+  const er = document.getElementById('f-expectedRevenue');
+  if (er) er.value = Math.round(amt * prob / 100);
+}
+
 let _dragDealId = null;
 function renderDealsBoard() {
   const stages = DEAL_STAGES;
@@ -5264,9 +5241,9 @@ const MODAL_FORMS = {
         <div class="lf-field"><label>Follow-up Date</label><input id="f-followupDate" type="date" value="${r.followupDate||''}"></div>
         <div class="lf-field"><label>Lane / Domain</label><input id="f-lane" type="text" value="${r.lane||''}"></div>
         <div class="lf-field"><label>Source – Sales & Delivery</label><input id="f-sourceSD" type="text" value="${r.sourceSD||''}"></div>
-        <div class="lf-field" style="display:flex;align-items:center;gap:8px;padding-top:22px"><input type="checkbox" id="f-emailOptOut" ${r.emailOptOut?'checked':''} style="accent-color:var(--accent);width:15px;height:15px;flex-shrink:0"><label for="f-emailOptOut" style="margin:0;font-size:13px;color:var(--fg)">Email Opt Out</label></div>
         <div class="lf-field"><label>Month</label><input id="f-month" type="text" placeholder="e.g. Oct 2026" value="${r.month||''}"></div>
-        <div class="lf-field" style="display:flex;align-items:center;gap:8px;padding-top:22px"><input type="checkbox" id="f-handoverDone" ${r.handoverDone?'checked':''} style="accent-color:var(--accent);width:15px;height:15px;flex-shrink:0"><label for="f-handoverDone" style="margin:0;font-size:13px;color:var(--fg)">Handover Done</label></div>
+        <div class="lf-field"><label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="f-emailOptOut" ${r.emailOptOut?'checked':''} style="accent-color:var(--accent);width:15px;height:15px;flex-shrink:0;margin:0"><span>Email Opt Out</span></label></div>
+        <div class="lf-field"><label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="f-handoverDone" ${r.handoverDone?'checked':''} style="accent-color:var(--accent);width:15px;height:15px;flex-shrink:0;margin:0"><span>Handover Done</span></label></div>
         <div class="lf-field"><label>Client Name</label><input id="f-clientName" type="text" value="${r.clientName||''}"></div>
         <div class="lf-field"><label>Compensation (Lower Side)</label><input id="f-compensation" type="text" value="${r.compensation||''}"></div>
         <div class="lf-field"><label>Client Type – New/Farming/Retention/Renew</label><input id="f-clientType" type="text" value="${r.clientType||''}"></div>
@@ -5333,15 +5310,15 @@ const MODAL_FORMS = {
       <div class="lf-section-title">Deal Information</div>
       <div class="lf-grid">
         <div class="lf-field"><label>Deal Owner</label>${ownerField('owner', r.owner, !!id)}</div>
-        <div class="lf-field"><label>Amount</label><div style="display:flex;align-items:center;gap:6px"><span style="font-size:13px;color:var(--fg2);white-space:nowrap">Rs.</span><input id="f-amount" type="number" style="flex:1" value="${r.amount||''}"></div></div>
+        <div class="lf-field"><label>Amount</label><div style="display:flex;align-items:center;gap:6px"><span style="font-size:13px;color:var(--fg2);white-space:nowrap">Rs.</span><input id="f-amount" type="number" style="flex:1" value="${r.amount||''}" oninput="calcExpectedRevenue()"></div></div>
         <div class="lf-field"><label>Deal Name *</label><input id="f-name" type="text" value="${r.name||''}"></div>
         <div class="lf-field"><label>Closing Date</label><input id="f-closeDate" type="date" placeholder="DD/MM/YYYY" value="${r.closeDate||''}"></div>
         <div class="lf-field"><label>Account Name</label><input id="f-companyName" type="text" value="${r.companyName||''}"></div>
         <div class="lf-field"><label>Stage</label><select id="f-stage">${DEAL_STAGES.map(s=>`<option ${r.stage===s?'selected':''}>${s}</option>`).join('')}</select></div>
         <div class="lf-field"><label>Type</label><select id="f-dealType"><option value="">-None-</option>${['New Business','Existing Business – Renewal','Existing Business – Upgrade','Existing Business – Downgrade'].map(s=>`<option ${r.dealType===s?'selected':''}>${s}</option>`).join('')}</select></div>
-        <div class="lf-field"><label>Probability (%)</label><input id="f-probability" type="number" min="0" max="100" value="${r.probability!==undefined?r.probability:10}"></div>
+        <div class="lf-field"><label>Probability (%)</label><input id="f-probability" type="number" min="0" max="100" value="${r.probability!==undefined?r.probability:10}" oninput="calcExpectedRevenue()"></div>
         <div class="lf-field"><label>Next Step</label><input id="f-nextStep" type="text" value="${r.nextStep||''}"></div>
-        <div class="lf-field"><label>Expected Revenue</label><div style="display:flex;align-items:center;gap:6px"><span style="font-size:13px;color:var(--fg2);white-space:nowrap">Rs.</span><input id="f-expectedRevenue" type="number" style="flex:1" value="${r.expectedRevenue||''}"></div></div>
+        <div class="lf-field"><label>Expected Revenue <span style="font-size:10px;color:var(--fg3)">(auto)</span></label><div style="display:flex;align-items:center;gap:6px"><span style="font-size:13px;color:var(--fg2);white-space:nowrap">Rs.</span><input id="f-expectedRevenue" type="number" style="flex:1;background:var(--surface2)" readonly value="${r.expectedRevenue||Math.round((r.amount||0)*(r.probability||10)/100)||''}"></div></div>
         <div class="lf-field"><label>Lead Source</label><select id="f-source"><option value="">-None-</option>${['Cold Call','Email','Existing Client','Partner','Conference','Trade Show','Web Site','Word of Mouth','Internal HR','LinkedIn','Referral','Other'].map(s=>`<option ${r.source===s?'selected':''}>${s}</option>`).join('')}</select></div>
         <div class="lf-field"><label>Campaign Source</label><input id="f-campaign" type="text" value="${r.campaign||''}"></div>
         <div class="lf-field"><label>Contact Name</label><input id="f-contactName" type="text" value="${r.contactName||''}"></div>
@@ -5354,11 +5331,13 @@ const MODAL_FORMS = {
         <textarea id="f-description" rows="4">${r.description||''}</textarea>
       </div>`,
     save: (id) => {
+      const amt = Number(v('amount')||0);
+      const prob = Number(v('probability')||0);
       const r = {
         name:v('name'), owner:v('owner'), companyName:v('companyName'), contactName:v('contactName'),
-        amount:Number(v('amount')||0), closeDate:v('closeDate'), stage:v('stage'),
-        probability:Number(v('probability')||0), source:v('source'), dealType:v('dealType'),
-        expectedRevenue:Number(v('expectedRevenue')||0),
+        amount:amt, closeDate:v('closeDate'), stage:v('stage'),
+        probability:prob, source:v('source'), dealType:v('dealType'),
+        expectedRevenue:Math.round(amt*prob/100),
         campaign:v('campaign'), nextStep:v('nextStep'), description:v('description')
       };
       if (!r.name) return alert('Deal name required');
