@@ -141,6 +141,9 @@ if (!window.supabase) {
 
 html, body { height: 100%; font-family: 'Inter', system-ui, sans-serif; }
 
+* { font-family: 'Inter', system-ui, sans-serif; }
+input, select, textarea, button { font-family: 'Inter', system-ui, sans-serif; font-size: 14px; }
+
 body {
   background: var(--bg);
   color: var(--fg);
@@ -337,11 +340,13 @@ tbody tr td.name-cell:hover { text-decoration: underline; }
 
 /* ---- MOBILE: hide sidebar, full-width main ---- */
 #mobile-nav-overlay { display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:900 }
+#sidebar { display: none; } /* hidden by default; shown via .app-visible or .mobile-open */
+#sidebar.app-visible { display: flex; } /* desktop: show normally */
 #sidebar.mobile-open { display:flex !important;position:fixed;top:0;left:0;height:100%;z-index:950;box-shadow:4px 0 32px rgba(0,0,0,0.35) }
 .mob-hamburger { display:none;background:none;border:none;cursor:pointer;padding:6px;color:var(--fg);margin-right:4px }
 @media (max-width: 700px) {
-  #sidebar { display: none !important; }
-  #sidebar.mobile-open { display:flex !important; }
+  #sidebar.app-visible { display: none !important; } /* hide on mobile even if app-visible */
+  #sidebar.mobile-open { display:flex !important; } /* but show when hamburger opened */
   #main { width: 100vw; max-width: 100vw; }
   .mob-hamburger { display:flex;align-items:center;justify-content:center }
   .topbar { padding: 0 14px; gap: 8px; }
@@ -785,6 +790,11 @@ textarea { min-height: 80px; resize: vertical; }
   background: var(--surface2);
   border-radius: 10px;
   border: 1px solid var(--border);
+  transition: background 0.15s;
+}
+.kanban-col.drag-over {
+  background: var(--accent-bg);
+  border-color: var(--accent);
 }
 .kanban-col-header {
   padding: 12px 14px 10px;
@@ -808,9 +818,10 @@ textarea { min-height: 80px; resize: vertical; }
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 11px 12px;
-  cursor: pointer;
+  cursor: grab;
 }
 .k-card:hover { border-color: var(--accent); }
+.k-card.dragging { opacity: 0.4; cursor: grabbing; }
 .k-card .k-name { font-size: 12px; font-weight: 500; color: var(--fg); margin-bottom: 4px; }
 .k-card .k-meta { font-size: 11px; color: var(--fg3); }
 .k-card .k-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 7px; }
@@ -3926,19 +3937,26 @@ function renderTable(type, q='') {
 }
 
 // ---- LEAD BOARD ----
+let _dragLeadId = null;
 function renderLeadsBoard() {
   const stages = LEAD_STAGES;
   const board = document.getElementById('leads-board');
   board.innerHTML = stages.map(s=>{
     const cards = DB.leads.filter(l=>l.stage===s);
-    return `<div class="kanban-col">
+    return `<div class="kanban-col" data-stage="${s}"
+      ondragover="event.preventDefault();this.classList.add('drag-over')"
+      ondragleave="this.classList.remove('drag-over')"
+      ondrop="dropLeadCard(event,'${s}')">
       <div class="kanban-col-header">
         <span class="col-label">${s}</span>
         <span class="col-count">${cards.length}</span>
       </div>
       <div class="kanban-cards">
         ${cards.map(c=>`
-          <div class="k-card" onclick="openModal('lead','${c.id}')">
+          <div class="k-card" draggable="true"
+            ondragstart="dragLeadCard(event,'${c.id}')"
+            ondragend="this.classList.remove('dragging')"
+            onclick="openModal('lead','${c.id}')">
             <div class="k-name">${c.title}</div>
             <div class="k-meta">${getCompanyName(c.companyId)}</div>
             <div class="k-tags"><span class="badge badge-gray">${fmt(c.value||0)}</span><span class="badge badge-blue">${c.owner||''}</span></div>
@@ -3946,6 +3964,24 @@ function renderLeadsBoard() {
       </div>
     </div>`;
   }).join('');
+}
+function dragLeadCard(e, id) {
+  _dragLeadId = id;
+  setTimeout(()=>{ const el=document.querySelector(`.k-card[ondragstart*="${id}"]`); if(el) el.classList.add('dragging'); },0);
+}
+async function dropLeadCard(e, newStage) {
+  e.preventDefault();
+  document.querySelectorAll('.kanban-col').forEach(c=>c.classList.remove('drag-over'));
+  if (!_dragLeadId) return;
+  const lead = DB.leads.find(l=>l.id===_dragLeadId);
+  if (!lead || lead.stage===newStage) { _dragLeadId=null; return; }
+  lead.stage = newStage;
+  // Persist to Supabase
+  await DB_CLIENT.from('leads').update({ stage: newStage, updated_at: new Date().toISOString() }).eq('id', lead.id);
+  audit('Update', 'Leads', lead.title||'Lead', `Stage → ${newStage}`);
+  _dragLeadId = null;
+  renderLeadsBoard();
+  renderTable('leads','');
 }
 
 // ---- ACTIVITIES ----
@@ -4304,7 +4340,14 @@ function renderUserDetail() {
           <span class="user-badge badge-${u.role === 'Super Admin' ? 'super' : u.role === 'Admin' ? 'admin' : u.role === 'Manager' ? 'manager' : u.role === 'Restricted' ? 'restricted' : 'user'}" style="font-size:12px;padding:3px 12px">${u.role}</span>
           <button onclick="openEditUserModal('${u.id}')" style="background:none;border:1.5px solid var(--border);border-radius:7px;padding:4px 12px;font-size:12px;cursor:pointer;color:var(--fg)">✎ Edit</button>
         </div>
-        <div style="font-size:13px;color:var(--fg2);margin-top:3px">${u.title} · ${u.dept} · Searchkraft AI Labs</div>
+        ${isAdminOrAbove() ? `<div style="display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap">
+          <label style="font-size:12px;color:var(--fg2);font-weight:500">Change Role:</label>
+          <select id="quick-role-${u.id}" style="padding:4px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:12px;color:var(--fg);background:var(--surface)">
+            ${(isSuperAdmin() ? ['Super Admin','Admin','Manager','User','Restricted'] : ['Admin','Manager','User','Restricted']).map(r=>`<option${r===u.role?' selected':''}>${r}</option>`).join('')}
+          </select>
+          <button onclick="quickSaveRole('${u.id}')" style="padding:4px 14px;background:var(--accent);color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer">Save Role</button>
+        </div>` : ''}
+        <div style="font-size:13px;color:var(--fg2);margin-top:8px">${u.title} · ${u.dept} · Searchkraft AI Labs</div>
         <div style="display:flex;align-items:center;gap:18px;margin-top:6px;font-size:12px;color:var(--fg3)">
           <span>✉ ${u.email}</span>
           <span>📞 ${u.phone}</span>
@@ -4503,6 +4546,32 @@ function syncSetupUsersFromDB() {
       SETUP_USERS.push({ id: dbU.id, name: dbU.name, email: dbU.email, role: dbU.role||'User', title: dbU.title||'', dept: dbU.dept||'', phone: dbU.phone||'', status: dbU.status||'active', avatar: (dbU.name||'').split(' ').map(p=>p[0]).join('').toUpperCase().slice(0,2), color: dbU.color||'#1a56db', online: false });
     }
   });
+}
+
+// Quick role save from user detail panel
+async function quickSaveRole(userId) {
+  const sel = document.getElementById('quick-role-' + userId);
+  if (!sel) return;
+  const newRole = sel.value;
+  if (newRole === 'Super Admin' && !isSuperAdmin()) {
+    showToast('Only a Super Admin can assign the Super Admin role.', '#dc2626'); return;
+  }
+  const u = SETUP_USERS.find(x => x.id === userId);
+  const dbUser = DB.users.find(x => x.id === userId);
+  if (!dbUser) { showToast('User not found in database.', '#dc2626'); return; }
+  try {
+    const { error } = await DB_CLIENT.from('profiles').update({ role: newRole, updated_at: new Date().toISOString() }).eq('id', dbUser.id);
+    if (error) throw error;
+    if (u) u.role = newRole;
+    dbUser.role = newRole;
+    renderUserList();
+    renderUserDetail();
+    showToast(`Role updated to ${newRole}`, '#2EA44F');
+    audit('Update', 'Users', dbUser.name||'User', `Role → ${newRole}`);
+  } catch(e) {
+    showToast('Failed to save role. Run migrate_super_admin.sql in Supabase.', '#dc2626');
+    console.error(e);
+  }
 }
 
 /* ============================================================
@@ -4892,19 +4961,26 @@ function filterViewsDD(inp, ddId) {
 document.addEventListener('click', function() {
   document.querySelectorAll('.views-dropdown').forEach(d => d.style.display = 'none');
 });
+let _dragDealId = null;
 function renderDealsBoard() {
   const stages = DEAL_STAGES;
   const board = document.getElementById('deals-board');
   board.innerHTML = stages.map(s=>{
     const cards = DB.deals.filter(d=>d.stage===s);
-    return `<div class="kanban-col">
+    return `<div class="kanban-col" data-stage="${s}"
+      ondragover="event.preventDefault();this.classList.add('drag-over')"
+      ondragleave="this.classList.remove('drag-over')"
+      ondrop="dropDealCard(event,'${s}')">
       <div class="kanban-col-header">
         <span class="col-label">${s}</span>
         <span class="col-count">${cards.length}</span>
       </div>
       <div class="kanban-cards">
         ${cards.map(c=>`
-          <div class="k-card" onclick="openModal('deal','${c.id}')">
+          <div class="k-card" draggable="true"
+            ondragstart="dragDealCard(event,'${c.id}')"
+            ondragend="this.classList.remove('dragging')"
+            onclick="openModal('deal','${c.id}')">
             <div class="k-name">${c.name||'—'}</div>
             <div class="k-meta">${c.companyName||'—'}</div>
             <div class="k-tags"><span class="badge badge-green">${fmt(c.amount||0)}</span><span class="badge badge-blue">${c.owner||''}</span>${c.closeDate?`<span class="badge badge-gray">${fmtDate(c.closeDate)}</span>`:''}</div>
@@ -4912,6 +4988,23 @@ function renderDealsBoard() {
       </div>
     </div>`;
   }).join('');
+}
+function dragDealCard(e, id) {
+  _dragDealId = id;
+  setTimeout(()=>{ const el=document.querySelector(`.k-card[ondragstart*="${id}"]`); if(el) el.classList.add('dragging'); },0);
+}
+async function dropDealCard(e, newStage) {
+  e.preventDefault();
+  document.querySelectorAll('.kanban-col').forEach(c=>c.classList.remove('drag-over'));
+  if (!_dragDealId) return;
+  const deal = DB.deals.find(d=>d.id===_dragDealId);
+  if (!deal || deal.stage===newStage) { _dragDealId=null; return; }
+  deal.stage = newStage;
+  await DB_CLIENT.from('deals').update({ stage: newStage, updated_at: new Date().toISOString() }).eq('id', deal.id);
+  audit('Update', 'Deals', deal.name||'Deal', `Stage → ${newStage}`);
+  _dragDealId = null;
+  renderDealsBoard();
+  renderTable('deals','');
 }
 function switchTaskTab(filter, el) {
   taskFilter = filter;
@@ -6169,14 +6262,19 @@ seedData();
 
 // ---- LOGIN / SIGN OUT ----
 function showLoginPage() {
-  document.getElementById('sidebar').style.display = 'none';
+  const sb = document.getElementById('sidebar');
+  sb.classList.remove('app-visible','mobile-open');
+  sb.style.display = '';
+  document.getElementById('mobile-nav-overlay').style.display = 'none';
   document.getElementById('main').style.display = 'none';
   document.getElementById('login-page').style.display = 'flex';
   history.replaceState({}, '', '#/login');
 }
 
 function showAppPage() {
-  document.getElementById('sidebar').style.display = 'flex';
+  // Don't set inline display on sidebar — let CSS handle it (mobile hides via media query)
+  document.getElementById('sidebar').style.display = '';
+  document.getElementById('sidebar').classList.add('app-visible');
   document.getElementById('main').style.display = 'flex';
   document.getElementById('login-page').style.display = 'none';
 }
@@ -6317,9 +6415,15 @@ async function onSignedIn(authUser) {
   await onSignedIn(session.user);
 })();
 
-// Listen for auth state changes (tab focus, token refresh)
+// Listen for auth state changes (tab focus, token refresh, cross-tab logout)
 DB_CLIENT.auth.onAuthStateChange(async (event, session) => {
-  if (event === 'SIGNED_OUT') { showLoginPage(); }
+  if (event === 'SIGNED_OUT') {
+    LOGGED_IN_USER = null;
+    showLoginPage();
+  } else if (event === 'TOKEN_REFRESHED' && session && !LOGGED_IN_USER) {
+    // Token refreshed but user not yet set (e.g. after page reload race)
+    await onSignedIn(session.user);
+  }
 });
 </script>
 
