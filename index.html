@@ -7,6 +7,11 @@ if (!window.supabase) {
 }
 </script>
 </head><body>
+<!-- Auth loading screen — shown until Supabase resolves session -->
+<div id="auth-loading" style="position:fixed;inset:0;background:#0f1b3d;z-index:99999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px">
+  <div style="width:44px;height:44px;border:3px solid rgba(255,255,255,0.2);border-top-color:#fff;border-radius:50%;animation:spin 0.8s linear infinite"></div>
+  <div style="color:rgba(255,255,255,0.6);font-size:13px;font-family:system-ui,sans-serif">Loading SearchKraft CRM…</div>
+</div>
 
 <title>SearchKraft - CRM</title>
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -3293,12 +3298,12 @@ function renderPage(pg) {
   if (pg==='dashboard') renderDashboard();
   else if (pg==='my-day') renderWorkqueue();
   else if (pg==='calendar') renderCalendar();
-  else if (pg==='companies') renderTable('companies','');
-  else if (pg==='contacts') renderTable('contacts','');
-  else if (pg==='leads') { renderLeadsBoard(); renderTable('leads',''); }
-  else if (pg==='deals') { renderDealsBoard(); renderTable('deals',''); }
-  else if (pg==='activities') renderActivities();
-  else if (pg==='tasks') renderTable('tasks','');
+  else if (pg==='companies') { markSectionSeen('companies'); renderTable('companies',''); }
+  else if (pg==='contacts')  { markSectionSeen('contacts');  renderTable('contacts',''); }
+  else if (pg==='leads')     { markSectionSeen('leads');     renderLeadsBoard(); renderTable('leads',''); }
+  else if (pg==='deals')     { markSectionSeen('deals');     renderDealsBoard(); renderTable('deals',''); }
+  else if (pg==='activities'){ markSectionSeen('activities');renderActivities(); }
+  else if (pg==='tasks')     { markSectionSeen('tasks');     renderTable('tasks',''); }
   else if (pg==='commercial') renderCommercial();
   else if (pg==='reports') renderReports();
   else if (pg==='team') renderTable('team','');
@@ -3387,15 +3392,31 @@ function _doNavigate(page) {
   updateNavBadges();
 }
 
+// Nav badges: show count of records created AFTER user last visited that section
+function getSeenKey(section) {
+  const uid = LOGGED_IN_USER ? (LOGGED_IN_USER.supaId || LOGGED_IN_USER.id || LOGGED_IN_USER.email) : 'anon';
+  return `sk_seen_${uid}_${section}`;
+}
+function markSectionSeen(section) {
+  try { localStorage.setItem(getSeenKey(section), new Date().toISOString()); } catch(e) {}
+  updateNavBadges();
+}
+function countNewRecords(records, section) {
+  try {
+    const seenAt = localStorage.getItem(getSeenKey(section));
+    if (!seenAt) return records.length; // never visited = all are new
+    return records.filter(r => (r.createdAt || r.created_at || '') > seenAt).length;
+  } catch(e) { return 0; }
+}
 function updateNavBadges() {
   const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val > 0 ? val : ''; };
-  set('nb-leads',      DB.leads.length);
-  set('nb-contacts',   DB.contacts.length);
-  set('nb-companies',  DB.companies.length);
-  set('nb-deals',      DB.deals.length);
+  set('nb-leads',     countNewRecords(DB.leads, 'leads'));
+  set('nb-contacts',  countNewRecords(DB.contacts, 'contacts'));
+  set('nb-companies', countNewRecords(DB.companies, 'companies'));
+  set('nb-deals',     countNewRecords(DB.deals, 'deals'));
   const openTasks = DB.tasks.filter(t => t.status !== 'Done').length;
   set('nb-tasks', openTasks);
-  set('nb-activities', DB.activities.length);
+  set('nb-activities', countNewRecords(DB.activities, 'activities'));
 }
 
 async function refreshDashboard() {
@@ -5317,7 +5338,7 @@ const MODAL_FORMS = {
         <div class="lf-field"><label>Amount</label><div style="display:flex;align-items:center;gap:6px"><span style="font-size:13px;color:var(--fg2);white-space:nowrap">Rs.</span><input id="f-amount" type="number" style="flex:1" value="${r.amount||''}" oninput="calcExpectedRevenue()"></div></div>
         <div class="lf-field"><label>Deal Name *</label><input id="f-name" type="text" value="${r.name||''}"></div>
         <div class="lf-field"><label>Closing Date</label><input id="f-closeDate" type="date" placeholder="DD/MM/YYYY" value="${r.closeDate||''}"></div>
-        <div class="lf-field"><label>Company / Account *</label><select id="f-companyName" style="border-color:${r.companyName?'':'var(--red)'}"><option value="">— Select Company —</option>${(DB.companies||[]).map(c=>`<option value="${c.name||c.id}" ${(r.companyName===c.name||r.companyName===c.id)?'selected':''}>${c.name}</option>`).join('')}${r.companyName&&!(DB.companies||[]).find(c=>c.name===r.companyName)?`<option value="${r.companyName}" selected>${r.companyName}</option>`:''}</select></div>
+        <div class="lf-field"><label>Company / Account *</label><input id="f-companyName" type="text" placeholder="Company name" value="${r.companyName||''}" style="border-color:${r.companyName?'':'var(--red)'}"></div>
         <div class="lf-field"><label>Stage</label><select id="f-stage">${DEAL_STAGES.map(s=>`<option ${r.stage===s?'selected':''}>${s}</option>`).join('')}</select></div>
         <div class="lf-field"><label>Type</label><select id="f-dealType"><option value="">-None-</option>${['New Business','Existing Business – Renewal','Existing Business – Upgrade','Existing Business – Downgrade'].map(s=>`<option ${r.dealType===s?'selected':''}>${s}</option>`).join('')}</select></div>
         <div class="lf-field"><label>Probability (%)</label><input id="f-probability" type="number" min="0" max="100" value="${r.probability!==undefined?r.probability:10}" oninput="calcExpectedRevenue()"></div>
@@ -6263,7 +6284,13 @@ document.getElementById('modal-overlay')?.addEventListener('click', (e) => {
 // NOTE: load() and seedData() are called inside onSignedIn() after auth — not here
 
 // ---- LOGIN / SIGN OUT ----
+function hideAuthLoading() {
+  const el = document.getElementById('auth-loading');
+  if (el) el.style.display = 'none';
+}
+
 function showLoginPage() {
+  hideAuthLoading();
   const sb = document.getElementById('sidebar');
   sb.classList.remove('app-visible','mobile-open');
   sb.style.display = '';
@@ -6274,10 +6301,11 @@ function showLoginPage() {
 }
 
 function showAppPage() {
+  hideAuthLoading();
   const sb = document.getElementById('sidebar');
-  sb.style.display = ''; // clear any inline style so CSS media queries control it
+  sb.style.display = '';
   sb.classList.add('app-visible');
-  sb.classList.remove('mobile-open'); // always start with sidebar closed on mobile
+  sb.classList.remove('mobile-open');
   document.getElementById('mobile-nav-overlay').style.display = 'none';
   document.getElementById('main').style.display = 'flex';
   document.getElementById('login-page').style.display = 'none';
@@ -6434,7 +6462,7 @@ DB_CLIENT.auth.onAuthStateChange(async (event, session) => {
 </script>
 
 <!-- LOGIN PAGE -->
-<div id="login-page" style="display:flex;position:fixed;inset:0;background:linear-gradient(135deg,#0f1b3d 0%,#1a3a6b 50%,#0d2451 100%);z-index:9999;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,sans-serif;overflow-y:auto;padding:24px 16px">
+<div id="login-page" style="display:none;position:fixed;inset:0;background:linear-gradient(135deg,#0f1b3d 0%,#1a3a6b 50%,#0d2451 100%);z-index:9999;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,sans-serif;overflow-y:auto;padding:24px 16px">
   <div style="background:#fff;border-radius:20px;padding:40px 40px 32px;width:100%;max-width:420px;box-shadow:0 32px 80px rgba(0,0,0,0.35)">
     <!-- Logo -->
     <div style="text-align:center;margin-bottom:28px">
