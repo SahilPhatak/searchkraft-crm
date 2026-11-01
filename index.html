@@ -1142,7 +1142,7 @@ textarea { min-height: 80px; resize: vertical; }
 <div id="main" style="display:none">
   <div class="topbar">
     <!-- Hamburger for mobile -->
-    <button class="mob-hamburger" onclick="openMobileNav()" title="Menu">
+    <button class="mob-hamburger" onclick="toggleMobileNav()" title="Menu">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
     </button>
     <!-- View switcher (replaces plain title on dashboard) -->
@@ -3329,6 +3329,8 @@ function hasUnsavedForm() {
 }
 
 function navigateTo(page) {
+  // Close mobile sidebar on navigation
+  if (window.innerWidth <= 700) closeMobileNav();
   // Block unauthorized pages
   if (!hasPageAccess(page)) {
     showToast('You don\'t have permission to access this section.', '#dc2626');
@@ -5458,6 +5460,14 @@ function closeMobileNav() {
   sb.classList.remove('mobile-open');
   ov.style.display = 'none';
 }
+function toggleMobileNav() {
+  const sb = document.getElementById('sidebar');
+  if (sb.classList.contains('mobile-open')) {
+    closeMobileNav();
+  } else {
+    openMobileNav();
+  }
+}
 
 // ── Create Panel ───────────────────────────────────────────
 function toggleCreatePanel(e) {
@@ -6264,9 +6274,11 @@ function showLoginPage() {
 }
 
 function showAppPage() {
-  // Don't set inline display on sidebar — let CSS handle it (mobile hides via media query)
-  document.getElementById('sidebar').style.display = '';
-  document.getElementById('sidebar').classList.add('app-visible');
+  const sb = document.getElementById('sidebar');
+  sb.style.display = ''; // clear any inline style so CSS media queries control it
+  sb.classList.add('app-visible');
+  sb.classList.remove('mobile-open'); // always start with sidebar closed on mobile
+  document.getElementById('mobile-nav-overlay').style.display = 'none';
   document.getElementById('main').style.display = 'flex';
   document.getElementById('login-page').style.display = 'none';
 }
@@ -6397,23 +6409,22 @@ async function onSignedIn(authUser) {
   }
 }
 
-// Check Supabase session on load — runs before rendering anything
-(async function checkAuth() {
-  const { data: { session } } = await DB_CLIENT.auth.getSession();
-  if (!session) {
-    showLoginPage();
-    return;
-  }
-  await onSignedIn(session.user);
-})();
-
-// Listen for auth state changes (tab focus, token refresh, cross-tab logout)
+// Auth init — rely entirely on onAuthStateChange; INITIAL_SESSION fires on every page load
+// including hard refresh, so we don't need a separate getSession() call.
+let _authInitialized = false;
 DB_CLIENT.auth.onAuthStateChange(async (event, session) => {
   if (event === 'SIGNED_OUT') {
+    _authInitialized = true;
     LOGGED_IN_USER = null;
     showLoginPage();
-  } else if ((event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') && session && !LOGGED_IN_USER) {
-    await onSignedIn(session.user);
+  } else if (session && (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
+    if (!_authInitialized || !LOGGED_IN_USER) {
+      _authInitialized = true;
+      await onSignedIn(session.user);
+    }
+  } else if (event === 'INITIAL_SESSION' && !session) {
+    _authInitialized = true;
+    showLoginPage();
   }
 });
 </script>
