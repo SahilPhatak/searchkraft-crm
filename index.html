@@ -2525,8 +2525,20 @@ textarea { min-height: 80px; resize: vertical; }
 
     <!-- ===================== AUDIT ===================== -->
     <div class="page page-pad" id="page-audit">
+      <!-- Super Admin badge + controls -->
+      <div id="audit-admin-banner" style="display:none;margin-bottom:16px;background:linear-gradient(135deg,#1e3a8a,#2563eb);border-radius:12px;padding:16px 20px;display:flex;align-items:center;gap:14px">
+        <span style="font-size:24px">🔐</span>
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:700;color:#fff">Super Admin — Activity Monitor</div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.75);margin-top:2px">You can see all user actions this session. Assign roles in Setup → Users.</div>
+        </div>
+        <button onclick="navigateTo('setup')" style="padding:7px 16px;background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.35);border-radius:8px;color:#fff;font-size:12px;font-weight:600;cursor:pointer">Manage Users →</button>
+      </div>
       <div class="card">
-        <div class="section-title">System Audit Log</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div class="section-title" style="margin:0">System Audit Log</div>
+          <div style="font-size:12px;color:var(--fg3)">Session activity only · refreshes on page visit</div>
+        </div>
         <div class="table-wrap" style="border:none;border-radius:0">
           <table>
             <thead><tr><th>Timestamp</th><th>User</th><th>Action</th><th>Module</th><th>Record</th></tr></thead>
@@ -2812,6 +2824,7 @@ textarea { min-height: 80px; resize: vertical; }
       <div style="display:flex;align-items:center;border-bottom:1px solid var(--border);background:var(--surface);padding:0 28px;gap:0;flex-shrink:0">
         <button class="ps-tab active" data-pstab="ps-personal" onclick="switchPsTab(this,'ps-personal')" style="padding:14px 20px;border:none;background:none;font-size:13px;font-weight:600;color:var(--accent);cursor:pointer;border-bottom:2px solid var(--accent);white-space:nowrap">Personal Settings</button>
         <button class="ps-tab" data-pstab="ps-accessibility" onclick="switchPsTab(this,'ps-accessibility')" style="padding:14px 20px;border:none;background:none;font-size:13px;font-weight:500;color:var(--fg2);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap">Accessibility</button>
+        <button class="ps-tab" data-pstab="ps-profile" onclick="switchPsTab(this,'ps-profile')" style="padding:14px 20px;border:none;background:none;font-size:13px;font-weight:500;color:var(--fg2);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap">My Permissions</button>
       </div>
 
       <!-- Personal Settings panel -->
@@ -2936,6 +2949,11 @@ textarea { min-height: 80px; resize: vertical; }
         </div>
       </div><!-- /ps-accessibility -->
 
+      <!-- Permissions summary — visible to all users -->
+      <div class="ps-panel" id="ps-profile" style="padding:24px 32px">
+        <div id="ps-permissions-box" style="background:var(--surface);border-radius:12px;padding:18px 20px;box-shadow:0 1px 4px rgba(0,0,0,0.05)"></div>
+      </div>
+
     </div><!-- /page-personal-settings -->
 
   </div><!-- /content -->
@@ -2994,6 +3012,34 @@ function getCurrentUserFull() {
   return LOGGED_IN_USER || {};
 }
 
+// ---- ROLE HELPERS ----
+function isSuperAdmin() { return LOGGED_IN_USER && LOGGED_IN_USER.role === 'Super Admin'; }
+function isAdminOrAbove() { return LOGGED_IN_USER && ['Super Admin','Admin'].includes(LOGGED_IN_USER.role); }
+function isManagerOrAbove() { return LOGGED_IN_USER && ['Super Admin','Admin','Manager'].includes(LOGGED_IN_USER.role); }
+function canDo(module, action) {
+  if (!LOGGED_IN_USER) return false;
+  const role = LOGGED_IN_USER.role || 'User';
+  const perms = ROLE_PERMS[role] || ROLE_PERMS['User'];
+  return (perms[module] || []).includes(action);
+}
+
+// Apply nav visibility based on role (called after login)
+function applyNavPermissions() {
+  // Admin-only nav items
+  const adminOnlyPages = ['audit', 'setup', 'team'];
+  adminOnlyPages.forEach(p => {
+    const btn = document.querySelector(`.nav-item[data-page="${p}"]`);
+    if (btn) btn.style.display = isAdminOrAbove() ? '' : 'none';
+  });
+}
+
+// Guard navigation — redirect if user doesn't have access
+function hasPageAccess(page) {
+  const adminOnlyPages = ['audit', 'setup', 'team'];
+  if (adminOnlyPages.includes(page) && !isAdminOrAbove()) return false;
+  return true;
+}
+
 function applyLoggedInUser(user) {
   LOGGED_IN_USER = user;
   const initials = user.avatar || (user.name.split(' ').map(p=>p[0]).join('').substring(0,2).toUpperCase());
@@ -3014,8 +3060,10 @@ function applyLoggedInUser(user) {
   const upInitials = document.getElementById('up-user-initials');
   if (upName) upName.textContent = user.name;
   if (upUid)  upUid.textContent  = 'User ID: ' + uid;
-  if (upRole) upRole.textContent = user.role;
+  if (upRole) upRole.textContent = user.role || 'User';
   if (upInitials) { upInitials.textContent = initials; upInitials.style.color = user.color; }
+  // Apply nav permissions after role is known
+  applyNavPermissions();
 
   // Welcome banner name (update immediately so no flash of old name)
   const welcomeNameEl = document.getElementById('dash-welcome-name');
@@ -3298,6 +3346,11 @@ function hasUnsavedForm() {
 }
 
 function navigateTo(page) {
+  // Block unauthorized pages
+  if (!hasPageAccess(page)) {
+    showToast('You don\'t have permission to access this section.', '#dc2626');
+    return;
+  }
   // Warn if a form has unsaved changes
   if (hasUnsavedForm()) {
     if (!confirm('You have unsaved changes. Leave without saving?')) return;
@@ -4080,13 +4133,19 @@ function renderReports() {
 
 // ---- AUDIT ----
 function renderAudit() {
-  document.getElementById('audit-body').innerHTML = DB.audit.slice(0,100).map(a=>`<tr>
-    <td class="mono text-xs">${new Date(a.ts).toLocaleString('en-IN')}</td>
-    <td>${a.user}</td>
-    <td><span class="badge badge-blue">${a.action}</span></td>
-    <td>${a.module}</td>
-    <td>${a.record}</td>
-  </tr>`).join('') || '<tr><td colspan="5" class="empty-state">No audit entries</td></tr>';
+  const banner = document.getElementById('audit-admin-banner');
+  if (banner) banner.style.display = isSuperAdmin() ? 'flex' : 'none';
+  const rows = DB.audit.slice(0, 200);
+  document.getElementById('audit-body').innerHTML = rows.length ? rows.map(a => {
+    const actionCls = a.action === 'Create' ? 'badge-green' : a.action === 'Delete' ? 'badge-red' : 'badge-blue';
+    return `<tr>
+      <td class="mono text-xs">${new Date(a.ts).toLocaleString('en-IN')}</td>
+      <td style="font-weight:500">${a.user || '—'}</td>
+      <td><span class="badge ${actionCls}">${a.action}</span></td>
+      <td style="text-transform:capitalize">${a.module}</td>
+      <td>${a.record || '—'}</td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="5" class="empty-state">No audit entries this session</td></tr>';
 }
 
 // ---- TAB HELPERS ----
@@ -4172,6 +4231,7 @@ function switchSetupTab(btn, tabId) {
   if (tabId === 'setup-users') {
     setTimeout(function() {
       currentSetupUser = null;
+      syncSetupUsersFromDB();
       renderUserList();
     }, 0);
   }
@@ -4363,9 +4423,10 @@ function userModalForm(u) {
     <div class="um-field"><label class="um-label">Department</label><input class="um-input" id="um-dept" value="${u?.dept || ''}"></div>
     <div class="um-field"><label class="um-label">Role / Access Level</label>
       <select class="um-select" id="um-role">
-        ${['Super Admin','Admin','Manager','User','Restricted'].map(r=>`<option${r === (u?.role||'User') ? ' selected' : ''}>${r}</option>`).join('')}
+        ${(isSuperAdmin() ? ['Super Admin','Admin','Manager','User','Restricted'] : ['Admin','Manager','User','Restricted']).map(r=>`<option${r === (u?.role||'User') ? ' selected' : ''}>${r}</option>`).join('')}
       </select>
     </div>
+    ${!isSuperAdmin() && u?.role === 'Super Admin' ? '<div style="font-size:11px;color:var(--red);margin-top:-8px">Only Super Admin can change a Super Admin\'s role.</div>' : ''}
     <div class="um-field"><label class="um-label">Status</label>
       <select class="um-select" id="um-status">
         <option${(!u || u.status==='active') ? ' selected' : ''}>active</option>
@@ -4378,7 +4439,10 @@ function userModalForm(u) {
     </div>`;
 }
 
-function saveUserFromModal(uid) {
+async function saveUserFromModal(uid) {
+  if (!isSuperAdmin() && !isAdminOrAbove()) {
+    showToast('Only Super Admin or Admin can edit users.', '#dc2626'); return;
+  }
   const fname = document.getElementById('um-fname').value.trim();
   const lname = document.getElementById('um-lname').value.trim();
   const name = (fname + ' ' + lname).trim();
@@ -4389,20 +4453,56 @@ function saveUserFromModal(uid) {
   const role = document.getElementById('um-role').value;
   const status = document.getElementById('um-status').value;
   if (!name || !email) { alert('Name and email are required'); return; }
+
+  // Only Super Admin can assign Super Admin role
+  if (role === 'Super Admin' && !isSuperAdmin()) {
+    showToast('Only a Super Admin can assign the Super Admin role.', '#dc2626'); return;
+  }
+
   if (uid) {
+    // Update in SETUP_USERS (local) and also in DB.users + Supabase profiles
     const u = SETUP_USERS.find(x => x.id === uid);
     if (u) { u.name = name; u.email = email; u.phone = phone; u.title = title; u.dept = dept; u.role = role; u.status = status; u.avatar = name.split(' ').map(p=>p[0]).join('').toUpperCase().slice(0,2); }
+    // Sync to Supabase profiles if this is a real user (UUID id)
+    const dbUser = DB.users.find(x => x.id === uid || x.email === email);
+    if (dbUser) {
+      try {
+        await DB_CLIENT.from('profiles').update({ name, phone, title, dept, role, status, updated_at: new Date().toISOString() }).eq('id', dbUser.id);
+        dbUser.name = name; dbUser.role = role; dbUser.title = title; dbUser.dept = dept; dbUser.phone = phone; dbUser.status = status;
+      } catch(e) { console.warn('Profile update failed:', e); }
+    }
   } else {
     const colors = ['#1a56db','#7c3aed','#0891b2','#059669','#dc2626','#ea580c','#d97706'];
     SETUP_USERS.push({ id:'u'+(SETUP_USERS.length+1), name, email, phone, title, dept, role, status, avatar: name.split(' ').map(p=>p[0]).join('').toUpperCase().slice(0,2), color: colors[Math.floor(Math.random()*colors.length)], online:false });
   }
   closeUserModal();
+  syncSetupUsersFromDB(); // refresh from live DB
   renderUserList();
   if (uid && currentSetupUser?.id === uid) renderUserDetail();
-  const t = document.createElement('div');
-  t.textContent = uid ? 'User updated' : 'User created';
-  t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#2EA44F;color:#fff;padding:10px 24px;border-radius:8px;font-size:13px;font-weight:600;z-index:9999';
-  document.body.appendChild(t); setTimeout(()=>t.remove(), 2000);
+  showToast(uid ? 'User updated' : 'User created', '#2EA44F');
+}
+
+// Merge real DB users into SETUP_USERS so the Users panel shows live data
+function syncSetupUsersFromDB() {
+  if (!DB.users || !DB.users.length) return;
+  DB.users.forEach(dbU => {
+    const existing = SETUP_USERS.find(x => x.email === dbU.email || x.id === dbU.id);
+    if (existing) {
+      existing.name = dbU.name || existing.name;
+      existing.role = dbU.role || existing.role;
+      existing.title = dbU.title || existing.title;
+      existing.dept = dbU.dept || existing.dept;
+      existing.phone = dbU.phone || existing.phone;
+      existing.status = dbU.status || existing.status;
+      existing.id = dbU.id || existing.id; // use real UUID
+      existing.avatar = (dbU.name||existing.name).split(' ').map(p=>p[0]).join('').toUpperCase().slice(0,2);
+      existing.color = dbU.color || existing.color;
+    }
+    // If not found, add as new entry
+    else {
+      SETUP_USERS.push({ id: dbU.id, name: dbU.name, email: dbU.email, role: dbU.role||'User', title: dbU.title||'', dept: dbU.dept||'', phone: dbU.phone||'', status: dbU.status||'active', avatar: (dbU.name||'').split(' ').map(p=>p[0]).join('').toUpperCase().slice(0,2), color: dbU.color||'#1a56db', online: false });
+    }
+  });
 }
 
 /* ============================================================
@@ -5573,7 +5673,7 @@ function refreshPersonalSettings() {
   // Role badge
   const rb = document.getElementById('ps-role-badge');
   if (rb) {
-    rb.textContent = u.role;
+    rb.textContent = u.role || 'User';
     const badgeMap = {
       'Super Admin': {bg:'#FFF3E0',color:'#E65100',border:'#FFCC02'},
       'Admin':       {bg:'#E3F2FD',color:'#1565C0',border:'#90CAF9'},
@@ -5583,6 +5683,28 @@ function refreshPersonalSettings() {
     };
     const b = badgeMap[u.role] || badgeMap['User'];
     rb.style.background = b.bg; rb.style.color = b.color; rb.style.borderColor = b.border;
+  }
+  // Permissions summary box
+  const psPermsEl = document.getElementById('ps-permissions-box');
+  if (psPermsEl) {
+    const role = u.role || 'User';
+    const perms = ROLE_PERMS[role] || ROLE_PERMS['User'];
+    const icons = { view:'👁', create:'✚', edit:'✎', delete:'🗑', manage:'⚙' };
+    const moduleLabels = { leads:'Leads', contacts:'Contacts', accounts:'Accounts', deals:'Deals', reports:'Reports', setup:'Setup' };
+    psPermsEl.innerHTML = `
+      <div style="font-size:13px;font-weight:700;color:var(--fg);margin-bottom:12px">Your Access Permissions — <span style="color:var(--accent)">${role}</span></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px">
+        ${Object.entries(moduleLabels).map(([mod,label]) => {
+          const acts = perms[mod] || [];
+          const hasAny = acts.length > 0;
+          return `<div style="background:${hasAny?'var(--bg)':'var(--red-bg)'};border:1px solid ${hasAny?'var(--border)':'var(--red)'};border-radius:8px;padding:10px 12px">
+            <div style="font-size:11px;font-weight:700;color:${hasAny?'var(--fg)':'var(--red)'};margin-bottom:6px">${label}</div>
+            ${hasAny ? acts.map(a=>`<span style="display:inline-block;font-size:10px;background:var(--accent-bg);color:var(--accent);border-radius:4px;padding:2px 6px;margin:2px">${icons[a]||''} ${a}</span>`).join('') : '<span style="font-size:11px;color:var(--red)">No access</span>'}
+          </div>`;
+        }).join('')}
+      </div>
+      ${isSuperAdmin() ? '<div style="margin-top:12px;font-size:12px;color:var(--fg3)">As Super Admin, you have full access to all modules including Setup, Audit Log and Team management.</div>' : ''}
+    `;
   }
 }
 
@@ -6173,6 +6295,7 @@ async function onSignedIn(authUser) {
   showAppPage();
   // Load CRM data (graceful — if tables don't exist yet, DB stays empty)
   await load();
+  syncSetupUsersFromDB(); // merge real DB users into Setup panel
   updateNavBadges();
   const page = getHashPage();
   if (page && page !== 'login') {
