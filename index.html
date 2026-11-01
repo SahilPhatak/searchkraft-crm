@@ -6290,12 +6290,18 @@ function hideAuthLoading() {
 }
 
 function showLoginPage() {
+  if (!document.getElementById('login-page')) {
+    // DOM not ready yet — wait for it
+    document.addEventListener('DOMContentLoaded', showLoginPage, { once: true });
+    return;
+  }
   hideAuthLoading();
   const sb = document.getElementById('sidebar');
-  sb.classList.remove('app-visible','mobile-open');
-  sb.style.display = '';
-  document.getElementById('mobile-nav-overlay').style.display = 'none';
-  document.getElementById('main').style.display = 'none';
+  if (sb) { sb.classList.remove('app-visible','mobile-open'); sb.style.display = ''; }
+  const overlay = document.getElementById('mobile-nav-overlay');
+  if (overlay) overlay.style.display = 'none';
+  const main = document.getElementById('main');
+  if (main) main.style.display = 'none';
   document.getElementById('login-page').style.display = 'flex';
   history.replaceState({}, '', '#/login');
 }
@@ -6303,12 +6309,13 @@ function showLoginPage() {
 function showAppPage() {
   hideAuthLoading();
   const sb = document.getElementById('sidebar');
-  sb.style.display = '';
-  sb.classList.add('app-visible');
-  sb.classList.remove('mobile-open');
-  document.getElementById('mobile-nav-overlay').style.display = 'none';
-  document.getElementById('main').style.display = 'flex';
-  document.getElementById('login-page').style.display = 'none';
+  if (sb) { sb.style.display = ''; sb.classList.add('app-visible'); sb.classList.remove('mobile-open'); }
+  const overlay = document.getElementById('mobile-nav-overlay');
+  if (overlay) overlay.style.display = 'none';
+  const main = document.getElementById('main');
+  if (main) main.style.display = 'flex';
+  const lp = document.getElementById('login-page');
+  if (lp) lp.style.display = 'none';
 }
 
 function setLoginLoading(loading) {
