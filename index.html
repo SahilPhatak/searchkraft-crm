@@ -10,7 +10,7 @@ if (!window.supabase) {
 
 <title>SearchKraft - CRM</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&display=swap">
 
 <style>
 /* ============================================================
@@ -139,10 +139,10 @@ if (!window.supabase) {
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-html, body { height: 100%; font-family: 'Inter', system-ui, sans-serif; }
+html, body { height: 100%; font-family: 'DM Sans', 'Inter', system-ui, sans-serif; }
 
-* { font-family: 'Inter', system-ui, sans-serif; }
-input, select, textarea, button { font-family: 'Inter', system-ui, sans-serif; font-size: 14px; }
+* { font-family: 'DM Sans', 'Inter', system-ui, sans-serif; }
+input, select, textarea, button { font-family: 'DM Sans', 'Inter', system-ui, sans-serif; font-size: 14px; }
 
 body {
   background: var(--bg);
@@ -3149,6 +3149,8 @@ async function load() {
     lostAt:           r.lostAt           || r.lost_at,
     lostReason:       r.lostReason       || r.lost_reason,
     completedAt:      r.completedAt      || r.completed_at,
+    expectedRevenue:  r.expectedRevenue  !== undefined ? r.expectedRevenue : r.expected_revenue,
+    probability:      r.probability      !== undefined ? r.probability     : r.probability_pct,
   });
   DB.leads      = leads.map(norm);
   DB.contacts   = contacts.map(norm);
@@ -5250,7 +5252,7 @@ const MODAL_FORMS = {
         <div class="lf-field"><label>Delivery POC</label>${deliveryField('deliveryPOC', r.deliveryPOC)}</div>
         <div class="lf-field"><label>Agreement</label><input id="f-agreement" type="text" value="${r.agreement||''}"></div>
         <div class="lf-field"><label>No. of Positions</label><input id="f-numPositions" type="number" value="${r.numPositions||''}"></div>
-        <div class="lf-field" style="display:flex;align-items:center;gap:8px;padding-top:22px"><input type="checkbox" id="f-commercialsSigned" ${r.commercialsSigned?'checked':''} style="accent-color:var(--accent);width:15px;height:15px;flex-shrink:0"><label for="f-commercialsSigned" style="margin:0;font-size:13px;color:var(--fg)">Commercials Signed</label></div>
+        <div class="lf-field"><label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="f-commercialsSigned" ${r.commercialsSigned?'checked':''} style="accent-color:var(--accent);width:15px;height:15px;flex-shrink:0;margin:0"><span>Commercials Signed</span></label></div>
       </div>
 
       <!-- Address Information -->
@@ -5265,7 +5267,7 @@ const MODAL_FORMS = {
           <div class="lf-field"><label>City</label><input id="f-city" type="text" value="${r.city||''}"></div>
           <div class="lf-field"><label>State / Province</label><select id="f-state"><option value="">-None-</option>${['Maharashtra','Karnataka','Delhi','Tamil Nadu','Telangana','Gujarat','West Bengal','Uttar Pradesh','Rajasthan','Punjab','Other'].map(s=>`<option ${r.state===s?'selected':''}>${s}</option>`).join('')}</select></div>
           <div class="lf-field"><label>Zip / Postal Code</label><input id="f-zip" type="text" value="${r.zip||''}"></div>
-          <div class="lf-field"><label>Coordinates</label><div style="display:flex;gap:8px"><input id="f-lat" type="text" placeholder="Latitude" value="${r.lat||''}"><input id="f-lng" type="text" placeholder="Longitude" value="${r.lng||''}"></div></div>
+          <div class="lf-field"></div>
         </div>
       </div>
 
@@ -5313,7 +5315,7 @@ const MODAL_FORMS = {
         <div class="lf-field"><label>Amount</label><div style="display:flex;align-items:center;gap:6px"><span style="font-size:13px;color:var(--fg2);white-space:nowrap">Rs.</span><input id="f-amount" type="number" style="flex:1" value="${r.amount||''}" oninput="calcExpectedRevenue()"></div></div>
         <div class="lf-field"><label>Deal Name *</label><input id="f-name" type="text" value="${r.name||''}"></div>
         <div class="lf-field"><label>Closing Date</label><input id="f-closeDate" type="date" placeholder="DD/MM/YYYY" value="${r.closeDate||''}"></div>
-        <div class="lf-field"><label>Account Name</label><input id="f-companyName" type="text" value="${r.companyName||''}"></div>
+        <div class="lf-field"><label>Company / Account *</label><select id="f-companyName" style="border-color:${r.companyName?'':'var(--red)'}"><option value="">— Select Company —</option>${(DB.companies||[]).map(c=>`<option value="${c.name||c.id}" ${(r.companyName===c.name||r.companyName===c.id)?'selected':''}>${c.name}</option>`).join('')}${r.companyName&&!(DB.companies||[]).find(c=>c.name===r.companyName)?`<option value="${r.companyName}" selected>${r.companyName}</option>`:''}</select></div>
         <div class="lf-field"><label>Stage</label><select id="f-stage">${DEAL_STAGES.map(s=>`<option ${r.stage===s?'selected':''}>${s}</option>`).join('')}</select></div>
         <div class="lf-field"><label>Type</label><select id="f-dealType"><option value="">-None-</option>${['New Business','Existing Business – Renewal','Existing Business – Upgrade','Existing Business – Downgrade'].map(s=>`<option ${r.dealType===s?'selected':''}>${s}</option>`).join('')}</select></div>
         <div class="lf-field"><label>Probability (%)</label><input id="f-probability" type="number" min="0" max="100" value="${r.probability!==undefined?r.probability:10}" oninput="calcExpectedRevenue()"></div>
@@ -5341,6 +5343,7 @@ const MODAL_FORMS = {
         campaign:v('campaign'), nextStep:v('nextStep'), description:v('description')
       };
       if (!r.name) return alert('Deal name required');
+      if (!r.companyName) return alert('Company / Account is required');
       upsert('deals', id, r);
     }
   },
@@ -5430,6 +5433,16 @@ function handleTopbarSearch(q) {
 
 function toggleSidebar() {
   const sb = document.getElementById('sidebar');
+  // On mobile (width ≤ 700): toggle mobile open/close
+  if (window.innerWidth <= 700) {
+    if (sb.classList.contains('mobile-open')) {
+      closeMobileNav();
+    } else {
+      openMobileNav();
+    }
+    return;
+  }
+  // On desktop: collapse/expand
   sb.classList.toggle('collapsed');
   localStorage.setItem('sk_sidebar_collapsed', sb.classList.contains('collapsed'));
 }
@@ -6350,7 +6363,7 @@ async function onSignedIn(authUser) {
 
   // Try to get richer profile from DB (only if table exists)
   try {
-    const { data: profile, error } = await supabase
+    const { data: profile, error } = await DB_CLIENT
       .from('profiles').select('*').eq('id', authUser.id).single();
     if (!error && profile) {
       user = {
@@ -6399,8 +6412,7 @@ DB_CLIENT.auth.onAuthStateChange(async (event, session) => {
   if (event === 'SIGNED_OUT') {
     LOGGED_IN_USER = null;
     showLoginPage();
-  } else if (event === 'TOKEN_REFRESHED' && session && !LOGGED_IN_USER) {
-    // Token refreshed but user not yet set (e.g. after page reload race)
+  } else if ((event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') && session && !LOGGED_IN_USER) {
     await onSignedIn(session.user);
   }
 });
