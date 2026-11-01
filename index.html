@@ -15,7 +15,7 @@ if (!window.supabase) {
 
 <title>SearchKraft - CRM</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 
 <style>
 /* ============================================================
@@ -668,7 +668,7 @@ td {
 tr:last-child td { border-bottom: none; }
 tr:hover td { background: var(--surface2); }
 td .primary { color: var(--fg); font-weight: 500; }
-td .mono { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--fg3); }
+td .mono { font-family: 'IBM Plex Mono', 'JetBrains Mono', monospace; font-size: 11px; color: var(--fg3); }
 
 /* ---- BADGES ---- */
 .badge {
@@ -899,7 +899,7 @@ textarea { min-height: 80px; resize: vertical; }
 .text-muted { color: var(--fg2); }
 .text-dim { color: var(--fg3); }
 .fw-600 { font-weight: 600; }
-.mono { font-family: 'JetBrains Mono', monospace; }
+.mono { font-family: 'IBM Plex Mono', 'JetBrains Mono', monospace; }
 .mb-16 { margin-bottom: 16px; }
 .mb-20 { margin-bottom: 20px; }
 .progress-bar { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
@@ -3154,8 +3154,9 @@ async function load() {
     lostAt:           r.lostAt           || r.lost_at,
     lostReason:       r.lostReason       || r.lost_reason,
     completedAt:      r.completedAt      || r.completed_at,
-    expectedRevenue:  r.expectedRevenue  !== undefined ? r.expectedRevenue : r.expected_revenue,
-    probability:      r.probability      !== undefined ? r.probability     : r.probability_pct,
+    amount:           r.amount           !== undefined ? r.amount           : r.value,
+    expectedRevenue:  r.expectedRevenue  !== undefined ? r.expectedRevenue  : r.expected_revenue,
+    probability:      r.probability      !== undefined ? r.probability      : r.probability_pct,
   });
   DB.leads      = leads.map(norm);
   DB.contacts   = contacts.map(norm);
@@ -5267,15 +5268,15 @@ const MODAL_FORMS = {
         <div class="lf-field"><label>Lane / Domain</label><input id="f-lane" type="text" value="${r.lane||''}"></div>
         <div class="lf-field"><label>Source – Sales & Delivery</label><input id="f-sourceSD" type="text" value="${r.sourceSD||''}"></div>
         <div class="lf-field"><label>Month</label><input id="f-month" type="text" placeholder="e.g. Oct 2026" value="${r.month||''}"></div>
-        <div class="lf-field"><label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="f-emailOptOut" ${r.emailOptOut?'checked':''} style="accent-color:var(--accent);width:15px;height:15px;flex-shrink:0;margin:0"><span>Email Opt Out</span></label></div>
-        <div class="lf-field"><label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="f-handoverDone" ${r.handoverDone?'checked':''} style="accent-color:var(--accent);width:15px;height:15px;flex-shrink:0;margin:0"><span>Handover Done</span></label></div>
+        <div class="lf-field"><label>Email Opt Out</label><input type="checkbox" id="f-emailOptOut" ${r.emailOptOut?'checked':''} style="accent-color:var(--accent);width:16px;height:16px;margin:0;cursor:pointer"></div>
+        <div class="lf-field"><label>Handover Done</label><input type="checkbox" id="f-handoverDone" ${r.handoverDone?'checked':''} style="accent-color:var(--accent);width:16px;height:16px;margin:0;cursor:pointer"></div>
         <div class="lf-field"><label>Client Name</label><input id="f-clientName" type="text" value="${r.clientName||''}"></div>
         <div class="lf-field"><label>Compensation (Lower Side)</label><input id="f-compensation" type="text" value="${r.compensation||''}"></div>
         <div class="lf-field"><label>Client Type – New/Farming/Retention/Renew</label><input id="f-clientType" type="text" value="${r.clientType||''}"></div>
         <div class="lf-field"><label>Delivery POC</label>${deliveryField('deliveryPOC', r.deliveryPOC)}</div>
         <div class="lf-field"><label>Agreement</label><input id="f-agreement" type="text" value="${r.agreement||''}"></div>
         <div class="lf-field"><label>No. of Positions</label><input id="f-numPositions" type="number" value="${r.numPositions||''}"></div>
-        <div class="lf-field"><label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="f-commercialsSigned" ${r.commercialsSigned?'checked':''} style="accent-color:var(--accent);width:15px;height:15px;flex-shrink:0;margin:0"><span>Commercials Signed</span></label></div>
+        <div class="lf-field"><label>Commercials Signed</label><input type="checkbox" id="f-commercialsSigned" ${r.commercialsSigned?'checked':''} style="accent-color:var(--accent);width:16px;height:16px;margin:0;cursor:pointer"></div>
       </div>
 
       <!-- Address Information -->
@@ -5360,7 +5361,7 @@ const MODAL_FORMS = {
       const prob = Number(v('probability')||0);
       const r = {
         name:v('name'), owner:v('owner'), companyName:v('companyName'), contactName:v('contactName'),
-        amount:amt, closeDate:v('closeDate'), stage:v('stage'),
+        amount:amt, value:amt, closeDate:v('closeDate'), stage:v('stage'),
         probability:prob, source:v('source'), dealType:v('dealType'),
         expectedRevenue:Math.round(amt*prob/100),
         campaign:v('campaign'), nextStep:v('nextStep'), description:v('description')
@@ -6145,7 +6146,7 @@ const SUPA_COLS = {
     'country','addr_line1','street','city','state','zip','lat','lng','description'],
   contacts: ['id','name','email','phone','title','dept','company','company_id','owner','owner_id','created_at','updated_at'],
   companies: ['id','name','industry','website','phone','employees','revenue','address','city','state','country','status','bd_owner','owner_id','created_at','updated_at'],
-  deals: ['id','name','stage','value','currency','close_date','probability','source','notes','contact','contact_id','company','company_id','owner','owner_id','won_at','lost_at','lost_reason','created_at','updated_at'],
+  deals: ['id','name','stage','amount','value','expected_revenue','currency','close_date','probability','source','notes','contact','contact_id','company','company_id','owner','owner_id','won_at','lost_at','lost_reason','created_at','updated_at'],
   tasks: ['id','title','description','due_date','status','priority','owner','owner_id','lead_id','contact_id','deal_id','completed_at','created_at','updated_at'],
   activities: ['id','type','subject','description','date','duration','outcome','owner','owner_id','lead_id','contact_id','deal_id','created_at'],
   profiles: ['id','name','email','role','title','dept','phone','avatar','color','status','online','created_at','updated_at'],
@@ -6163,7 +6164,7 @@ const CAMEL_TO_SNAKE = {
   clientName:'client_name', clientType:'client_type', deliveryPOC:'delivery_poc',
   numPositions:'num_positions', commercialsSigned:'commercials_signed',
   sourceSD:'source_sd', wonAt:'won_at', lostAt:'lost_at', lostReason:'lost_reason',
-  completedAt:'completed_at'
+  completedAt:'completed_at', expectedRevenue:'expected_revenue'
 };
 
 // Convert app data to Supabase payload: camelCase→snake_case, whitelist only known columns
@@ -6290,11 +6291,6 @@ function hideAuthLoading() {
 }
 
 function showLoginPage() {
-  if (!document.getElementById('login-page')) {
-    // DOM not ready yet — wait for it
-    document.addEventListener('DOMContentLoaded', showLoginPage, { once: true });
-    return;
-  }
   hideAuthLoading();
   const sb = document.getElementById('sidebar');
   if (sb) { sb.classList.remove('app-visible','mobile-open'); sb.style.display = ''; }
@@ -6451,19 +6447,29 @@ async function onSignedIn(authUser) {
 // Auth init — rely entirely on onAuthStateChange; INITIAL_SESSION fires on every page load
 // including hard refresh, so we don't need a separate getSession() call.
 let _authInitialized = false;
+
+// Helper: run fn after DOM is ready (or immediately if already ready)
+function whenDOMReady(fn) {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', fn, { once: true });
+  } else {
+    fn();
+  }
+}
+
 DB_CLIENT.auth.onAuthStateChange(async (event, session) => {
   if (event === 'SIGNED_OUT') {
     _authInitialized = true;
     LOGGED_IN_USER = null;
-    showLoginPage();
+    whenDOMReady(showLoginPage);
   } else if (session && (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
     if (!_authInitialized || !LOGGED_IN_USER) {
       _authInitialized = true;
-      await onSignedIn(session.user);
+      whenDOMReady(async () => { await onSignedIn(session.user); });
     }
   } else if (event === 'INITIAL_SESSION' && !session) {
     _authInitialized = true;
-    showLoginPage();
+    whenDOMReady(showLoginPage);
   }
 });
 </script>
