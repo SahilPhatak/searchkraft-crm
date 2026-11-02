@@ -3157,6 +3157,7 @@ async function load() {
     lostAt:           r.lostAt           || r.lost_at,
     lostReason:       r.lostReason       || r.lost_reason,
     completedAt:      r.completedAt      || r.completed_at,
+    relatedTo:        r.relatedTo        || r.related_to,
     amount:           (r.amount != null && r.amount !== '') ? r.amount : r.value,
     expectedRevenue:  (r.expectedRevenue != null && r.expectedRevenue !== '') ? r.expectedRevenue : r.expected_revenue,
     probability:      r.probability      !== undefined ? r.probability      : r.probability_pct,
@@ -3473,6 +3474,7 @@ function startRealtimeSync() {
     lostAt:           r.lostAt           || r.lost_at,
     lostReason:       r.lostReason       || r.lost_reason,
     completedAt:      r.completedAt      || r.completed_at,
+    relatedTo:        r.relatedTo        || r.related_to,
     amount:           (r.amount != null && r.amount !== '') ? r.amount : r.value,
     expectedRevenue:  (r.expectedRevenue != null && r.expectedRevenue !== '') ? r.expectedRevenue : r.expected_revenue,
     probability:      r.probability      !== undefined ? r.probability      : r.probability_pct,
@@ -3581,7 +3583,7 @@ function renderDashboard() {
     .reduce((a,d)=>a+Number(d.amount||d.value||0),0);
   // Overdue tasks
   const todayStr = today();
-  const overdueTasks = DB.tasks.filter(t=>t.status!=='Done' && (t.due||t.dueDate) && (t.due||t.dueDate) < todayStr);
+  const overdueTasks = DB.tasks.filter(t=>(t.status==='Pending'||t.status==='In Progress') && (t.dueDate||t.due) && (t.dueDate||t.due) < todayStr);
   // Last quarter metrics
   const q = Math.floor(thisMonth/3);
   const lqMonths = [0,1,2].map(i=>{ const m=(q-1)*3+i; return `${thisYear}-${String(m+1).padStart(2,'0')}`; });
@@ -5505,11 +5507,11 @@ const MODAL_FORMS = {
       </div>
       <div class="form-row">
         <div class="form-group"><label>Related To</label><input id="f-relatedTo" type="text" value="${r.relatedTo||''}"></div>
-        <div class="form-group"><label>Due Date *</label><input id="f-due" type="date" value="${r.due||today()}"></div>
+        <div class="form-group"><label>Due Date *</label><input id="f-due" type="date" value="${r.dueDate||r.due||''}"></div>
       </div>
       <div class="form-group"><label>Status</label><select id="f-status"><option ${r.status==='Pending'?'selected':''}>Pending</option><option ${r.status==='In Progress'?'selected':''}>In Progress</option><option ${r.status==='Done'?'selected':''}>Done</option></select></div>`,
     save: (id) => {
-      const r = { title:v('title'), type:v('type'), owner:v('owner'), relatedTo:v('relatedTo'), due:v('due'), status:v('status') };
+      const r = { title:v('title'), type:v('type'), owner:v('owner'), relatedTo:v('relatedTo'), dueDate:v('due'), status:v('status') };
       if (!r.title) return alert('Task description required');
       upsert('tasks', id, r);
     }
@@ -5729,7 +5731,7 @@ function renderDashboardView(view) {
     const revenue = DB.deals.filter(d=>d.stage==='Closed Won').reduce((s,d)=>s+(parseFloat(d.value)||0),0);
     const dealsClosing = DB.deals.filter(d=>{ if(!d.closeDate)return false; const dt=new Date(d.closeDate); return dt.getMonth()===thisMonth&&dt.getFullYear()===thisYear&&d.stage!=='Closed Won'&&d.stage!=='Closed Lost'; }).length;
     const today = now.toISOString().slice(0,10);
-    const overdueTasks = DB.tasks.filter(t=>t.due&&t.due<today&&t.status==='Pending').length;
+    const overdueTasks = DB.tasks.filter(t=>(t.status==='Pending'||t.status==='In Progress')&&(t.dueDate||t.due)&&(t.dueDate||t.due)<today).length;
     // Quarter data
     function getQuarterLabel(offset) {
       let m = thisMonth - offset * 3; let y = thisYear;
@@ -6281,7 +6283,7 @@ const SUPA_COLS = {
   contacts: ['id','name','email','phone','title','dept','company','company_id','owner','owner_id','created_at','updated_at'],
   companies: ['id','name','industry','website','phone','employees','revenue','address','city','state','country','status','bd_owner','owner_id','created_at','updated_at'],
   deals: ['id','name','stage','amount','value','expected_revenue','currency','close_date','probability','source','notes','contact','contact_id','company','company_id','owner','owner_id','won_at','lost_at','lost_reason','created_at','updated_at'],
-  tasks: ['id','title','description','due_date','status','priority','owner','owner_id','lead_id','contact_id','deal_id','completed_at','created_at','updated_at'],
+  tasks: ['id','title','type','description','due_date','status','priority','owner','owner_id','lead_id','contact_id','deal_id','related_to','completed_at','created_at','updated_at'],
   activities: ['id','type','subject','description','date','duration','outcome','owner','owner_id','lead_id','contact_id','deal_id','created_at'],
   profiles: ['id','name','email','role','title','dept','phone','avatar','color','status','online','created_at','updated_at'],
 };
@@ -6298,7 +6300,7 @@ const CAMEL_TO_SNAKE = {
   clientName:'client_name', clientType:'client_type', deliveryPOC:'delivery_poc',
   numPositions:'num_positions', commercialsSigned:'commercials_signed',
   sourceSD:'source_sd', wonAt:'won_at', lostAt:'lost_at', lostReason:'lost_reason',
-  completedAt:'completed_at', expectedRevenue:'expected_revenue'
+  completedAt:'completed_at', expectedRevenue:'expected_revenue', relatedTo:'related_to'
 };
 
 // Convert app data to Supabase payload: camelCase→snake_case, whitelist only known columns
