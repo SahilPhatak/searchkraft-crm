@@ -545,16 +545,16 @@ tbody tr td.name-cell:hover { text-decoration: underline; }
 
 .content {
   flex: 1;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   padding: 0;
   position: relative;
   z-index: 1;
+  min-height: 0;
+  /* Setup page needs this to honour height:100% on its child */
   display: flex;
   flex-direction: column;
-  min-height: 0;
 }
-/* Pages that scroll the whole page (dashboard, reports, etc.) need overflow on themselves */
-.page.active:not(#page-setup) { overflow-y: auto; }
 /* Pages that need inner padding (dashboard, reports, etc.) */
 .page-pad {
   padding: 20px 24px 24px;
@@ -931,8 +931,17 @@ textarea { min-height: 80px; resize: vertical; }
 .page { display: none; }
 .page.active { display: block; flex: 1; min-height: 0; }
 .page.active.page-flex { display: flex; flex: 1; min-height: 0; }
-/* Setup page must fill the content area height so inner panels can scroll */
-#page-setup { flex: 1 !important; min-height: 0 !important; height: 0 !important; }
+/* Setup page: fill the content area, flex column, no overflow on self */
+#page-setup {
+  display: none;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+#page-setup.active {
+  display: flex !important;
+}
 
 /* ---- WORKQUEUE NAV ITEMS ---- */
 .wq-nav-item {
@@ -2276,10 +2285,10 @@ textarea { min-height: 80px; resize: vertical; }
     <div class="page" id="page-activities" style="display:none;flex-direction:column">
       <!-- Subtab bar -->
       <div style="display:flex;align-items:center;gap:0;border-bottom:1px solid var(--border);padding:0 24px;background:var(--surface)">
-        <div class="crm-subtab active-subtab">All Activities</div>
-        <div class="crm-subtab">Meetings</div>
-        <div class="crm-subtab">Calls</div>
-        <div class="crm-subtab">Tasks</div>
+        <div class="crm-subtab active-subtab" onclick="switchActTab('all',this)">All Activities</div>
+        <div class="crm-subtab" onclick="switchActTab('Meeting',this)">Meetings</div>
+        <div class="crm-subtab" onclick="switchActTab('Call',this)">Calls</div>
+        <div class="crm-subtab" onclick="switchActTab('Task',this)">Tasks</div>
         <span style="margin-left:8px;color:var(--fg3);font-size:16px;cursor:pointer;position:relative" onclick="toggleViewsDropdown(event,'activities-views-dd')">···
           <div id="activities-views-dd" class="views-dropdown" style="display:none">
             <input type="text" class="views-dd-search" placeholder="Search" oninput="filterViewsDD(this,'activities-views-dd')">
@@ -2675,7 +2684,7 @@ textarea { min-height: 80px; resize: vertical; }
     </div>
 
     <!-- ===================== SETUP ===================== -->
-    <div class="page page-flex" id="page-setup" style="flex-direction:column;flex:1;min-height:0;height:0;overflow:hidden;background:var(--bg)">
+    <div class="page page-flex" id="page-setup" style="background:var(--bg)">
       <!-- Setup subtab bar -->
       <div style="display:flex;align-items:center;border-bottom:1px solid var(--border);background:var(--surface);padding:0 16px;gap:0;flex-shrink:0;overflow-x:auto">
         <button class="setup-tab active" data-stab="setup-home" onclick="switchSetupTab(this,'setup-home')">Setup</button>
@@ -4373,17 +4382,31 @@ async function dropLeadCard(e, newStage) {
 }
 
 // ---- ACTIVITIES ----
+let _actTypeFilter = 'all';
+function switchActTab(type, el) {
+  _actTypeFilter = type;
+  document.querySelectorAll('#page-activities .crm-subtab').forEach(t => t.classList.remove('active-subtab'));
+  if (el) el.classList.add('active-subtab');
+  renderActivities();
+}
+
 function renderActivities() {
   const el = document.getElementById('activities-list');
-  if (!DB.activities.length) { el.innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>No activities logged</p></div>'; return; }
-  el.innerHTML = DB.activities.map(a=>`
+  const acts = _actTypeFilter === 'all'
+    ? DB.activities
+    : DB.activities.filter(a => a.type === _actTypeFilter);
+  if (!acts.length) {
+    el.innerHTML = `<div class="empty-state"><div class="icon">📭</div><p>No ${_actTypeFilter === 'all' ? '' : _actTypeFilter.toLowerCase() + ' '}activities logged</p></div>`;
+    return;
+  }
+  el.innerHTML = acts.map(a=>`
     <div class="activity-item">
       <div class="activity-dot" style="background:${a.type==='Call'?'var(--green)':a.type==='Email'?'var(--accent)':a.type==='Meeting'?'var(--amber)':'var(--purple)'}"></div>
       <div class="activity-content" style="flex:1">
         <div class="flex-row">
           <span class="badge ${a.type==='Call'?'badge-green':a.type==='Email'?'badge-blue':'badge-amber'}">${a.type}</span>
           <div class="act-text">${a.summary}</div>
-          <button class="btn btn-ghost btn-sm ml-auto" onclick="deleteCRMRecord('activities','${a.id}')">✕</button>
+          <button class="btn btn-ghost btn-sm ml-auto" onclick="deleteCRMRecord('activities','${a.id}')" title="Delete">${ICON_TRASH}</button>
         </div>
         <div class="act-time" style="margin-top:4px">${a.contact||''} · ${a.company||''} · ${a.owner} · ${fmtDate(a.date)}</div>
       </div>
