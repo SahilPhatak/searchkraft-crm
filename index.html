@@ -6979,7 +6979,7 @@ const MODAL_FORMS = {
       </div>`,
     save: (id) => {
       const amt = Number(v('amount')||0);
-      const prob = Number(v('probability')||0);
+      const prob = parseFloat(v('probability')||0);
       // Preserve existing wonAt/lostAt from the record being edited
       const existing = id ? DB.deals.find(d=>d.id===id) : null;
       const stage = v('stage');
@@ -7900,6 +7900,8 @@ const CAMEL_TO_SNAKE = {
 };
 
 // Convert app data to Supabase payload: camelCase→snake_case, whitelist only known columns
+// Fields that must be stored as numeric (float) in Supabase
+const FLOAT_COLS = new Set(['probability','amount','value','expected_revenue','lat','lng','annual_revenue','revenue']);
 function toSupabase(collection, data) {
   const tbl = SUPA_TABLE[collection];
   const allowed = SUPA_COLS[tbl] || SUPA_COLS[collection] || null;
@@ -7907,7 +7909,10 @@ function toSupabase(collection, data) {
   Object.entries(data).forEach(([k, v]) => {
     const sk = CAMEL_TO_SNAKE[k] || k; // convert to snake_case if mapping exists
     if (!allowed || allowed.includes(sk)) {
-      if (v !== undefined && v !== null && v !== '') d[sk] = v;
+      if (v !== undefined && v !== null && v !== '') {
+        // Cast to float for numeric columns so decimals don't fail integer columns
+        d[sk] = FLOAT_COLS.has(sk) ? parseFloat(v) : v;
+      }
       else if (v === false || v === 0) d[sk] = v; // keep false/0
     }
   });
