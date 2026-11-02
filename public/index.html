@@ -1121,8 +1121,8 @@ textarea { min-height: 80px; resize: vertical; }
     <button class="nav-item" data-page="deals">
       <span class="icon">💼</span><span class="label"> Deals</span><span class="nav-badge" id="nb-deals"></span>
     </button>
-    <button class="nav-item" data-page="commercial">
-      <span class="icon">📄</span><span class="label"> Documents</span>
+    <button class="nav-item" data-page="documents">
+      <span class="icon">📄</span><span class="label"> Documents</span><span class="nav-badge" id="nb-documents"></span>
     </button>
   </div>
 
@@ -2372,6 +2372,131 @@ textarea { min-height: 80px; resize: vertical; }
     </div>
 
     <!-- ===================== COMMERCIAL ===================== -->
+    <!-- ===================== DOCUMENTS ===================== -->
+    <div class="page" id="page-documents" style="display:none;flex-direction:column;height:100%;overflow:hidden">
+      <!-- Sub-nav tabs -->
+      <div style="display:flex;align-items:center;gap:0;border-bottom:1px solid var(--border);background:var(--surface);padding:0 24px;flex-shrink:0">
+        <div class="crm-subtab active-subtab" id="doc-tab-dashboard" onclick="switchDocTab('dashboard',this)">Dashboard</div>
+        <div class="crm-subtab" id="doc-tab-all" onclick="switchDocTab('all',this)">All Documents</div>
+        <div class="crm-subtab" id="doc-tab-categories" onclick="switchDocTab('categories',this)">Document Categories</div>
+        <div style="margin-left:auto;padding:10px 0">
+          <button class="btn btn-primary btn-sm" onclick="openDocUpload()">+ Upload Document</button>
+        </div>
+      </div>
+
+      <!-- Dashboard tab -->
+      <div id="doc-view-dashboard" style="flex:1;overflow-y:auto;padding:24px">
+        <!-- KPI tiles -->
+        <div class="grid-3 mb-16">
+          <div class="stat-tile">
+            <div class="label">Total Documents</div>
+            <div class="value" id="doc-stat-total">—</div>
+            <div class="sub">All uploaded files</div>
+          </div>
+          <div class="stat-tile">
+            <div class="label">Clients with Documents</div>
+            <div class="value" id="doc-stat-clients">—</div>
+            <div class="sub">Unique clients</div>
+          </div>
+          <div class="stat-tile">
+            <div class="label">Uploaded This Month</div>
+            <div class="value" id="doc-stat-month">—</div>
+            <div class="sub" id="doc-stat-month-label">This month</div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:start">
+          <!-- Recent Documents -->
+          <div class="card" style="padding:0;overflow:hidden">
+            <div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+              <span style="font-size:14px;font-weight:700;color:var(--fg)">Recent Documents</span>
+              <button class="btn btn-ghost btn-sm" onclick="switchDocTab('all',document.getElementById('doc-tab-all'))">View All</button>
+            </div>
+            <div class="table-wrap" style="margin:0;border-radius:0;border:none">
+              <table>
+                <thead><tr><th>Name</th><th>Client</th><th>Category</th><th>Stage</th><th>Status</th><th>Uploaded</th><th>By</th><th>Actions</th></tr></thead>
+                <tbody id="doc-recent-body"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Right col: categories + quick actions -->
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <!-- Categories summary -->
+            <div class="card" style="padding:0;overflow:hidden">
+              <div style="padding:12px 16px;border-bottom:1px solid var(--border);font-size:13px;font-weight:700;color:var(--fg)">Categories</div>
+              <div id="doc-cat-summary" style="padding:8px 0"></div>
+            </div>
+            <!-- Quick actions -->
+            <div class="card" style="padding:16px">
+              <div style="font-size:13px;font-weight:700;color:var(--fg);margin-bottom:12px">Quick Actions</div>
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <button class="btn btn-primary" onclick="openDocUpload()" style="width:100%;justify-content:center">📤 Upload Document</button>
+                <button class="btn btn-secondary" onclick="switchDocTab('all',document.getElementById('doc-tab-all'))" style="width:100%;justify-content:center">📋 View All Documents</button>
+                <button class="btn btn-secondary" onclick="switchDocTab('all',document.getElementById('doc-tab-all'));setTimeout(()=>{document.getElementById('doc-search').focus()},100)" style="width:100%;justify-content:center">🔍 Search Documents</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- All Documents tab -->
+      <div id="doc-view-all" style="display:none;flex:1;overflow:hidden;flex-direction:column">
+        <!-- Toolbar -->
+        <div style="display:flex;align-items:center;gap:8px;padding:10px 24px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;flex-wrap:wrap">
+          <div class="search-bar" style="min-width:180px"><input type="text" id="doc-search" placeholder="Search documents…" oninput="renderDocTable()"></div>
+          <div class="search-bar" style="min-width:150px"><input type="text" id="doc-client-search" placeholder="Search by client…" oninput="renderDocTable()"></div>
+          <select id="doc-filter-client" onchange="renderDocTable()" style="padding:6px 10px;border:1px solid var(--border);border-radius:7px;background:var(--surface2);color:var(--fg);font-size:13px">
+            <option value="">All Clients</option>
+          </select>
+          <select id="doc-filter-cat" onchange="renderDocTable()" style="padding:6px 10px;border:1px solid var(--border);border-radius:7px;background:var(--surface2);color:var(--fg);font-size:13px">
+            <option value="">All Categories</option>
+          </select>
+          <select id="doc-filter-stage" onchange="renderDocTable()" style="padding:6px 10px;border:1px solid var(--border);border-radius:7px;background:var(--surface2);color:var(--fg);font-size:13px">
+            <option value="">All Stages</option>
+            <option>Draft</option><option>Internal Review</option><option>Sent to Client</option>
+            <option>Client Review</option><option>Approved</option><option>Signed / Completed</option>
+          </select>
+          <select id="doc-filter-status" onchange="renderDocTable()" style="padding:6px 10px;border:1px solid var(--border);border-radius:7px;background:var(--surface2);color:var(--fg);font-size:13px">
+            <option value="">All Statuses</option>
+            <option>Pending</option><option>Active</option><option>Expired</option><option>Inactive</option><option>Rejected</option>
+          </select>
+          <select id="doc-filter-type" onchange="renderDocTable()" style="padding:6px 10px;border:1px solid var(--border);border-radius:7px;background:var(--surface2);color:var(--fg);font-size:13px">
+            <option value="">All File Types</option>
+            <option>PDF</option><option>DOCX</option><option>XLSX</option><option>PPTX</option><option>JPG</option><option>PNG</option><option>Other</option>
+          </select>
+          <select id="doc-sort" onchange="renderDocTable()" style="padding:6px 10px;border:1px solid var(--border);border-radius:7px;background:var(--surface2);color:var(--fg);font-size:13px">
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+            <option value="name">Name A–Z</option>
+          </select>
+          <div style="margin-left:auto"><button class="btn btn-primary btn-sm" onclick="openDocUpload()">+ Upload Document</button></div>
+        </div>
+        <div style="flex:1;overflow-y:auto">
+          <div class="table-wrap" style="margin:0;border-radius:0;border:none">
+            <table>
+              <thead><tr>
+                <th>Document Name</th><th>Client</th><th>Category</th><th>Stage</th><th>Status</th>
+                <th>Type</th><th>Size</th><th>Uploaded By</th><th>Upload Date</th><th>Expiry</th><th>Actions</th>
+              </tr></thead>
+              <tbody id="doc-table-body"></tbody>
+            </table>
+          </div>
+          <div style="padding:10px 24px;font-size:12px;color:var(--fg3)" id="doc-table-info"></div>
+        </div>
+      </div>
+
+      <!-- Categories tab -->
+      <div id="doc-view-categories" style="display:none;flex:1;overflow-y:auto;padding:24px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <h2 style="margin:0;font-size:16px;font-weight:700">Document Categories</h2>
+          <button class="btn btn-primary btn-sm" onclick="openAddDocCategory()">+ Add Category</button>
+        </div>
+        <div id="doc-categories-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px"></div>
+      </div>
+    </div>
+
+    <!-- ===================== COMMERCIAL (Invoices) ===================== -->
     <div class="page page-pad" id="page-commercial">
       <div class="grid-3 mb-16">
         <div class="stat-tile">
@@ -2985,7 +3110,7 @@ const DB_CLIENT = window.supabase.createClient(SUPA_URL, SUPA_KEY);
 // ---- DATA STORE (local cache, synced from Supabase) ----
 let DB = {
   companies: [], contacts: [], leads: [], deals: [], activities: [],
-  tasks: [], invoices: [], users: [], audit: []
+  tasks: [], invoices: [], documents: [], users: [], audit: []
 };
 
 let currentModal = null;
@@ -3122,7 +3247,7 @@ async function load() {
     try { const r = await query; return r.error ? [] : (r.data || []); }
     catch(e) { return []; }
   };
-  const [leads, contacts, companies, deals, tasks, activities, users, audit] = await Promise.all([
+  const [leads, contacts, companies, deals, tasks, activities, users, documents, audit] = await Promise.all([
     safe(DB_CLIENT.from('leads').select('*').order('created_at', { ascending: false })),
     safe(DB_CLIENT.from('contacts').select('*').order('created_at', { ascending: false })),
     safe(DB_CLIENT.from('companies').select('*').order('created_at', { ascending: false })),
@@ -3130,6 +3255,7 @@ async function load() {
     safe(DB_CLIENT.from('tasks').select('*').order('created_at', { ascending: false })),
     safe(DB_CLIENT.from('activities').select('*').order('created_at', { ascending: false })),
     safe(DB_CLIENT.from('profiles').select('*').order('created_at', { ascending: true })),
+    safe(DB_CLIENT.from('documents').select('*').order('created_at', { ascending: false })),
     Promise.resolve([]), // audit_logs: not loaded from DB (in-memory session only)
   ]);
   // Normalize snake_case from Supabase → camelCase used throughout the app
@@ -3170,6 +3296,16 @@ async function load() {
     amount:           (r.amount != null && r.amount !== '') ? r.amount : r.value,
     expectedRevenue:  (r.expectedRevenue != null && r.expectedRevenue !== '') ? r.expectedRevenue : r.expected_revenue,
     probability:      r.probability      !== undefined ? r.probability      : r.probability_pct,
+    // documents
+    clientId:         r.clientId         || r.client_id,
+    clientName:       r.clientName       || r.client_name,
+    fileType:         r.fileType         || r.file_type,
+    fileSize:         r.fileSize         || r.file_size,
+    fileUrl:          r.fileUrl          || r.file_url,
+    uploadedBy:       r.uploadedBy       || r.uploaded_by,
+    referenceNumber:  r.referenceNumber  || r.reference_number,
+    startDate:        r.startDate        || r.start_date,
+    expiryDate:       r.expiryDate       || r.expiry_date,
   });
   DB.leads      = leads.map(norm);
   DB.contacts   = contacts.map(norm);
@@ -3178,6 +3314,7 @@ async function load() {
   DB.tasks      = tasks.map(norm);
   DB.activities = activities.map(norm);
   DB.users      = users.map(norm);
+  DB.documents  = documents.map(norm);
   // DB.audit stays in-memory only — not reloaded from Supabase
   updateNavBadges();
 }
@@ -3206,6 +3343,7 @@ function uid() {
     return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
   });
 }
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function fmt(n) { return n >= 1e7 ? '₹' + (n/1e7).toFixed(1)+'Cr' : n >= 1e5 ? '₹'+(n/1e5).toFixed(1)+'L' : '₹'+n.toLocaleString('en-IN'); }
 function fmtDate(d) { if(!d) return '—'; try { return new Date(d).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}); } catch(e) { return d; } }
 function today() { return new Date().toISOString().slice(0,10); }
@@ -3305,8 +3443,8 @@ function renderPage(pg) {
   });
   const el = document.getElementById('page-'+pg);
   if (el) {
-    const fullBleed = ['my-day','calendar'];
-    el.style.display = fullBleed.includes(pg) ? 'block' : 'block';
+    const flexPages = ['documents'];
+    el.style.display = flexPages.includes(pg) ? 'flex' : 'block';
     el.classList.add('active');
   }
   if (pg==='dashboard') renderDashboard();
@@ -3318,6 +3456,7 @@ function renderPage(pg) {
   else if (pg==='deals')     { markSectionSeen('deals');     renderDealsBoard(); renderTable('deals',''); }
   else if (pg==='activities'){ markSectionSeen('activities');renderActivities(); }
   else if (pg==='tasks')     { markSectionSeen('tasks');     renderTable('tasks',''); }
+  else if (pg==='documents') renderDocuments();
   else if (pg==='commercial') renderCommercial();
   else if (pg==='reports') renderReports();
   else if (pg==='team') renderTable('team','');
@@ -3329,7 +3468,7 @@ function renderPage(pg) {
 const PAGE_TITLES = {
   dashboard:'Home', leads:'Leads', 'my-day':'Workqueue', reports:'Analytics',
   calendar:'Calendar', contacts:'Contacts', companies:'Accounts', deals:'Deals',
-  commercial:'Documents', tasks:'Tasks', activities:'Calls & Meetings',
+  documents:'Documents', commercial:'Invoices', tasks:'Tasks', activities:'Calls & Meetings',
   team:'Team', audit:'Audit Log', setup:'Setup', 'personal-settings':'Personal Settings'
 };
 
@@ -3448,6 +3587,7 @@ function updateNavBadges() {
   set('nb-deals',      countNewRecords(DB.deals, 'deals'));
   set('nb-tasks',      countNewRecords(DB.tasks, 'tasks'));
   set('nb-activities', countNewRecords(DB.activities, 'activities'));
+  set('nb-documents',  countNewRecords(DB.documents, 'documents'));
 }
 
 // ── Real-time sync ──────────────────────────────────────────────────────────
@@ -3487,6 +3627,15 @@ function startRealtimeSync() {
     amount:           (r.amount != null && r.amount !== '') ? r.amount : r.value,
     expectedRevenue:  (r.expectedRevenue != null && r.expectedRevenue !== '') ? r.expectedRevenue : r.expected_revenue,
     probability:      r.probability      !== undefined ? r.probability      : r.probability_pct,
+    clientId:         r.clientId         || r.client_id,
+    clientName:       r.clientName       || r.client_name,
+    fileType:         r.fileType         || r.file_type,
+    fileSize:         r.fileSize         || r.file_size,
+    fileUrl:          r.fileUrl          || r.file_url,
+    uploadedBy:       r.uploadedBy       || r.uploaded_by,
+    referenceNumber:  r.referenceNumber  || r.reference_number,
+    startDate:        r.startDate        || r.start_date,
+    expiryDate:       r.expiryDate       || r.expiry_date,
   });
 
   // Map Supabase table name → DB key + page hash(es) to re-render
@@ -3497,6 +3646,7 @@ function startRealtimeSync() {
     deals:      { key: 'deals',      pages: ['deals'] },
     tasks:      { key: 'tasks',      pages: ['tasks'] },
     activities: { key: 'activities', pages: ['activities'] },
+    documents:  { key: 'documents',  pages: ['documents'] },
   };
 
   _realtimeChannel = DB_CLIENT
@@ -4134,6 +4284,203 @@ function renderActivities() {
         <div class="act-time" style="margin-top:4px">${a.contact||''} · ${a.company||''} · ${a.owner} · ${fmtDate(a.date)}</div>
       </div>
     </div>`).join('');
+}
+
+// ---- DOCUMENTS ----
+const DOC_CATEGORIES_DEFAULT = ['MSA (Master Service Agreement)','NDA (Non-Disclosure Agreement)','Service Agreement','Client Contracts','Invoices','Purchase Orders','Company Documents','Other Documents'];
+let _docCategories = null;
+function getDocCategories() {
+  if (!_docCategories) {
+    try { _docCategories = JSON.parse(localStorage.getItem('sk_doc_categories') || 'null'); } catch(e) {}
+    if (!_docCategories) _docCategories = [...DOC_CATEGORIES_DEFAULT];
+  }
+  return _docCategories;
+}
+function saveDocCategories(cats) {
+  _docCategories = cats;
+  try { localStorage.setItem('sk_doc_categories', JSON.stringify(cats)); } catch(e) {}
+}
+
+let _docCurrentTab = 'dashboard';
+function switchDocTab(tab, el) {
+  _docCurrentTab = tab;
+  document.querySelectorAll('#page-documents .crm-subtab').forEach(t => t.classList.remove('active-subtab'));
+  if (el) el.classList.add('active-subtab');
+  ['dashboard','all','categories'].forEach(t => {
+    const v = document.getElementById('doc-view-'+t);
+    if (v) v.style.display = t === tab ? (t==='all'?'flex':'block') : 'none';
+  });
+  if (tab === 'dashboard') renderDocDashboard();
+  else if (tab === 'all') renderDocTable();
+  else if (tab === 'categories') renderDocCategories();
+  markSectionSeen('documents');
+}
+
+function renderDocuments() {
+  // Restore last tab or default to dashboard
+  const tabEl = document.getElementById('doc-tab-' + _docCurrentTab);
+  switchDocTab(_docCurrentTab, tabEl);
+  markSectionSeen('documents');
+}
+
+function renderDocDashboard() {
+  const docs = DB.documents || [];
+  const thisMonth = new Date().toISOString().slice(0,7);
+  const totalDocs = docs.length;
+  const uniqueClients = new Set(docs.map(d => d.clientId || d.clientName).filter(Boolean)).size;
+  const thisMonthCount = docs.filter(d => (d.createdAt||'').startsWith(thisMonth)).length;
+  const now = new Date();
+  const monthLabel = now.toLocaleString('en-IN',{month:'long',year:'numeric'});
+
+  const setEl = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  setEl('doc-stat-total', totalDocs);
+  setEl('doc-stat-clients', uniqueClients);
+  setEl('doc-stat-month', thisMonthCount);
+  setEl('doc-stat-month-label', monthLabel);
+
+  // Recent docs (last 8)
+  const recentBody = document.getElementById('doc-recent-body');
+  if (recentBody) {
+    const recent = docs.slice(0, 8);
+    recentBody.innerHTML = recent.length ? recent.map(d => `<tr>
+      <td><span style="font-weight:600;color:var(--fg)">${esc(d.name||'—')}</span></td>
+      <td>${esc(d.clientName||'—')}</td>
+      <td><span class="badge badge-blue">${esc(d.category||'—')}</span></td>
+      <td><span class="badge">${esc(d.stage||'—')}</span></td>
+      <td>${badge(d.status||'—')}</td>
+      <td>${fmtDate(d.createdAt)}</td>
+      <td>${esc(d.uploadedBy||'—')}</td>
+      <td>
+        ${d.fileUrl ? `<a href="${esc(d.fileUrl)}" target="_blank" class="btn btn-ghost btn-sm">View</a>` : ''}
+        <button class="btn btn-ghost btn-sm" onclick="openModal('document','${d.id}')">Edit</button>
+      </td>
+    </tr>`).join('') : '<tr><td colspan="8" class="empty-state">No documents yet</td></tr>';
+  }
+
+  // Category summary
+  const cats = getDocCategories();
+  const catSummary = document.getElementById('doc-cat-summary');
+  if (catSummary) {
+    catSummary.innerHTML = cats.map(cat => {
+      const count = docs.filter(d => d.category === cat).length;
+      return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 16px;border-bottom:1px solid var(--border)">
+        <span style="font-size:13px;color:var(--fg2)">${esc(cat)}</span>
+        <span style="font-size:13px;font-weight:700;color:var(--fg);font-family:'Roboto Mono',monospace">${count}</span>
+      </div>`;
+    }).join('');
+  }
+}
+
+function renderDocTable() {
+  const docs = DB.documents || [];
+  const q = (document.getElementById('doc-search')||{}).value?.toLowerCase() || '';
+  const clientQ = (document.getElementById('doc-client-search')||{}).value?.toLowerCase() || '';
+  const fClient = (document.getElementById('doc-filter-client')||{}).value || '';
+  const fCat = (document.getElementById('doc-filter-cat')||{}).value || '';
+  const fStage = (document.getElementById('doc-filter-stage')||{}).value || '';
+  const fStatus = (document.getElementById('doc-filter-status')||{}).value || '';
+  const fType = (document.getElementById('doc-filter-type')||{}).value || '';
+  const sort = (document.getElementById('doc-sort')||{}).value || 'newest';
+
+  // Populate client filter dropdown (once)
+  const clientSel = document.getElementById('doc-filter-client');
+  if (clientSel && clientSel.options.length <= 1) {
+    const clients = [...new Set(docs.map(d => d.clientName).filter(Boolean))].sort();
+    clients.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; clientSel.appendChild(o); });
+  }
+  // Populate category filter
+  const catSel = document.getElementById('doc-filter-cat');
+  if (catSel && catSel.options.length <= 1) {
+    getDocCategories().forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; catSel.appendChild(o); });
+  }
+
+  let filtered = docs.filter(d => {
+    if (q && !(d.name||'').toLowerCase().includes(q)) return false;
+    if (clientQ && !(d.clientName||'').toLowerCase().includes(clientQ)) return false;
+    if (fClient && d.clientName !== fClient) return false;
+    if (fCat && d.category !== fCat) return false;
+    if (fStage && d.stage !== fStage) return false;
+    if (fStatus && d.status !== fStatus) return false;
+    if (fType && d.fileType !== fType) return false;
+    return true;
+  });
+
+  if (sort === 'oldest') filtered.sort((a,b) => (a.createdAt||'').localeCompare(b.createdAt||''));
+  else if (sort === 'name') filtered.sort((a,b) => (a.name||'').localeCompare(b.name||''));
+  else filtered.sort((a,b) => (b.createdAt||'').localeCompare(a.createdAt||''));
+
+  const tbody = document.getElementById('doc-table-body');
+  const info = document.getElementById('doc-table-info');
+  if (!tbody) return;
+  tbody.innerHTML = filtered.length ? filtered.map(d => `<tr>
+    <td><span style="font-weight:600;color:var(--fg)">${esc(d.name||'—')}</span>${d.referenceNumber?`<div style="font-size:11px;color:var(--fg3)">${esc(d.referenceNumber)}</div>`:''}</td>
+    <td>${esc(d.clientName||'—')}</td>
+    <td><span class="badge badge-blue">${esc(d.category||'—')}</span></td>
+    <td><span class="badge">${esc(d.stage||'Draft')}</span></td>
+    <td>${badge(d.status||'Pending')}</td>
+    <td><span class="mono">${esc(d.fileType||'—')}</span></td>
+    <td style="font-size:12px;color:var(--fg3)">${esc(d.fileSize||'—')}</td>
+    <td>${esc(d.uploadedBy||'—')}</td>
+    <td>${fmtDate(d.createdAt)}</td>
+    <td style="color:${d.expiryDate&&d.expiryDate<today()?'var(--red)':'inherit'}">${fmtDate(d.expiryDate)||'—'}</td>
+    <td style="white-space:nowrap">
+      ${d.fileUrl ? `<a href="${esc(d.fileUrl)}" target="_blank" class="btn btn-ghost btn-sm">View</a>` : ''}
+      <button class="btn btn-ghost btn-sm" onclick="openModal('document','${d.id}')">Edit</button>
+      <button class="btn btn-ghost btn-sm" onclick="deleteCRMRecord('documents','${d.id}')" style="color:var(--red)">Del</button>
+    </td>
+  </tr>`).join('') : '<tr><td colspan="11" class="empty-state">No documents match your filters</td></tr>';
+  if (info) info.textContent = `Showing ${filtered.length} of ${docs.length} documents`;
+}
+
+function renderDocCategories() {
+  const cats = getDocCategories();
+  const docs = DB.documents || [];
+  const el = document.getElementById('doc-categories-list');
+  if (!el) return;
+  el.innerHTML = cats.map((cat, i) => {
+    const count = docs.filter(d => d.category === cat).length;
+    return `<div class="card" style="padding:16px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+      <div>
+        <div style="font-size:14px;font-weight:600;color:var(--fg)">${esc(cat)}</div>
+        <div style="font-size:12px;color:var(--fg3);margin-top:2px">${count} document${count!==1?'s':''}</div>
+      </div>
+      <div style="display:flex;gap:6px;flex-shrink:0">
+        <button class="btn btn-ghost btn-sm" onclick="editDocCategory(${i})">Edit</button>
+        <button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="deleteDocCategory(${i})">Del</button>
+      </div>
+    </div>`;
+  }).join('') || '<div style="color:var(--fg3);font-size:13px;padding:12px 0">No categories yet.</div>';
+}
+
+function openAddDocCategory() {
+  const name = prompt('New category name:');
+  if (!name || !name.trim()) return;
+  const cats = getDocCategories();
+  if (cats.includes(name.trim())) return alert('Category already exists');
+  cats.push(name.trim());
+  saveDocCategories(cats);
+  renderDocCategories();
+}
+function editDocCategory(i) {
+  const cats = getDocCategories();
+  const name = prompt('Edit category name:', cats[i]);
+  if (!name || !name.trim()) return;
+  cats[i] = name.trim();
+  saveDocCategories(cats);
+  renderDocCategories();
+  renderDocDashboard();
+}
+function deleteDocCategory(i) {
+  const cats = getDocCategories();
+  const count = (DB.documents||[]).filter(d => d.category === cats[i]).length;
+  if (count > 0 && !confirm(`"${cats[i]}" has ${count} document(s). Delete category anyway?`)) return;
+  cats.splice(i, 1);
+  saveDocCategories(cats);
+  renderDocCategories();
+}
+
+function openDocUpload(prefillClientId, prefillClientName) {
+  openModal('document', null, { clientId: prefillClientId||'', clientName: prefillClientName||'' });
 }
 
 // ---- COMMERCIAL ----
@@ -5600,6 +5947,54 @@ const MODAL_FORMS = {
       if (!r.name) return alert('Name required');
       upsert('users', id, r);
     }
+  },
+  document: {
+    title: (id)=> id ? 'Edit Document' : 'Upload Document',
+    fields: (r={}) => {
+      const cats = getDocCategories();
+      const clientOpts = DB.companies.map(c=>`<option value="${c.id}" ${r.clientId===c.id?'selected':''}>${esc(c.name)}</option>`).join('');
+      return `
+      <div class="form-row">
+        <div class="form-group"><label>Document Name *</label><input id="f-name" type="text" value="${esc(r.name||'')}"></div>
+        <div class="form-group"><label>Client *</label><select id="f-clientId"><option value="">— Select Client —</option>${clientOpts}</select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Category *</label><select id="f-category"><option value="">— Select —</option>${cats.map(c=>`<option ${r.category===c?'selected':''}>${esc(c)}</option>`).join('')}</select></div>
+        <div class="form-group"><label>Stage *</label><select id="f-stage"><option value="">— Select —</option>${['Draft','Internal Review','Sent to Client','Client Review','Approved','Signed / Completed'].map(s=>`<option ${r.stage===s?'selected':''}>${s}</option>`).join('')}</select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Status *</label><select id="f-status"><option value="">— Select —</option>${['Pending','Active','Expired','Inactive','Rejected'].map(s=>`<option ${r.status===s?'selected':''}>${s}</option>`).join('')}</select></div>
+        <div class="form-group"><label>File Type</label><select id="f-fileType"><option value="">— Select —</option>${['PDF','DOCX','XLSX','PPTX','JPG','PNG','Other'].map(s=>`<option ${r.fileType===s?'selected':''}>${s}</option>`).join('')}</select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Reference Number</label><input id="f-referenceNumber" type="text" value="${esc(r.referenceNumber||'')}"></div>
+        <div class="form-group"><label>Uploaded By</label><input id="f-uploadedBy" type="text" value="${esc(r.uploadedBy||(LOGGED_IN_USER&&LOGGED_IN_USER.name)||'')}"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Start Date</label><input id="f-startDate" type="date" value="${r.startDate||''}"></div>
+        <div class="form-group"><label>Expiry Date</label><input id="f-expiryDate" type="date" value="${r.expiryDate||''}"></div>
+      </div>
+      <div class="form-group"><label>File URL / Link</label><input id="f-fileUrl" type="url" placeholder="https://…" value="${esc(r.fileUrl||'')}"></div>
+      <div class="form-group"><label>Description</label><textarea id="f-description" rows="3">${esc(r.description||'')}</textarea></div>`;
+    },
+    save: (id) => {
+      const clientId = v('clientId');
+      const clientEl = document.getElementById('f-clientId');
+      const clientName = clientEl ? clientEl.options[clientEl.selectedIndex]?.text : '';
+      const r = {
+        name: v('name'), clientId, clientName: clientName && clientName !== '— Select Client —' ? clientName : '',
+        category: v('category'), stage: v('stage'), status: v('status'),
+        fileType: v('fileType'), referenceNumber: v('referenceNumber'),
+        uploadedBy: v('uploadedBy'), startDate: v('startDate'), expiryDate: v('expiryDate'),
+        fileUrl: v('fileUrl'), description: v('description')
+      };
+      if (!r.name) return alert('Document name is required');
+      if (!r.clientId) return alert('Please select a client');
+      if (!r.category) return alert('Please select a category');
+      if (!r.stage) return alert('Please select a stage');
+      if (!r.status) return alert('Please select a status');
+      upsert('documents', id, r);
+    }
   }
 };
 
@@ -6297,6 +6692,7 @@ function pluralize(t) {
 const SUPA_TABLE = {
   companies: 'companies', contacts: 'contacts', leads: 'leads',
   deals: 'deals', tasks: 'tasks', activities: 'activities',
+  documents: 'documents',
   users: 'profiles', audit: 'audit_logs', invoices: null
 };
 
@@ -6313,6 +6709,7 @@ const SUPA_COLS = {
   deals: ['id','name','stage','amount','value','expected_revenue','currency','close_date','probability','source','notes','contact','contact_id','company','company_id','owner','owner_id','won_at','lost_at','lost_reason','created_at','updated_at'],
   tasks: ['id','title','type','description','due_date','status','priority','owner','owner_id','lead_id','contact_id','deal_id','related_to','completed_at','created_at','updated_at'],
   activities: ['id','type','subject','description','date','duration','outcome','owner','owner_id','lead_id','contact_id','deal_id','created_at'],
+  documents: ['id','name','client_id','client_name','category','stage','status','file_type','file_size','file_url','uploaded_by','owner_id','description','reference_number','start_date','expiry_date','created_at','updated_at'],
   profiles: ['id','name','email','role','title','dept','phone','avatar','color','status','online','created_at','updated_at'],
 };
 
@@ -6328,7 +6725,10 @@ const CAMEL_TO_SNAKE = {
   clientName:'client_name', clientType:'client_type', deliveryPOC:'delivery_poc',
   numPositions:'num_positions', commercialsSigned:'commercials_signed',
   sourceSD:'source_sd', wonAt:'won_at', lostAt:'lost_at', lostReason:'lost_reason',
-  completedAt:'completed_at', expectedRevenue:'expected_revenue', relatedTo:'related_to'
+  completedAt:'completed_at', expectedRevenue:'expected_revenue', relatedTo:'related_to',
+  clientId:'client_id', clientName:'client_name', fileType:'file_type', fileSize:'file_size',
+  fileUrl:'file_url', uploadedBy:'uploaded_by', referenceNumber:'reference_number',
+  startDate:'start_date', expiryDate:'expiry_date'
 };
 
 // Convert app data to Supabase payload: camelCase→snake_case, whitelist only known columns
