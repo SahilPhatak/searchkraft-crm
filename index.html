@@ -5777,15 +5777,19 @@ async function deleteUser(userId) {
   const dbUser = DB.users.find(x => x.id === userId) || (u ? DB.users.find(x => x.email === u.email) : null);
   try {
     if (dbUser) {
+      // Step 1: Delete audit_logs for this user first (foreign key constraint)
+      await DB_CLIENT.from('audit_logs').delete().eq('user_id', dbUser.id);
+      // Step 2: Delete the profile row
       const { data, error, status, statusText } = await DB_CLIENT
         .from('profiles').delete().eq('id', dbUser.id).select();
       console.log('[deleteUser] status:', status, statusText, 'data:', data, 'error:', error);
       if (error) throw error;
-      // If RLS silently blocked it (no rows deleted, no error), throw manually
       if (!data || data.length === 0) {
         throw new Error(`RLS_SILENT_BLOCK: No rows deleted for id=${dbUser.id}. Check Supabase RLS policies.`);
       }
       DB.users = DB.users.filter(x => x.id !== dbUser.id);
+      // Also clean up local audit log
+      DB.audit = DB.audit.filter(a => a.user !== (dbUser.name || u?.name));
     }
     const idx = SETUP_USERS.findIndex(x => x.id === userId);
     if (idx >= 0) SETUP_USERS.splice(idx, 1);
