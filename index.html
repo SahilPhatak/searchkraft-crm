@@ -4660,21 +4660,26 @@ function renderReports() {
     const d = new Date(now2.getFullYear(), now2.getMonth()-offset, 1);
     return localYM(d);
   }
-  const m1 = monthStr(2), m2 = monthStr(1), m3 = thisMonth;
+  const m2 = monthStr(1); // true "last calendar month" for KPI comparison
   function mLabel(ym) {
     const [y,m] = ym.split('-');
     return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(m)-1]+' '+y;
   }
 
-  // KPI Tiles — use recLocalYM (defined below) for robust UTC→local month matching
-  // recLocalYM is defined after this block; hoist a quick version here too
-  function kpiLocalYM(x, field) {
+  // Robust UTC ISO → local YYYY-MM (must be defined before KPI tiles and matrix)
+  function recLocalYM(x, field) {
     const raw = x[field] || x[field==='createdAt'?'created_at':field==='closeDate'?'close_date':field] || '';
     if (!raw) return '';
-    try { const d=new Date(raw); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); } catch(e){ return raw.slice(0,7); }
+    try {
+      const d = new Date(raw);
+      if (isNaN(d)) return raw.slice(0,7);
+      return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+    } catch(e) { return raw.slice(0,7); }
   }
-  const leadsThisMonth = DB.leads.filter(l=>kpiLocalYM(l,'createdAt')===thisMonth).length;
-  const leadsLastMonth = DB.leads.filter(l=>kpiLocalYM(l,'createdAt')===m2).length;
+
+  // KPI Tiles
+  const leadsThisMonth = DB.leads.filter(l=>recLocalYM(l,'createdAt')===thisMonth).length;
+  const leadsLastMonth = DB.leads.filter(l=>recLocalYM(l,'createdAt')===m2).length;
   const pct = leadsLastMonth>0 ? Math.round((leadsThisMonth-leadsLastMonth)/leadsLastMonth*100) : 0;
   const el_lm = document.getElementById('an-leads-month');
   if (el_lm) el_lm.textContent = leadsThisMonth;
@@ -4683,7 +4688,7 @@ function renderReports() {
   const el_ll = document.getElementById('an-leads-last');
   if (el_ll) el_ll.textContent = leadsLastMonth+' last month';
 
-  const wonDeals = DB.deals.filter(d=>d.stage==='Closed Won'&&kpiLocalYM(d,'closeDate')===thisMonth);
+  const wonDeals = DB.deals.filter(d=>d.stage==='Closed Won'&&recLocalYM(d,'closeDate')===thisMonth);
   const revenue = wonDeals.reduce((s,d)=>s+Number(d.amount||0),0);
   const el_rev = document.getElementById('an-revenue');
   if (el_rev) el_rev.textContent = fmt(revenue);
@@ -4697,17 +4702,6 @@ function renderReports() {
   if (el_acc) el_acc.textContent = accts.length;
 
   // Performance matrix rendered as a single unified grid (header + rows)
-  // m1 = 2 months ago, m2 = last month, m3 = this month
-
-  // Robust date getter: handles both camelCase and snake_case, converts UTC ISO to local YYYY-MM
-  function recLocalYM(x, field) {
-    const raw = x[field] || x[field==='createdAt'?'created_at':field==='closeDate'?'close_date':field] || '';
-    if (!raw) return '';
-    try {
-      const d = new Date(raw);
-      return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
-    } catch(e) { return raw.slice(0,7); }
-  }
 
   function monthCount(arr, dateField, mo) {
     return arr.filter(x => recLocalYM(x, dateField) === mo).length;
@@ -4716,29 +4710,54 @@ function renderReports() {
     return arr.filter(x => recLocalYM(x, dateField) === mo).reduce((s,x)=>s+Number(x[valField]||0),0);
   }
 
+  // Smart month selection: always include current month (m3) as the rightmost column.
+  // For the other 2 columns, look back up to 24 months and pick the 2 most recent months
+  // that actually have leads OR deals data — so the matrix always shows real activity.
+  function findActiveMonths() {
+    const allRecords = [...DB.leads, ...DB.deals];
+    const monthSet = new Set();
+    allRecords.forEach(r => {
+      const ym = recLocalYM(r, 'createdAt');
+      if (ym && ym < thisMonth) monthSet.add(ym);
+    });
+    // Sort descending, take 2 most recent before current month
+    const pastMonths = [...monthSet].sort((a,b)=>b.localeCompare(a)).slice(0,2).reverse();
+    // Pad with calendar months if fewer than 2 past months with data
+    while (pastMonths.length < 2) {
+      const offset = 2 - pastMonths.length;
+      const d = new Date(now2.getFullYear(), now2.getMonth() - offset, 1);
+      const ym = localYM(d);
+      if (!pastMonths.includes(ym) && ym !== thisMonth) pastMonths.unshift(ym);
+      else pastMonths.unshift(ym); // accept duplicate for padding
+    }
+    return [pastMonths[0], pastMonths[1], thisMonth];
+  }
+
+  const [sm1, sm2, sm3] = findActiveMonths();
+
   const matrixRows = [
-    { label:'Leads Created', vals:[monthCount(DB.leads,'createdAt',m1), monthCount(DB.leads,'createdAt',m2), monthCount(DB.leads,'createdAt',m3)] },
-    { label:'Deals Created', vals:[monthCount(DB.deals,'createdAt',m1), monthCount(DB.deals,'createdAt',m2), monthCount(DB.deals,'createdAt',m3)] },
+    { label:'Leads Created', vals:[monthCount(DB.leads,'createdAt',sm1), monthCount(DB.leads,'createdAt',sm2), monthCount(DB.leads,'createdAt',sm3)] },
+    { label:'Deals Created', vals:[monthCount(DB.deals,'createdAt',sm1), monthCount(DB.deals,'createdAt',sm2), monthCount(DB.deals,'createdAt',sm3)] },
     { label:'Deals Won', vals:[
-      DB.deals.filter(d=>d.stage==='Closed Won').filter(d=>recLocalYM(d,'closeDate')===m1).length,
-      DB.deals.filter(d=>d.stage==='Closed Won').filter(d=>recLocalYM(d,'closeDate')===m2).length,
-      DB.deals.filter(d=>d.stage==='Closed Won').filter(d=>recLocalYM(d,'closeDate')===m3).length,
+      DB.deals.filter(d=>d.stage==='Closed Won').filter(d=>recLocalYM(d,'closeDate')===sm1).length,
+      DB.deals.filter(d=>d.stage==='Closed Won').filter(d=>recLocalYM(d,'closeDate')===sm2).length,
+      DB.deals.filter(d=>d.stage==='Closed Won').filter(d=>recLocalYM(d,'closeDate')===sm3).length,
     ]},
     { label:'Revenue Won', vals:[
-      monthSum(DB.deals.filter(d=>d.stage==='Closed Won'),'closeDate','amount',m1),
-      monthSum(DB.deals.filter(d=>d.stage==='Closed Won'),'closeDate','amount',m2),
-      monthSum(DB.deals.filter(d=>d.stage==='Closed Won'),'closeDate','amount',m3)
+      monthSum(DB.deals.filter(d=>d.stage==='Closed Won'),'closeDate','amount',sm1),
+      monthSum(DB.deals.filter(d=>d.stage==='Closed Won'),'closeDate','amount',sm2),
+      monthSum(DB.deals.filter(d=>d.stage==='Closed Won'),'closeDate','amount',sm3)
     ], isCurrency:true },
     { label:'Open Amount', vals:[
-      monthSum(DB.deals.filter(d=>d.stage!=='Closed Won'&&d.stage!=='Closed Lost'),'createdAt','amount',m1),
-      monthSum(DB.deals.filter(d=>d.stage!=='Closed Won'&&d.stage!=='Closed Lost'),'createdAt','amount',m2),
-      monthSum(DB.deals.filter(d=>d.stage!=='Closed Won'&&d.stage!=='Closed Lost'),'createdAt','amount',m3),
+      monthSum(DB.deals.filter(d=>d.stage!=='Closed Won'&&d.stage!=='Closed Lost'),'createdAt','amount',sm1),
+      monthSum(DB.deals.filter(d=>d.stage!=='Closed Won'&&d.stage!=='Closed Lost'),'createdAt','amount',sm2),
+      monthSum(DB.deals.filter(d=>d.stage!=='Closed Won'&&d.stage!=='Closed Lost'),'createdAt','amount',sm3),
     ], isCurrency:true }
   ];
 
   const el_pm = document.getElementById('an-perf-matrix');
   if (el_pm) {
-    const months = [m1, m2, m3];
+    const months = [sm1, sm2, sm3];
     // Track active (highlighted) column; default = current month (index 2)
     let activeIdx = parseInt(el_pm.dataset.activeIdx ?? '2');
 
