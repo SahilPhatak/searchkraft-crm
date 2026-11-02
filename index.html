@@ -3199,18 +3199,47 @@ function isAdminOrAbove() { return LOGGED_IN_USER && ['Super Admin','Admin'].inc
 function isManagerOrAbove() { return LOGGED_IN_USER && ['Super Admin','Admin','Manager'].includes(LOGGED_IN_USER.role); }
 function canDo(module, action) {
   if (!LOGGED_IN_USER) return false;
+  if (isSuperAdmin()) return true; // Super Admin always has full access
+  // Per-user custom permissions override role defaults
+  if (LOGGED_IN_USER.custom_perms && LOGGED_IN_USER.custom_perms[module] !== undefined) {
+    return (LOGGED_IN_USER.custom_perms[module] || []).includes(action);
+  }
   const role = LOGGED_IN_USER.role || 'User';
   const perms = ROLE_PERMS[role] || ROLE_PERMS['User'];
   return (perms[module] || []).includes(action);
 }
 
-// Apply nav visibility based on role (called after login)
+// Get effective perms for a user (custom overrides role default)
+function getEffectivePerms(u) {
+  if (!u) return {};
+  if (u.role === 'Super Admin') return ROLE_PERMS['Super Admin'];
+  if (u.custom_perms) return u.custom_perms;
+  return ROLE_PERMS[u.role] || ROLE_PERMS['User'];
+}
+
+// Map nav page names → module permission key
+const PAGE_MODULE_MAP = {
+  leads: 'leads', contacts: 'contacts', accounts: 'accounts',
+  deals: 'deals', reports: 'reports', setup: 'setup',
+  activities: 'activities', documents: 'documents',
+  dashboard: null, audit: null, team: null, 'personal-settings': null
+};
+
+// Apply nav visibility based on role + custom_perms (called after login and after saving perms)
 function applyNavPermissions() {
-  // Admin-only nav items
+  // Admin-only nav items (by role only — not overridable by custom_perms)
   const adminOnlyPages = ['audit', 'setup', 'team'];
   adminOnlyPages.forEach(p => {
     const btn = document.querySelector(`.nav-item[data-page="${p}"]`);
     if (btn) btn.style.display = isAdminOrAbove() ? '' : 'none';
+  });
+  // Module-gated pages: hide nav + block access if user lacks 'view' permission
+  const modulePages = ['leads','contacts','accounts','deals','reports','activities','documents'];
+  modulePages.forEach(p => {
+    const btn = document.querySelector(`.nav-item[data-page="${p}"]`);
+    if (!btn) return;
+    const canView = canDo(p, 'view');
+    btn.style.display = canView ? '' : 'none';
   });
 }
 
@@ -3218,6 +3247,8 @@ function applyNavPermissions() {
 function hasPageAccess(page) {
   const adminOnlyPages = ['audit', 'setup', 'team'];
   if (adminOnlyPages.includes(page) && !isAdminOrAbove()) return false;
+  const modulePages = ['leads','contacts','accounts','deals','reports','activities','documents'];
+  if (modulePages.includes(page) && !canDo(page, 'view')) return false;
   return true;
 }
 
@@ -3364,6 +3395,7 @@ async function load() {
     referenceNumber:  r.referenceNumber  || r.reference_number,
     startDate:        r.startDate        || r.start_date,
     expiryDate:       r.expiryDate       || r.expiry_date,
+    custom_perms:     r.custom_perms     || null,
   });
   DB.leads      = leads.map(norm);
   DB.contacts   = contacts.map(norm);
@@ -5319,7 +5351,8 @@ function renderUserDetail() {
   const det = document.getElementById('user-detail');
   if (!det || !currentSetupUser) return;
   const u = currentSetupUser;
-  const perms = ROLE_PERMS[u.role] || {};
+  // Use per-user custom_perms if set, otherwise role default
+  const perms = getEffectivePerms(u);
   const modules = ['leads','contacts','accounts','deals','reports','setup'];
   const actions = ['view','create','edit','delete'];
   det.innerHTML = `
@@ -5400,25 +5433,71 @@ function renderUserDetail() {
 function updatePerm(uid, mod, act, checked) {
   const u = SETUP_USERS.find(x => x.id === uid);
   if (!u) return;
-  if (!ROLE_PERMS[u.role]) ROLE_PERMS[u.role] = {};
-  if (!ROLE_PERMS[u.role][mod]) ROLE_PERMS[u.role][mod] = [];
-  if (checked) { if (!ROLE_PERMS[u.role][mod].includes(act)) ROLE_PERMS[u.role][mod].push(act); }
-  else { ROLE_PERMS[u.role][mod] = ROLE_PERMS[u.role][mod].filter(a => a !== act); }
+  // Work on per-user custom_perms (cloned from role default if not yet set)
+  if (!u.custom_perms) {
+    u.custom_perms = JSON.parse(JSON.stringify(ROLE_PERMS[u.role] || ROLE_PERMS['User']));
+  }
+  if (!u.custom_perms[mod]) u.custom_perms[mod] = [];
+  if (checked) { if (!u.custom_perms[mod].includes(act)) u.custom_perms[mod].push(act); }
+  else { u.custom_perms[mod] = u.custom_perms[mod].filter(a => a !== act); }
+  // Also keep DB.users in sync
+  const dbU = DB.users.find(x => x.id === uid);
+  if (dbU) dbU.custom_perms = u.custom_perms;
 }
 
-function saveUserPerms(uid) {
-  const t = document.createElement('div');
-  t.textContent = 'Permissions saved';
-  t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#2EA44F;color:#fff;padding:10px 24px;border-radius:8px;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,0.18)';
-  document.body.appendChild(t); setTimeout(()=>t.remove(), 2000);
+async function saveUserPerms(uid) {
+  const u = SETUP_USERS.find(x => x.id === uid);
+  if (!u) return;
+  // If no custom_perms built yet, read current checkboxes to build it
+  if (!u.custom_perms) {
+    const modules = ['leads','contacts','accounts','deals','reports','setup'];
+    const actions = ['view','create','edit','delete'];
+    const cp = {};
+    modules.forEach(mod => {
+      cp[mod] = [];
+      actions.forEach(act => {
+        const cb = document.querySelector(`input[onchange*="'${uid}','${mod}','${act}'"]`);
+        if (cb && cb.checked) cp[mod].push(act);
+      });
+    });
+    u.custom_perms = cp;
+    const dbU = DB.users.find(x => x.id === uid);
+    if (dbU) dbU.custom_perms = cp;
+  }
+  try {
+    const { error } = await DB_CLIENT.from('profiles')
+      .update({ custom_perms: u.custom_perms, updated_at: new Date().toISOString() })
+      .eq('id', uid);
+    if (error) throw error;
+    // If this is the logged-in user, update their live perms immediately
+    if (LOGGED_IN_USER && LOGGED_IN_USER.id === uid) {
+      LOGGED_IN_USER.custom_perms = u.custom_perms;
+      applyNavPermissions();
+    }
+    showToast('Permissions saved for ' + u.name, '#2EA44F');
+    audit('Update', 'Users', u.name, 'Permissions updated');
+  } catch(e) {
+    showToast('Failed to save: ' + (e?.message || e), '#dc2626');
+  }
 }
 
-function resetPerms(uid) {
+async function resetPerms(uid) {
+  const u = SETUP_USERS.find(x => x.id === uid);
+  if (!u) return;
+  u.custom_perms = null;
+  const dbU = DB.users.find(x => x.id === uid);
+  if (dbU) dbU.custom_perms = null;
+  try {
+    await DB_CLIENT.from('profiles')
+      .update({ custom_perms: null, updated_at: new Date().toISOString() })
+      .eq('id', uid);
+    if (LOGGED_IN_USER && LOGGED_IN_USER.id === uid) {
+      LOGGED_IN_USER.custom_perms = null;
+      applyNavPermissions();
+    }
+    showToast('Reset to role defaults for ' + u.name, '#6366f1');
+  } catch(e) { /* ignore — in-memory reset still happened */ }
   renderUserDetail();
-  const t = document.createElement('div');
-  t.textContent = 'Reset to role defaults';
-  t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--fg2);color:#fff;padding:10px 24px;border-radius:8px;font-size:13px;font-weight:600;z-index:9999';
-  document.body.appendChild(t); setTimeout(()=>t.remove(), 1800);
 }
 
 function toggleUsrFilter() {
@@ -5573,17 +5652,18 @@ function syncSetupUsersFromDB() {
   SETUP_USERS.length = 0; // clear existing (including mock data)
   DB.users.forEach((dbU, i) => {
     SETUP_USERS.push({
-      id:     dbU.id,
-      name:   dbU.name   || 'Unknown',
-      email:  dbU.email  || '',
-      role:   dbU.role   || 'User',
-      title:  dbU.title  || '',
-      dept:   dbU.dept   || '',
-      phone:  dbU.phone  || '',
-      status: dbU.status || 'active',
-      avatar: (dbU.name||'?').split(' ').map(p=>p[0]).join('').toUpperCase().slice(0,2),
-      color:  dbU.color  || colors[i % colors.length],
-      online: false
+      id:           dbU.id,
+      name:         dbU.name   || 'Unknown',
+      email:        dbU.email  || '',
+      role:         dbU.role   || 'User',
+      title:        dbU.title  || '',
+      dept:         dbU.dept   || '',
+      phone:        dbU.phone  || '',
+      status:       dbU.status || 'active',
+      avatar:       (dbU.name||'?').split(' ').map(p=>p[0]).join('').toUpperCase().slice(0,2),
+      color:        dbU.color  || colors[i % colors.length],
+      custom_perms: dbU.custom_perms || null,
+      online:       false
     });
   });
 }
@@ -7649,6 +7729,7 @@ async function onSignedIn(authUser) {
         avatar: profile.avatar || user.avatar,
         color: profile.color || user.color,
         status: profile.status || 'active',
+        custom_perms: profile.custom_perms || null,
         online: true
       };
     }
@@ -7663,6 +7744,12 @@ async function onSignedIn(authUser) {
     seedData();
   }
   syncSetupUsersFromDB(); // merge real DB users into Setup panel
+  // Re-apply nav perms after DB load — now LOGGED_IN_USER.custom_perms is current
+  const myDbUser = DB.users.find(u => u.id === LOGGED_IN_USER.id || u.email === LOGGED_IN_USER.email);
+  if (myDbUser && myDbUser.custom_perms) {
+    LOGGED_IN_USER.custom_perms = myDbUser.custom_perms;
+  }
+  applyNavPermissions();
   markLoginTime(); // record login time as badge baseline
   updateNavBadges();
   startRealtimeSync(); // live updates from other team members
