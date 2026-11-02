@@ -4349,7 +4349,7 @@ function renderMonthlyRevenue() {
       const h = Math.round(monthly[m] / maxMon * 80);
       return `
         <div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex:1">
-          <div style="font-size:11px;font-weight:600;color:${qColors[qi]}">${monthly[m]>0?fmt(monthly[m]):''}</div>
+          <div style="font-size:11px;font-weight:600;color:${qColors[qi]}">${monthly[m]>0?fmtC(monthly[m]):''}</div>
           <div style="width:100%;background:var(--surface2);border-radius:6px 6px 0 0;height:80px;display:flex;align-items:flex-end;overflow:hidden">
             <div style="width:100%;height:${h}px;background:${qColors[qi]};opacity:0.85;border-radius:4px 4px 0 0;transition:height 0.4s ease"></div>
           </div>
@@ -4361,7 +4361,7 @@ function renderMonthlyRevenue() {
       <div style="padding:20px 16px 16px;border-right:1px solid var(--border);${qi===3?'border-right:none':''}">
         <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:16px">
           <span style="font-size:13px;font-weight:800;color:${qColors[qi]};font-family:'Plus Jakarta Sans','Inter',sans-serif">${qNames[qi]}</span>
-          <span style="font-size:13px;font-weight:700;color:var(--fg);font-family:'Plus Jakarta Sans','Inter',sans-serif">${fmt(qTotal)}</span>
+          <span style="font-size:13px;font-weight:700;color:var(--fg);font-family:'Plus Jakarta Sans','Inter',sans-serif">${fmtC(qTotal)}</span>
         </div>
         <div style="display:flex;gap:8px;align-items:flex-end">${bars}</div>
       </div>`;
