@@ -5275,6 +5275,7 @@ function renderUserDetail() {
           <div style="font-size:20px;font-weight:700;color:var(--fg)">${u.name}</div>
           <span class="user-badge badge-${u.role === 'Super Admin' ? 'super' : u.role === 'Admin' ? 'admin' : u.role === 'Manager' ? 'manager' : u.role === 'Restricted' ? 'restricted' : 'user'}" style="font-size:12px;padding:3px 12px">${u.role}</span>
           <button onclick="openEditUserModal('${u.id}')" style="background:none;border:1.5px solid var(--border);border-radius:7px;padding:4px 12px;font-size:12px;cursor:pointer;color:var(--fg)">✎ Edit</button>
+          ${isAdminOrAbove() && u.id !== (window.LOGGED_IN_USER?.id || '') && u.email !== (window.LOGGED_IN_USER?.email || '') ? `<button onclick="confirmDeleteUser('${u.id}')" style="background:none;border:1.5px solid #ef4444;border-radius:7px;padding:4px 12px;font-size:12px;cursor:pointer;color:#ef4444">🗑 Delete</button>` : ''}
         </div>
         ${isAdminOrAbove() ? `<div style="display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap">
           <label style="font-size:12px;color:var(--fg2);font-weight:500">Change Role:</label>
@@ -5493,8 +5494,14 @@ async function quickSaveRole(userId) {
     showToast('Only a Super Admin can assign the Super Admin role.', '#dc2626'); return;
   }
   const u = SETUP_USERS.find(x => x.id === userId);
-  const dbUser = DB.users.find(x => x.id === userId);
-  if (!dbUser) { showToast('User not found in database.', '#dc2626'); return; }
+  // Match by id OR by email (handles mock IDs like 'u1' that exist in SETUP_USERS but not DB.users)
+  const dbUser = DB.users.find(x => x.id === userId) || (u ? DB.users.find(x => x.email === u.email) : null);
+  if (!dbUser) {
+    // No Supabase record — still update SETUP_USERS in memory only
+    if (u) { u.role = newRole; renderUserList(); renderUserDetail(); showToast(`Role updated (local only — user not yet in database)`, '#f59e0b'); }
+    else { showToast('User not found.', '#dc2626'); }
+    return;
+  }
   // Optimistically update memory first
   const prevRole = dbUser.role;
   if (u) u.role = newRole;
@@ -5519,6 +5526,68 @@ async function quickSaveRole(userId) {
       showToast('Failed to save role: ' + msg, '#dc2626');
     }
     console.error('quickSaveRole error:', e);
+  }
+}
+
+function confirmDeleteUser(userId) {
+  const u = SETUP_USERS.find(x => x.id === userId);
+  if (!u) return;
+  // Prevent deleting yourself
+  if (userId === (window.LOGGED_IN_USER?.id || '') || u.email === (window.LOGGED_IN_USER?.email || '')) {
+    showToast('You cannot delete your own account.', '#dc2626'); return;
+  }
+  // Prevent non-super-admin from deleting a Super Admin
+  if (u.role === 'Super Admin' && !isSuperAdmin()) {
+    showToast('Only a Super Admin can delete another Super Admin.', '#dc2626'); return;
+  }
+  // Confirm dialog
+  const modal = document.createElement('div');
+  modal.id = 'del-user-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center';
+  modal.innerHTML = `
+    <div style="background:var(--surface);border-radius:16px;padding:28px 32px;max-width:400px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,0.25)">
+      <div style="font-size:18px;font-weight:700;color:var(--fg);margin-bottom:8px">Delete User?</div>
+      <div style="font-size:14px;color:var(--fg2);margin-bottom:20px">
+        This will permanently remove <strong>${u.name}</strong> (${u.email}) from the CRM.<br>
+        <span style="color:#ef4444;font-size:12px">This action cannot be undone.</span>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button onclick="document.getElementById('del-user-modal').remove()" style="padding:8px 20px;border:1.5px solid var(--border);border-radius:8px;background:none;font-size:13px;cursor:pointer;color:var(--fg)">Cancel</button>
+        <button onclick="deleteUser('${userId}')" style="padding:8px 20px;background:#ef4444;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Delete</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+async function deleteUser(userId) {
+  const modal = document.getElementById('del-user-modal');
+  if (modal) modal.remove();
+  const u = SETUP_USERS.find(x => x.id === userId);
+  const dbUser = DB.users.find(x => x.id === userId) || (u ? DB.users.find(x => x.email === u.email) : null);
+  try {
+    if (dbUser) {
+      // Delete from Supabase auth (admin only via profiles delete)
+      const { error } = await DB_CLIENT.from('profiles').delete().eq('id', dbUser.id);
+      if (error) throw error;
+      // Remove from DB.users
+      DB.users = DB.users.filter(x => x.id !== dbUser.id);
+    }
+    // Remove from SETUP_USERS
+    const idx = SETUP_USERS.findIndex(x => x.id === userId);
+    if (idx >= 0) SETUP_USERS.splice(idx, 1);
+    currentSetupUser = null;
+    renderUserList();
+    renderUserDetail();
+    showToast(`User deleted successfully`, '#2EA44F');
+    if (dbUser) audit('Delete', 'Users', dbUser.name || u?.name || 'User', 'User removed');
+  } catch(e) {
+    const msg = e?.message || String(e);
+    if (msg.includes('row-level security') || msg.includes('violates')) {
+      showToast('Permission denied — run the profiles RLS fix SQL in Supabase.', '#dc2626');
+    } else {
+      showToast('Failed to delete user: ' + msg, '#dc2626');
+    }
+    console.error('deleteUser error:', e);
   }
 }
 
