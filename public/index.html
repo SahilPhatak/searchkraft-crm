@@ -634,6 +634,89 @@ tbody tr td.name-cell:hover { text-decoration: underline; }
 }
 .card-sm { padding: 14px 16px; }
 
+/* ---- PREMIUM DASHBOARD ---- */
+.dash-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.dash-kpi-card {
+  background: var(--surface);
+  border-radius: 16px;
+  padding: 20px 22px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: box-shadow 0.18s, transform 0.18s;
+  position: relative;
+  overflow: hidden;
+}
+.dash-kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  border-radius: 16px 16px 0 0;
+  background: var(--kpi-color, #6366f1);
+}
+.dash-kpi-card:hover { box-shadow: 0 8px 28px rgba(0,0,0,0.09); transform: translateY(-2px); }
+.dash-kpi-card .kpi-icon {
+  width: 38px; height: 38px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--kpi-bg, #eef2ff);
+  margin-bottom: 14px;
+}
+.dash-kpi-card .kpi-label {
+  font-size: 11px; font-weight: 600; letter-spacing: 0.7px;
+  text-transform: uppercase; color: var(--fg3); margin-bottom: 6px;
+}
+.dash-kpi-card .kpi-value {
+  font-size: 30px; font-weight: 700; color: var(--fg);
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  letter-spacing: -1px; line-height: 1;
+}
+.dash-kpi-card .kpi-sub {
+  font-size: 12px; color: var(--fg3); margin-top: 8px;
+  display: flex; align-items: center; gap: 4px;
+}
+.dash-section-hdr {
+  font-size: 13px; font-weight: 700; color: var(--fg);
+  display: flex; align-items: center; gap: 8px;
+}
+.dash-section-hdr .dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--accent); flex-shrink: 0;
+}
+.dash-card {
+  background: var(--surface);
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.dash-card-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.dash-empty {
+  padding: 36px 20px; text-align: center;
+  color: var(--fg3); font-size: 13px;
+}
+.lq-stat {
+  padding: 20px 22px; text-align: center;
+  border-right: 1px solid var(--border);
+}
+.lq-stat:last-child { border-right: none; }
+.lq-stat .lq-label {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.8px; color: var(--fg3); margin-bottom: 10px;
+}
+.lq-stat .lq-value {
+  font-size: 28px; font-weight: 800;
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  letter-spacing: -1px; line-height: 1;
+}
+/* ---- END PREMIUM DASHBOARD ---- */
 .stat-tile {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -1333,126 +1416,206 @@ textarea { min-height: 80px; resize: vertical; }
 
     <!-- ===================== DASHBOARD ===================== -->
     <div class="page page-pad active" id="page-dashboard">
-      <!-- Welcome Banner -->
-      <div id="dash-welcome" style="background:linear-gradient(135deg,#0C1A35 0%,#1E3A6E 100%);border-radius:12px;padding:24px 28px;margin-bottom:20px;color:#fff">
-        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+
+      <!-- ── Premium Welcome Banner ── -->
+      <div id="dash-welcome" style="position:relative;background:linear-gradient(135deg,#0a1628 0%,#0f2352 55%,#1a3a6b 100%);border-radius:18px;padding:28px 32px;margin-bottom:24px;color:#fff;overflow:hidden;box-shadow:0 4px 24px rgba(10,22,40,0.18)">
+        <!-- subtle decorative circles -->
+        <div style="position:absolute;top:-40px;right:-40px;width:180px;height:180px;border-radius:50%;background:rgba(99,102,241,0.12);pointer-events:none"></div>
+        <div style="position:absolute;bottom:-30px;right:120px;width:100px;height:100px;border-radius:50%;background:rgba(59,130,246,0.09);pointer-events:none"></div>
+        <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;position:relative;z-index:1">
+          <!-- Avatar + Name -->
+          <div id="dash-avatar" style="width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,#6366f1,#3b82f6);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#fff;font-family:'Plus Jakarta Sans','Inter',sans-serif;flex-shrink:0;box-shadow:0 4px 12px rgba(99,102,241,0.35)">S</div>
           <div style="flex:1;min-width:140px">
-            <div id="dash-welcome-name" style="font-size:26px;font-weight:700;letter-spacing:-0.4px">Welcome 👋</div>
-            <div id="dash-welcome-date" style="font-size:14px;color:#94A3C4;margin-top:6px"></div>
+            <div style="font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-bottom:4px">Welcome back</div>
+            <div id="dash-welcome-name" style="font-size:24px;font-weight:800;letter-spacing:-0.5px;font-family:'Plus Jakarta Sans','Inter',sans-serif;line-height:1.1">—</div>
+            <div id="dash-welcome-date" style="font-size:13px;color:rgba(255,255,255,0.45);margin-top:6px;font-weight:400;letter-spacing:0.2px"></div>
           </div>
-          <button onclick="refreshDashboard()" title="Refresh data" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:7px 14px;color:#fff;font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.12)'">
-            <svg id="refresh-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          <!-- Quick stats strip inside banner -->
+          <div style="display:flex;gap:0;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:12px;overflow:hidden;flex-shrink:0">
+            <div style="padding:12px 20px;text-align:center;border-right:1px solid rgba(255,255,255,0.1)">
+              <div style="font-size:10px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:rgba(255,255,255,0.45);margin-bottom:4px">Today</div>
+              <div id="dash-today-tasks" style="font-size:20px;font-weight:800;color:#fff;font-family:'Plus Jakarta Sans','Inter',sans-serif;letter-spacing:-0.5px">—</div>
+              <div style="font-size:10px;color:rgba(255,255,255,0.35);margin-top:2px">tasks</div>
+            </div>
+            <div style="padding:12px 20px;text-align:center">
+              <div style="font-size:10px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:rgba(255,255,255,0.45);margin-bottom:4px">Meetings</div>
+              <div id="dash-today-meetings" style="font-size:20px;font-weight:800;color:#fff;font-family:'Plus Jakarta Sans','Inter',sans-serif;letter-spacing:-0.5px">—</div>
+              <div style="font-size:10px;color:rgba(255,255,255,0.35);margin-top:2px">today</div>
+            </div>
+          </div>
+          <button onclick="refreshDashboard()" title="Refresh data" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.18);border-radius:10px;padding:9px 16px;color:rgba(255,255,255,0.85);font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:7px;white-space:nowrap;letter-spacing:0.3px;transition:background 0.15s" onmouseover="this.style.background='rgba(255,255,255,0.18)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'">
+            <svg id="refresh-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
             Refresh
           </button>
         </div>
       </div>
 
-      <!-- 4 KPI Tiles -->
-      <div class="grid-4 mb-16" id="dash-kpi" style="grid-template-columns:repeat(5,1fr)">
-        <div class="stat-tile" onclick="navigateTo('leads')" style="cursor:pointer;border-left:4px solid #6366f1">
-          <div class="label">Leads This Month</div>
-          <div class="value" id="stat-leads-month" style="color:#6366f1">—</div>
-          <div class="sub">Created in <span id="stat-month-name"></span></div>
+      <!-- ── KPI Cards ── -->
+      <div class="dash-kpi-grid mb-16" id="dash-kpi">
+
+        <div class="dash-kpi-card" onclick="navigateTo('leads')" style="--kpi-color:#6366f1;--kpi-bg:#eef2ff;cursor:pointer">
+          <div class="kpi-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2.2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+          <div class="kpi-label">Leads This Month</div>
+          <div class="kpi-value" id="stat-leads-month">—</div>
+          <div class="kpi-sub">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span>Created in <span id="stat-month-name"></span></span>
+          </div>
         </div>
-        <div class="stat-tile" onclick="navigateTo('deals')" style="cursor:pointer;border-left:4px solid #3b82f6">
-          <div class="label">Deals This Month</div>
-          <div class="value" id="stat-deals-month" style="color:#3b82f6">—</div>
-          <div class="sub" id="stat-deals-month-sub">Created in <span id="stat-month-name2"></span></div>
+
+        <div class="dash-kpi-card" onclick="navigateTo('deals')" style="--kpi-color:#3b82f6;--kpi-bg:#eff6ff;cursor:pointer">
+          <div class="kpi-icon" style="background:#eff6ff">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2.2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          </div>
+          <div class="kpi-label">Deals This Month</div>
+          <div class="kpi-value" id="stat-deals-month" style="color:#3b82f6">—</div>
+          <div class="kpi-sub" id="stat-deals-month-sub">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span>Created in <span id="stat-month-name2"></span></span>
+          </div>
         </div>
-        <div class="stat-tile" onclick="navigateTo('deals')" style="cursor:pointer;border-left:4px solid #10b981">
-          <div class="label">Revenue This Month</div>
-          <div class="value" id="stat-revenue-month" style="color:#10b981;font-size:22px">—</div>
-          <div class="sub" id="stat-revenue-month-sub">Closed Won deals</div>
+
+        <div class="dash-kpi-card" onclick="navigateTo('deals')" style="--kpi-color:#10b981;--kpi-bg:#ecfdf5;cursor:pointer">
+          <div class="kpi-icon" style="background:#ecfdf5">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          </div>
+          <div class="kpi-label">Revenue This Month</div>
+          <div class="kpi-value" id="stat-revenue-month" style="color:#10b981;font-size:24px">—</div>
+          <div class="kpi-sub" id="stat-revenue-month-sub">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>Closed Won deals</span>
+          </div>
         </div>
-        <div class="stat-tile" onclick="navigateTo('tasks')" style="cursor:pointer;border-left:4px solid #ef4444">
-          <div class="label">Open Tasks</div>
-          <div class="value" id="stat-overdue-tasks" style="color:#ef4444">—</div>
-          <div class="sub" id="stat-overdue-sub">Pending &amp; In Progress</div>
+
+        <div class="dash-kpi-card" onclick="navigateTo('tasks')" style="--kpi-color:#ef4444;--kpi-bg:#fef2f2;cursor:pointer">
+          <div class="kpi-icon" style="background:#fef2f2">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          </div>
+          <div class="kpi-label">Open Tasks</div>
+          <div class="kpi-value" id="stat-overdue-tasks" style="color:#ef4444">—</div>
+          <div class="kpi-sub" id="stat-overdue-sub">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <span>Pending &amp; In Progress</span>
+          </div>
         </div>
-        <div class="stat-tile" style="cursor:default;border-left:4px solid #f59e0b">
-          <div class="label">Last Qtr Win Rate</div>
-          <div class="value" id="stat-winrate" style="color:#f59e0b">—</div>
-          <div class="sub" id="stat-winrate-sub">vs prev quarter</div>
+
+        <div class="dash-kpi-card" style="--kpi-color:#f59e0b;--kpi-bg:#fffbeb;cursor:default">
+          <div class="kpi-icon" style="background:#fffbeb">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2.2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          </div>
+          <div class="kpi-label">Last Qtr Win Rate</div>
+          <div class="kpi-value" id="stat-winrate" style="color:#f59e0b">—</div>
+          <div class="kpi-sub" id="stat-winrate-sub">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+            <span>vs prev quarter</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ── Last Quarter Performance ── -->
+      <div class="dash-card mb-16" id="dash-lq">
+        <div class="dash-card-header">
+          <div class="dash-section-hdr">
+            <div class="dot" style="background:#8b5cf6"></div>
+            Last Quarter Performance
+            <span id="lq-label" style="font-size:11px;color:var(--fg3);font-weight:500;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:2px 8px;margin-left:4px"></span>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(5,1fr)" id="lq-grid">
+          <div class="lq-stat">
+            <div class="lq-label">Leads Created</div>
+            <div id="lq-leads" class="lq-value" style="color:var(--fg)">—</div>
+          </div>
+          <div class="lq-stat">
+            <div class="lq-label">Deals Created</div>
+            <div id="lq-deals" class="lq-value" style="color:#3b82f6">—</div>
+          </div>
+          <div class="lq-stat">
+            <div class="lq-label">Deals Won</div>
+            <div id="lq-won" class="lq-value" style="color:#10b981">—</div>
+          </div>
+          <div class="lq-stat">
+            <div class="lq-label">Revenue</div>
+            <div id="lq-revenue" class="lq-value" style="color:#f59e0b;font-size:22px">—</div>
+          </div>
+          <div class="lq-stat" style="border-right:none">
+            <div class="lq-label">Win Rate</div>
+            <div id="lq-winrate" class="lq-value" style="color:#8b5cf6">—</div>
+          </div>
         </div>
       </div>
 
-      <!-- Last Quarter Performance Overview -->
-      <div class="card mb-16" id="dash-lq" style="padding:0;overflow:hidden">
-        <div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
-          <span style="font-size:14px;font-weight:700;color:var(--fg)">📊 Last Quarter Performance Overview</span>
-          <span id="lq-label" style="font-size:12px;color:var(--fg3);font-weight:500"></span>
-        </div>
-        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:0" id="lq-grid">
-          <div style="padding:16px 20px;border-right:1px solid var(--border);text-align:center">
-            <div style="font-size:11px;color:var(--fg3);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Leads Created</div>
-            <div id="lq-leads" style="font-size:26px;font-weight:800;color:var(--fg);font-family:'Roboto Mono','IBM Plex Mono',monospace;letter-spacing:-0.5px">—</div>
-          </div>
-          <div style="padding:16px 20px;border-right:1px solid var(--border);text-align:center">
-            <div style="font-size:11px;color:var(--fg3);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Deals Created</div>
-            <div id="lq-deals" style="font-size:26px;font-weight:800;color:#3b82f6;font-family:'Roboto Mono','IBM Plex Mono',monospace;letter-spacing:-0.5px">—</div>
-          </div>
-          <div style="padding:16px 20px;border-right:1px solid var(--border);text-align:center">
-            <div style="font-size:11px;color:var(--fg3);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Deals Won</div>
-            <div id="lq-won" style="font-size:26px;font-weight:800;color:#10b981;font-family:'Roboto Mono','IBM Plex Mono',monospace;letter-spacing:-0.5px">—</div>
-          </div>
-          <div style="padding:16px 20px;border-right:1px solid var(--border);text-align:center">
-            <div style="font-size:11px;color:var(--fg3);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Revenue</div>
-            <div id="lq-revenue" style="font-size:22px;font-weight:800;color:#f59e0b;font-family:'Roboto Mono','IBM Plex Mono',monospace;letter-spacing:-0.5px">—</div>
-          </div>
-          <div style="padding:16px 20px;text-align:center">
-            <div style="font-size:11px;color:var(--fg3);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Win Rate</div>
-            <div id="lq-winrate" style="font-size:26px;font-weight:800;color:#8b5cf6;font-family:'Roboto Mono','IBM Plex Mono',monospace;letter-spacing:-0.5px">—</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- My Open Tasks + My Meetings -->
+      <!-- ── Tasks + Meetings ── -->
       <div class="grid-2 mb-16" id="dash-tasks-meetings">
-        <div class="card" style="padding:0;overflow:hidden">
-          <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
-            <span style="font-size:14px;font-weight:600;color:var(--fg)">My Open Tasks</span>
+        <div class="dash-card">
+          <div class="dash-card-header">
+            <div class="dash-section-hdr">
+              <div class="dot" style="background:#ef4444"></div>
+              My Open Tasks
+            </div>
             <button class="btn btn-secondary btn-sm" onclick="navigateTo('tasks')">View All</button>
           </div>
           <table style="width:100%;border-collapse:collapse">
             <thead><tr>
-              <th style="padding:9px 16px;background:var(--surface2);color:var(--fg3);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;text-align:left;border-bottom:1px solid var(--border)">Subject</th>
-              <th style="padding:9px 12px;background:var(--surface2);color:var(--fg3);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;text-align:left;border-bottom:1px solid var(--border)">Due Date</th>
-              <th style="padding:9px 12px;background:var(--surface2);color:var(--fg3);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;text-align:left;border-bottom:1px solid var(--border)">Status</th>
+              <th style="padding:10px 18px;background:var(--surface2);color:var(--fg3);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;text-align:left;border-bottom:1px solid var(--border)">Subject</th>
+              <th style="padding:10px 14px;background:var(--surface2);color:var(--fg3);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;text-align:left;border-bottom:1px solid var(--border)">Due Date</th>
+              <th style="padding:10px 14px;background:var(--surface2);color:var(--fg3);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;text-align:left;border-bottom:1px solid var(--border)">Status</th>
             </tr></thead>
             <tbody id="dash-tasks-body">
-              <tr><td colspan="3" style="padding:32px;text-align:center;color:var(--fg3);font-size:13px">No Tasks found.</td></tr>
+              <tr><td colspan="3" style="padding:36px;text-align:center;color:var(--fg3);font-size:13px">No tasks found.</td></tr>
             </tbody>
           </table>
         </div>
-        <div class="card" style="padding:0;overflow:hidden">
-          <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
-            <span style="font-size:14px;font-weight:600;color:var(--fg)">My Meetings</span>
+        <div class="dash-card">
+          <div class="dash-card-header">
+            <div class="dash-section-hdr">
+              <div class="dot" style="background:#3b82f6"></div>
+              My Meetings
+            </div>
             <button class="btn btn-secondary btn-sm" onclick="navigateTo('activities')">View All</button>
           </div>
           <table style="width:100%;border-collapse:collapse">
             <thead><tr>
-              <th style="padding:9px 16px;background:var(--surface2);color:var(--fg3);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;text-align:left;border-bottom:1px solid var(--border)">Title</th>
-              <th style="padding:9px 12px;background:var(--surface2);color:var(--fg3);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;text-align:left;border-bottom:1px solid var(--border)">From</th>
-              <th style="padding:9px 12px;background:var(--surface2);color:var(--fg3);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;text-align:left;border-bottom:1px solid var(--border)">To</th>
+              <th style="padding:10px 18px;background:var(--surface2);color:var(--fg3);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;text-align:left;border-bottom:1px solid var(--border)">Title</th>
+              <th style="padding:10px 14px;background:var(--surface2);color:var(--fg3);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;text-align:left;border-bottom:1px solid var(--border)">From</th>
+              <th style="padding:10px 14px;background:var(--surface2);color:var(--fg3);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;text-align:left;border-bottom:1px solid var(--border)">To</th>
             </tr></thead>
             <tbody id="dash-meetings-body">
-              <tr><td colspan="3" style="padding:32px;text-align:center;color:var(--fg3);font-size:13px">No Meetings found.</td></tr>
+              <tr><td colspan="3" style="padding:36px;text-align:center;color:var(--fg3);font-size:13px">No meetings found.</td></tr>
             </tbody>
           </table>
         </div>
       </div>
 
-      <!-- Recent Activity + Pipeline Summary -->
+      <!-- ── Recent Activity + Pipeline ── -->
       <div class="grid-2" id="dash-activity-pipeline">
-        <div class="card">
-          <div style="font-size:14px;font-weight:600;color:var(--fg);margin-bottom:14px">Recent Activity</div>
-          <div class="activity-list" id="dash-activity"></div>
+        <div class="dash-card">
+          <div class="dash-card-header">
+            <div class="dash-section-hdr">
+              <div class="dot" style="background:#10b981"></div>
+              Recent Activity
+            </div>
+          </div>
+          <div style="padding:12px 0">
+            <div class="activity-list" id="dash-activity"></div>
+          </div>
         </div>
-        <div class="card">
-          <div style="font-size:14px;font-weight:600;color:var(--fg);margin-bottom:14px">Pipeline Summary</div>
-          <div id="dash-pipeline"></div>
+        <div class="dash-card">
+          <div class="dash-card-header">
+            <div class="dash-section-hdr">
+              <div class="dot" style="background:#f59e0b"></div>
+              Pipeline Summary
+            </div>
+          </div>
+          <div style="padding:16px 20px">
+            <div id="dash-pipeline"></div>
+          </div>
         </div>
       </div>
+
     </div>
 
     <!-- ===================== WORKQUEUE ===================== -->
@@ -3825,8 +3988,10 @@ function renderDashboard() {
   showViewSwitcher(true);
   setDashView(currentDashView);
 
-  // Welcome banner
-  document.getElementById('dash-welcome-name').textContent = `Welcome, ${cu} 👋`;
+  // Welcome banner — avatar initial + name
+  const avatarEl = document.getElementById('dash-avatar');
+  if (avatarEl) avatarEl.textContent = (cu||'U').charAt(0).toUpperCase();
+  document.getElementById('dash-welcome-name').textContent = cu || 'User';
   // Live clock
   if (window._welcomeClockInterval) clearInterval(window._welcomeClockInterval);
   function updateClock() {
@@ -3880,6 +4045,12 @@ function renderDashboard() {
   if (subEl) subEl.textContent = overdueTasks.length > 0 ? `${overdueTasks.length} past due date` : 'Pending & In Progress';
   setEl('stat-winrate', lqWinRate+'%');
   setEl('stat-winrate-sub', `${lqWon.length} won of ${lqDeals.length} deals`);
+
+  // Banner mini-stats: today's open tasks + today's meetings
+  const todayTaskCount = DB.tasks.filter(t => t.owner === cu && (t.status==='Pending'||t.status==='In Progress') && (t.dueDate||t.due)===todayStr).length;
+  const todayMeetCount = DB.activities.filter(a => a.type==='Meeting' && (a.date||'').startsWith(todayStr)).length;
+  setEl('dash-today-tasks', todayTaskCount || openTasks.filter(t=>t.owner===cu).length);
+  setEl('dash-today-meetings', todayMeetCount);
   setEl('lq-label', lqLabel);
   setEl('lq-leads', lqLeads.length);
   setEl('lq-deals', lqDeals.length);
