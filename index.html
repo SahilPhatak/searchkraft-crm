@@ -5495,18 +5495,30 @@ async function quickSaveRole(userId) {
   const u = SETUP_USERS.find(x => x.id === userId);
   const dbUser = DB.users.find(x => x.id === userId);
   if (!dbUser) { showToast('User not found in database.', '#dc2626'); return; }
+  // Optimistically update memory first
+  const prevRole = dbUser.role;
+  if (u) u.role = newRole;
+  dbUser.role = newRole;
+  renderUserList();
+  renderUserDetail();
   try {
     const { error } = await DB_CLIENT.from('profiles').update({ role: newRole, updated_at: new Date().toISOString() }).eq('id', dbUser.id);
     if (error) throw error;
-    if (u) u.role = newRole;
-    dbUser.role = newRole;
-    renderUserList();
-    renderUserDetail();
     showToast(`Role updated to ${newRole}`, '#2EA44F');
     audit('Update', 'Users', dbUser.name||'User', `Role → ${newRole}`);
   } catch(e) {
-    showToast('Failed to save role. Run migrate_super_admin.sql in Supabase.', '#dc2626');
-    console.error(e);
+    // Revert memory on failure
+    if (u) u.role = prevRole;
+    dbUser.role = prevRole;
+    renderUserList();
+    renderUserDetail();
+    const msg = e?.message || String(e);
+    if (msg.includes('row-level security') || msg.includes('violates')) {
+      showToast('Permission denied — run the profiles RLS fix SQL in Supabase first.', '#dc2626');
+    } else {
+      showToast('Failed to save role: ' + msg, '#dc2626');
+    }
+    console.error('quickSaveRole error:', e);
   }
 }
 
