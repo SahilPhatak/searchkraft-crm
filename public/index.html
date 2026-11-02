@@ -3432,14 +3432,111 @@ function countNewRecords(records, section) {
 }
 function updateNavBadges() {
   const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val > 0 ? val : ''; };
-  set('nb-leads',     countNewRecords(DB.leads, 'leads'));
-  set('nb-contacts',  countNewRecords(DB.contacts, 'contacts'));
-  set('nb-companies', countNewRecords(DB.companies, 'companies'));
-  set('nb-deals',     countNewRecords(DB.deals, 'deals'));
-  const openTasks = DB.tasks.filter(t => t.status !== 'Done').length;
-  set('nb-tasks', openTasks);
+  set('nb-leads',      countNewRecords(DB.leads, 'leads'));
+  set('nb-contacts',   countNewRecords(DB.contacts, 'contacts'));
+  set('nb-companies',  countNewRecords(DB.companies, 'companies'));
+  set('nb-deals',      countNewRecords(DB.deals, 'deals'));
+  set('nb-tasks',      countNewRecords(DB.tasks, 'tasks'));
   set('nb-activities', countNewRecords(DB.activities, 'activities'));
 }
+
+// ── Real-time sync ──────────────────────────────────────────────────────────
+// One Supabase Realtime channel that listens to all CRM tables.
+// When another user inserts/updates/deletes a record we patch DB in-memory,
+// refresh the nav badges, and re-render the current page if it shows that table.
+let _realtimeChannel = null;
+
+function startRealtimeSync() {
+  if (_realtimeChannel) return; // already subscribed
+  const norm = (r) => ({
+    ...r,
+    createdAt:        r.createdAt        || r.created_at,
+    updatedAt:        r.updatedAt        || r.updated_at,
+    closeDate:        r.closeDate        || r.close_date,
+    dueDate:          r.dueDate          || r.due_date,
+    due:              r.due              || r.due_date,
+    companyId:        r.companyId        || r.company_id,
+    companyName:      r.companyName      || r.company,
+    contactId:        r.contactId        || r.contact_id,
+    ownerId:          r.ownerId          || r.owner_id,
+    leadId:           r.leadId           || r.lead_id,
+    dealId:           r.dealId           || r.deal_id,
+    bdOwner:          r.bdOwner          || r.bd_owner,
+    firstName:        r.firstName        || r.first_name,
+    lastName:         r.lastName         || r.last_name,
+    numEmployees:     r.numEmployees     || r.num_employees,
+    annualRevenue:    r.annualRevenue    || r.annual_revenue,
+    emailOptOut:      r.emailOptOut      ?? r.email_opt_out,
+    handoverDone:     r.handoverDone     ?? r.handover_done,
+    commercialsSigned:r.commercialsSigned?? r.commercials_signed,
+    wonAt:            r.wonAt            || r.won_at,
+    lostAt:           r.lostAt           || r.lost_at,
+    lostReason:       r.lostReason       || r.lost_reason,
+    completedAt:      r.completedAt      || r.completed_at,
+    amount:           (r.amount != null && r.amount !== '') ? r.amount : r.value,
+    expectedRevenue:  (r.expectedRevenue != null && r.expectedRevenue !== '') ? r.expectedRevenue : r.expected_revenue,
+    probability:      r.probability      !== undefined ? r.probability      : r.probability_pct,
+  });
+
+  // Map Supabase table name → DB key + page hash(es) to re-render
+  const TABLE_MAP = {
+    leads:      { key: 'leads',      pages: ['leads'] },
+    contacts:   { key: 'contacts',   pages: ['contacts'] },
+    companies:  { key: 'companies',  pages: ['companies'] },
+    deals:      { key: 'deals',      pages: ['deals'] },
+    tasks:      { key: 'tasks',      pages: ['tasks'] },
+    activities: { key: 'activities', pages: ['activities'] },
+  };
+
+  _realtimeChannel = DB_CLIENT
+    .channel('crm-realtime')
+    .on('postgres_changes', { event: '*', schema: 'public' }, (payload) => {
+      try {
+        const table = payload.table;
+        const info = TABLE_MAP[table];
+        if (!info) return;
+        const arr = DB[info.key];
+        if (!arr) return;
+
+        if (payload.eventType === 'INSERT') {
+          const rec = norm(payload.new);
+          // Skip if already in DB (avoid self-echo on save)
+          if (!arr.find(r => r.id === rec.id)) {
+            arr.unshift(rec);
+          }
+        } else if (payload.eventType === 'UPDATE') {
+          const rec = norm(payload.new);
+          const idx = arr.findIndex(r => r.id === rec.id);
+          if (idx >= 0) arr[idx] = rec; else arr.unshift(rec);
+        } else if (payload.eventType === 'DELETE') {
+          const id = payload.old && payload.old.id;
+          if (id) { const idx = arr.findIndex(r => r.id === id); if (idx >= 0) arr.splice(idx, 1); }
+        }
+
+        // Refresh badges
+        updateNavBadges();
+
+        // Re-render current page if relevant
+        const curPage = (window.location.hash.replace('#/','') || 'dashboard');
+        if (info.pages.includes(curPage)) {
+          // Small debounce so rapid multi-row changes don't thrash
+          clearTimeout(window._rtRenderTimer);
+          window._rtRenderTimer = setTimeout(() => renderPage(curPage), 300);
+        }
+        // Always refresh dashboard tiles if open
+        if (curPage === 'dashboard') {
+          clearTimeout(window._rtDashTimer);
+          window._rtDashTimer = setTimeout(renderDashboard, 300);
+        }
+      } catch(e) { /* realtime patch failed silently */ }
+    })
+    .subscribe();
+}
+
+function stopRealtimeSync() {
+  if (_realtimeChannel) { DB_CLIENT.removeChannel(_realtimeChannel); _realtimeChannel = null; }
+}
+// ────────────────────────────────────────────────────────────────────────────
 
 async function refreshDashboard() {
   const icon = document.getElementById('refresh-icon');
@@ -6363,6 +6460,7 @@ function setRegisterLoading(loading) {
 
 async function doSignOut() {
   // Clear in-memory data so next user starts fresh
+  stopRealtimeSync();
   DB.leads = []; DB.contacts = []; DB.companies = []; DB.deals = [];
   DB.tasks = []; DB.activities = []; DB.users = []; DB.audit = [];
   LOGGED_IN_USER = null;
@@ -6472,6 +6570,7 @@ async function onSignedIn(authUser) {
   syncSetupUsersFromDB(); // merge real DB users into Setup panel
   markLoginTime(); // record login time as badge baseline
   updateNavBadges();
+  startRealtimeSync(); // live updates from other team members
   const page = getHashPage();
   if (page && page !== 'login') {
     history.replaceState({ page }, '', '#/' + page);
