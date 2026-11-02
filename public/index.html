@@ -3702,12 +3702,12 @@ function startRealtimeSync() {
 
   // Map Supabase table name → DB key + page hash(es) to re-render
   const TABLE_MAP = {
-    leads:      { key: 'leads',      pages: ['leads'] },
-    contacts:   { key: 'contacts',   pages: ['contacts'] },
-    companies:  { key: 'companies',  pages: ['companies'] },
-    deals:      { key: 'deals',      pages: ['deals'] },
-    tasks:      { key: 'tasks',      pages: ['tasks'] },
-    activities: { key: 'activities', pages: ['activities'] },
+    leads:      { key: 'leads',      pages: ['leads','reports','dashboard'] },
+    contacts:   { key: 'contacts',   pages: ['contacts','reports'] },
+    companies:  { key: 'companies',  pages: ['companies','reports'] },
+    deals:      { key: 'deals',      pages: ['deals','reports','dashboard'] },
+    tasks:      { key: 'tasks',      pages: ['tasks','dashboard'] },
+    activities: { key: 'activities', pages: ['activities','dashboard'] },
     documents:  { key: 'documents',  pages: ['documents'] },
   };
 
@@ -4666,9 +4666,15 @@ function renderReports() {
     return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(m)-1]+' '+y;
   }
 
-  // KPI Tiles
-  const leadsThisMonth = DB.leads.filter(l=>l.createdAt&&l.createdAt.startsWith(thisMonth)).length;
-  const leadsLastMonth = DB.leads.filter(l=>l.createdAt&&l.createdAt.startsWith(m2)).length;
+  // KPI Tiles — use recLocalYM (defined below) for robust UTC→local month matching
+  // recLocalYM is defined after this block; hoist a quick version here too
+  function kpiLocalYM(x, field) {
+    const raw = x[field] || x[field==='createdAt'?'created_at':field==='closeDate'?'close_date':field] || '';
+    if (!raw) return '';
+    try { const d=new Date(raw); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); } catch(e){ return raw.slice(0,7); }
+  }
+  const leadsThisMonth = DB.leads.filter(l=>kpiLocalYM(l,'createdAt')===thisMonth).length;
+  const leadsLastMonth = DB.leads.filter(l=>kpiLocalYM(l,'createdAt')===m2).length;
   const pct = leadsLastMonth>0 ? Math.round((leadsThisMonth-leadsLastMonth)/leadsLastMonth*100) : 0;
   const el_lm = document.getElementById('an-leads-month');
   if (el_lm) el_lm.textContent = leadsThisMonth;
@@ -4677,7 +4683,7 @@ function renderReports() {
   const el_ll = document.getElementById('an-leads-last');
   if (el_ll) el_ll.textContent = leadsLastMonth+' last month';
 
-  const wonDeals = DB.deals.filter(d=>d.stage==='Closed Won'&&d.closeDate&&d.closeDate.startsWith(thisMonth));
+  const wonDeals = DB.deals.filter(d=>d.stage==='Closed Won'&&kpiLocalYM(d,'closeDate')===thisMonth);
   const revenue = wonDeals.reduce((s,d)=>s+Number(d.amount||0),0);
   const el_rev = document.getElementById('an-revenue');
   if (el_rev) el_rev.textContent = fmt(revenue);
@@ -4693,16 +4699,30 @@ function renderReports() {
   // Performance matrix rendered as a single unified grid (header + rows)
   // m1 = 2 months ago, m2 = last month, m3 = this month
 
-  function monthCount(arr, dateField, mo) { return arr.filter(x=>x[dateField]&&x[dateField].startsWith(mo)).length; }
-  function monthSum(arr, dateField, valField, mo) { return arr.filter(x=>x[dateField]&&x[dateField].startsWith(mo)).reduce((s,x)=>s+Number(x[valField]||0),0); }
+  // Robust date getter: handles both camelCase and snake_case, converts UTC ISO to local YYYY-MM
+  function recLocalYM(x, field) {
+    const raw = x[field] || x[field==='createdAt'?'created_at':field==='closeDate'?'close_date':field] || '';
+    if (!raw) return '';
+    try {
+      const d = new Date(raw);
+      return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+    } catch(e) { return raw.slice(0,7); }
+  }
+
+  function monthCount(arr, dateField, mo) {
+    return arr.filter(x => recLocalYM(x, dateField) === mo).length;
+  }
+  function monthSum(arr, dateField, valField, mo) {
+    return arr.filter(x => recLocalYM(x, dateField) === mo).reduce((s,x)=>s+Number(x[valField]||0),0);
+  }
 
   const matrixRows = [
     { label:'Leads Created', vals:[monthCount(DB.leads,'createdAt',m1), monthCount(DB.leads,'createdAt',m2), monthCount(DB.leads,'createdAt',m3)] },
     { label:'Deals Created', vals:[monthCount(DB.deals,'createdAt',m1), monthCount(DB.deals,'createdAt',m2), monthCount(DB.deals,'createdAt',m3)] },
     { label:'Deals Won', vals:[
-      DB.deals.filter(d=>d.stage==='Closed Won'&&d.closeDate&&d.closeDate.startsWith(m1)).length,
-      DB.deals.filter(d=>d.stage==='Closed Won'&&d.closeDate&&d.closeDate.startsWith(m2)).length,
-      DB.deals.filter(d=>d.stage==='Closed Won'&&d.closeDate&&d.closeDate.startsWith(m3)).length
+      DB.deals.filter(d=>d.stage==='Closed Won').filter(d=>recLocalYM(d,'closeDate')===m1).length,
+      DB.deals.filter(d=>d.stage==='Closed Won').filter(d=>recLocalYM(d,'closeDate')===m2).length,
+      DB.deals.filter(d=>d.stage==='Closed Won').filter(d=>recLocalYM(d,'closeDate')===m3).length,
     ]},
     { label:'Revenue Won', vals:[
       monthSum(DB.deals.filter(d=>d.stage==='Closed Won'),'closeDate','amount',m1),
@@ -4710,7 +4730,9 @@ function renderReports() {
       monthSum(DB.deals.filter(d=>d.stage==='Closed Won'),'closeDate','amount',m3)
     ], isCurrency:true },
     { label:'Open Amount', vals:[
-      pipeline.reduce((s,d)=>s+Number(d.amount||0),0), pipeline.reduce((s,d)=>s+Number(d.amount||0),0), pipeline.reduce((s,d)=>s+Number(d.amount||0),0)
+      monthSum(DB.deals.filter(d=>d.stage!=='Closed Won'&&d.stage!=='Closed Lost'),'createdAt','amount',m1),
+      monthSum(DB.deals.filter(d=>d.stage!=='Closed Won'&&d.stage!=='Closed Lost'),'createdAt','amount',m2),
+      monthSum(DB.deals.filter(d=>d.stage!=='Closed Won'&&d.stage!=='Closed Lost'),'createdAt','amount',m3),
     ], isCurrency:true }
   ];
 
