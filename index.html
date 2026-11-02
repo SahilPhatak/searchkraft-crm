@@ -5238,9 +5238,9 @@ function renderReports() {
       monthSum(DB.deals.filter(d=>d.stage==='Offered'),'createdAt','expectedRevenue',sm3),
     ], isCurrency:true },
     { label:'Revenue Lost', vals:[
-      monthSum(DB.deals.filter(d=>d.stage==='Declined'),'updatedAt','expectedRevenue',sm1),
-      monthSum(DB.deals.filter(d=>d.stage==='Declined'),'updatedAt','expectedRevenue',sm2),
-      monthSum(DB.deals.filter(d=>d.stage==='Declined'),'updatedAt','expectedRevenue',sm3),
+      monthSum(DB.deals.filter(d=>d.stage==='Declined'),'lostAt','expectedRevenue',sm1),
+      monthSum(DB.deals.filter(d=>d.stage==='Declined'),'lostAt','expectedRevenue',sm2),
+      monthSum(DB.deals.filter(d=>d.stage==='Declined'),'lostAt','expectedRevenue',sm3),
     ], isCurrency:true }
   ];
 
