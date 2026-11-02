@@ -3723,7 +3723,15 @@ function isOverdue(d) { return d && d.slice(0,10) < today(); }
 
 // ---- STAGE CONFIGS ----
 const LEAD_STAGES = ['New','Contacted','Pre Qualified','Qualified','Not Qualified','Junk Lead','Proposal Sent','Negotiation','Won','Lost','Lost Lead'];
-const DEAL_STAGES = ['Qualification','Needs Analysis','Value Proposition','Identify Decision Maker','Perception Analysis','Proposal','Negotiation/Review','Closed Won','Closed Lost'];
+const DEAL_STAGES = ['Qualification','Needs Analysis','Value Proposition','Identify Decision Maker','Perception Analysis','Proposal','Negotiation/Review','Offered','Joined','Absconded','Declined','Closed Won','Closed Lost'];
+// Stages that count as "won" for revenue calculations
+const WON_STAGES  = new Set(['Joined','Closed Won']);
+// Stages that count as "lost"
+const LOST_STAGES = new Set(['Absconded','Declined','Closed Lost']);
+// Active pipeline stages (not won, not lost)
+function isWon(d)    { return WON_STAGES.has(d.stage); }
+function isLost(d)   { return LOST_STAGES.has(d.stage); }
+function isActive(d) { return !isWon(d) && !isLost(d); }
 const BADGE_MAP = {
   'Active':'badge-green','Prospect':'badge-blue','Inactive':'badge-gray',
   'Won':'badge-green','Lost':'badge-red','New':'badge-blue','Contacted':'badge-amber',
@@ -4120,7 +4128,7 @@ function renderDashboard() {
   const dealsThisMonth = DB.deals.filter(d => (d.createdAt||'').startsWith(monthStr));
   // Revenue this month = sum of Closed Won expected revenue (won in this month)
   const revenueThisMonth = DB.deals
-    .filter(d => d.stage === 'Closed Won' && (d.wonAt||d.closeDate||d.createdAt||'').startsWith(monthStr))
+    .filter(d => isWon(d) && (d.wonAt||d.closeDate||d.createdAt||'').startsWith(monthStr))
     .reduce((a,d)=>a+Number(d.expectedRevenue||d.amount||d.value||0),0);
   // Open + overdue tasks
   const todayStr = today();
@@ -4130,7 +4138,7 @@ function renderDashboard() {
   const q = Math.floor(thisMonth/3);
   const lqMonths = [0,1,2].map(i=>{ const m=(q-1)*3+i; return `${thisYear}-${String(m+1).padStart(2,'0')}`; });
   const lqDeals = DB.deals.filter(d => lqMonths.some(m=>(d.createdAt||'').startsWith(m)));
-  const lqWon = lqDeals.filter(d=>d.stage==='Closed Won');
+  const lqWon = lqDeals.filter(d=>isWon(d));
   const lqRevenue = lqWon.reduce((a,d)=>a+Number(d.expectedRevenue||d.amount||d.value||0),0);
   const lqWinRate = lqDeals.length ? Math.round(lqWon.length/lqDeals.length*100) : 0;
   const lqLeads = DB.leads.filter(l=>lqMonths.some(m=>(l.createdAt||'').startsWith(m)));
@@ -4244,7 +4252,7 @@ function renderDashboard() {
 
 function renderRevenueTarget() {
   const achieved = DB.deals
-    .filter(d => d.stage === 'Closed Won' && (d.wonAt||d.closeDate||'').startsWith(new Date().getFullYear()+''))
+    .filter(d => isWon(d) && (d.wonAt||d.closeDate||'').startsWith(new Date().getFullYear()+''))
     .reduce((a,d) => a + Number(d.expectedRevenue||d.amount||0), 0);
 
   const inputEl = document.getElementById('dash-target-input');
@@ -4303,7 +4311,7 @@ function renderMonthlyRevenue() {
   const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   // Sum Closed Won revenue per month
   const monthly = Array(12).fill(0);
-  DB.deals.filter(d => d.stage === 'Closed Won').forEach(d => {
+  DB.deals.filter(d => isWon(d)).forEach(d => {
     const dt = d.wonAt || d.closeDate || d.createdAt || '';
     if (dt.startsWith(yr+'')) {
       const m = parseInt(dt.slice(5,7),10) - 1;
@@ -5157,7 +5165,7 @@ function renderReports() {
   const el_ll = document.getElementById('an-leads-last');
   if (el_ll) el_ll.textContent = leadsLastMonth === 0 ? 'No leads last month' : leadsLastMonth + ' last month';
 
-  const wonDeals = DB.deals.filter(d=>d.stage==='Closed Won'&&recLocalYM(d,'closeDate')===thisMonth);
+  const wonDeals = DB.deals.filter(d=>isWon(d)&&recLocalYM(d,'closeDate')===thisMonth);
   const revenue = wonDeals.reduce((s,d)=>s+Number(d.amount||0),0);
   const el_rev = document.getElementById('an-revenue');
   if (el_rev) el_rev.textContent = fmt(revenue);
@@ -5215,19 +5223,19 @@ function renderReports() {
     { label:'Leads Created', vals:[monthCount(DB.leads,'createdAt',sm1), monthCount(DB.leads,'createdAt',sm2), monthCount(DB.leads,'createdAt',sm3)] },
     { label:'Deals Created', vals:[monthCount(DB.deals,'createdAt',sm1), monthCount(DB.deals,'createdAt',sm2), monthCount(DB.deals,'createdAt',sm3)] },
     { label:'Deals Won', vals:[
-      DB.deals.filter(d=>d.stage==='Closed Won').filter(d=>recLocalYM(d,'closeDate')===sm1).length,
-      DB.deals.filter(d=>d.stage==='Closed Won').filter(d=>recLocalYM(d,'closeDate')===sm2).length,
-      DB.deals.filter(d=>d.stage==='Closed Won').filter(d=>recLocalYM(d,'closeDate')===sm3).length,
+      DB.deals.filter(d=>isWon(d)).filter(d=>recLocalYM(d,'closeDate')===sm1).length,
+      DB.deals.filter(d=>isWon(d)).filter(d=>recLocalYM(d,'closeDate')===sm2).length,
+      DB.deals.filter(d=>isWon(d)).filter(d=>recLocalYM(d,'closeDate')===sm3).length,
     ]},
     { label:'Revenue Won', vals:[
-      monthSum(DB.deals.filter(d=>d.stage==='Closed Won'),'closeDate','amount',sm1),
-      monthSum(DB.deals.filter(d=>d.stage==='Closed Won'),'closeDate','amount',sm2),
-      monthSum(DB.deals.filter(d=>d.stage==='Closed Won'),'closeDate','amount',sm3)
+      monthSum(DB.deals.filter(d=>isWon(d)),'closeDate','amount',sm1),
+      monthSum(DB.deals.filter(d=>isWon(d)),'closeDate','amount',sm2),
+      monthSum(DB.deals.filter(d=>isWon(d)),'closeDate','amount',sm3)
     ], isCurrency:true },
     { label:'Open Amount', vals:[
-      monthSum(DB.deals.filter(d=>d.stage!=='Closed Won'&&d.stage!=='Closed Lost'),'createdAt','amount',sm1),
-      monthSum(DB.deals.filter(d=>d.stage!=='Closed Won'&&d.stage!=='Closed Lost'),'createdAt','amount',sm2),
-      monthSum(DB.deals.filter(d=>d.stage!=='Closed Won'&&d.stage!=='Closed Lost'),'createdAt','amount',sm3),
+      monthSum(DB.deals.filter(d=>isActive(d)),'createdAt','amount',sm1),
+      monthSum(DB.deals.filter(d=>isActive(d)),'createdAt','amount',sm2),
+      monthSum(DB.deals.filter(d=>isActive(d)),'createdAt','amount',sm3),
     ], isCurrency:true }
   ];
 
@@ -5296,7 +5304,7 @@ function renderReports() {
 
   // Prolific sales reps
   const repMap = {};
-  DB.deals.filter(d=>d.stage==='Closed Won').forEach(d=>{ const o=d.owner||'Unknown'; repMap[o]=(repMap[o]||0)+Number(d.amount||0); });
+  DB.deals.filter(d=>isWon(d)).forEach(d=>{ const o=d.owner||'Unknown'; repMap[o]=(repMap[o]||0)+Number(d.amount||0); });
   const repEntries = Object.entries(repMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
   const maxRep = repEntries.length ? repEntries[0][1] : 1;
   const el_reps = document.getElementById('an-reps');
@@ -5315,7 +5323,7 @@ function renderReports() {
   const el_bar = document.getElementById('revenue-bar-svg');
   if (el_bar) {
     const target = 500000;
-    const revenueMonths = [m1,m2,m3].map(mo=>monthSum(DB.deals.filter(d=>d.stage==='Closed Won'),'closeDate','amount',mo));
+    const revenueMonths = [m1,m2,m3].map(mo=>monthSum(DB.deals.filter(d=>isWon(d)),'closeDate','amount',mo));
     const labels = [mLabel(m1),mLabel(m2),mLabel(m3)];
     const W2=el_bar.parentElement?.offsetWidth||380, H2=120, pad=40;
     const bw2=36, gap2=(W2-pad*2)/3;
@@ -5382,8 +5390,8 @@ function renderReportUsersView() {
       const name = u.name || u.email || '—';
       const leads = DB.leads.filter(l => l.owner === name && (l.createdAt||'').startsWith(thisMonth)).length;
       const deals = DB.deals.filter(d => d.owner === name && (d.createdAt||'').startsWith(thisMonth)).length;
-      const won   = DB.deals.filter(d => d.owner === name && d.stage === 'Closed Won').length;
-      const rev   = DB.deals.filter(d => d.owner === name && d.stage === 'Closed Won').reduce((s,d)=>s+Number(d.amount||0),0);
+      const won   = DB.deals.filter(d => d.owner === name && isWon(d)).length;
+      const rev   = DB.deals.filter(d => d.owner === name && isWon(d)).reduce((s,d)=>s+Number(d.amount||0),0);
       const tasks = DB.tasks.filter(t => t.owner === name && (t.status === 'Pending' || t.status === 'In Progress')).length;
       const acts  = DB.activities.filter(a => a.owner === name).length;
       return `<tr onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
@@ -5476,9 +5484,9 @@ function openCreateDashboard() {
   const leadsNow  = DB.leads.filter(l => (l.createdAt||'').startsWith(thisMonth)).length;
   const leadsPrev = DB.leads.filter(l => (l.createdAt||'').startsWith(prevMonth)).length;
   const dealsNow  = DB.deals.filter(d => (d.createdAt||'').startsWith(thisMonth)).length;
-  const wonDeals  = DB.deals.filter(d => d.stage === 'Closed Won').length;
-  const revenue   = DB.deals.filter(d => d.stage === 'Closed Won').reduce((s,d)=>s+Number(d.amount||0),0);
-  const pipeline  = DB.deals.filter(d => d.stage !== 'Closed Won' && d.stage !== 'Closed Lost').reduce((s,d)=>s+Number(d.amount||0),0);
+  const wonDeals  = DB.deals.filter(d => isWon(d)).length;
+  const revenue   = DB.deals.filter(d => isWon(d)).reduce((s,d)=>s+Number(d.amount||0),0);
+  const pipeline  = DB.deals.filter(d => isActive(d)).reduce((s,d)=>s+Number(d.amount||0),0);
   const contacts  = DB.contacts.length;
   const companies = DB.companies.length;
 
@@ -5534,9 +5542,9 @@ function saveDashboardSnapshot() {
       leadsNow:  DB.leads.filter(l => (l.createdAt||'').startsWith(thisMonth)).length,
       leadsPrev: DB.leads.filter(l => (l.createdAt||'').startsWith(prevMonth)).length,
       dealsNow:  DB.deals.filter(d => (d.createdAt||'').startsWith(thisMonth)).length,
-      wonDeals:  DB.deals.filter(d => d.stage === 'Closed Won').length,
-      revenue:   DB.deals.filter(d => d.stage === 'Closed Won').reduce((s,d)=>s+Number(d.amount||0),0),
-      pipeline:  DB.deals.filter(d => d.stage !== 'Closed Won' && d.stage !== 'Closed Lost').reduce((s,d)=>s+Number(d.amount||0),0),
+      wonDeals:  DB.deals.filter(d => isWon(d)).length,
+      revenue:   DB.deals.filter(d => isWon(d)).reduce((s,d)=>s+Number(d.amount||0),0),
+      pipeline:  DB.deals.filter(d => isActive(d)).reduce((s,d)=>s+Number(d.amount||0),0),
       contacts:  DB.contacts.length,
       companies: DB.companies.length,
     }
@@ -6624,7 +6632,17 @@ async function dropDealCard(e, newStage) {
   const deal = DB.deals.find(d=>d.id===_dragDealId);
   if (!deal || deal.stage===newStage) { _dragDealId=null; return; }
   deal.stage = newStage;
-  await DB_CLIENT.from('deals').update({ stage: newStage, updated_at: new Date().toISOString() }).eq('id', deal.id);
+  const update = { stage: newStage, updated_at: new Date().toISOString() };
+  // Auto-set won_at when dragged to Joined or Closed Won
+  if ((newStage === 'Joined' || newStage === 'Closed Won') && !deal.wonAt) {
+    deal.wonAt = deal.closeDate || new Date().toISOString().slice(0,10);
+    update.won_at = deal.wonAt;
+  }
+  if ((newStage === 'Absconded' || newStage === 'Declined' || newStage === 'Closed Lost') && !deal.lostAt) {
+    deal.lostAt = deal.closeDate || new Date().toISOString().slice(0,10);
+    update.lost_at = deal.lostAt;
+  }
+  await DB_CLIENT.from('deals').update(update).eq('id', deal.id);
   audit('Update', 'Deals', deal.name||'Deal', `Stage → ${newStage}`);
   _dragDealId = null;
   renderDealsBoard();
@@ -6993,12 +7011,12 @@ const MODAL_FORMS = {
       };
       if (!r.name) return alert('Deal name required');
       if (!r.companyName) return alert('Company / Account is required');
-      // Auto-set wonAt when stage = Closed Won (preserve existing timestamp if already set)
-      if (stage === 'Closed Won') {
+      // Auto-set wonAt when stage is a won stage (Joined / Closed Won)
+      if (WON_STAGES.has(stage)) {
         r.wonAt = (existing && existing.wonAt) || r.closeDate || new Date().toISOString().slice(0,10);
       }
-      // Auto-set lostAt when stage = Closed Lost
-      if (stage === 'Closed Lost') {
+      // Auto-set lostAt when stage is a lost stage (Absconded / Declined / Closed Lost)
+      if (LOST_STAGES.has(stage)) {
         r.lostAt = (existing && existing.lostAt) || r.closeDate || new Date().toISOString().slice(0,10);
       }
       upsert('deals', id, r);
@@ -7318,8 +7336,8 @@ function renderDashboardView(view) {
     const now = new Date();
     const thisMonth = now.getMonth(); const thisYear = now.getFullYear();
     const dealsCreated = DB.deals.filter(d=>{ const dt=new Date(d.createdAt||d.closeDate||''); return dt.getMonth()===thisMonth&&dt.getFullYear()===thisYear; }).length;
-    const revenue = DB.deals.filter(d=>d.stage==='Closed Won').reduce((s,d)=>s+(parseFloat(d.value)||0),0);
-    const dealsClosing = DB.deals.filter(d=>{ if(!d.closeDate)return false; const dt=new Date(d.closeDate); return dt.getMonth()===thisMonth&&dt.getFullYear()===thisYear&&d.stage!=='Closed Won'&&d.stage!=='Closed Lost'; }).length;
+    const revenue = DB.deals.filter(d=>isWon(d)).reduce((s,d)=>s+(parseFloat(d.value)||0),0);
+    const dealsClosing = DB.deals.filter(d=>{ if(!d.closeDate)return false; const dt=new Date(d.closeDate); return dt.getMonth()===thisMonth&&dt.getFullYear()===thisYear&&isActive(d); }).length;
     const today = now.toISOString().slice(0,10);
     const overdueTasks = DB.tasks.filter(t=>(t.status==='Pending'||t.status==='In Progress')&&(t.dueDate||t.due)&&(t.dueDate||t.due)<today).length;
     // Quarter data
@@ -7343,24 +7361,24 @@ function renderDashboardView(view) {
       const {y,qs,qe} = quarterRange(offset);
       return arr.filter(x=>{ const d=new Date(dateFn(x)||''); return d.getFullYear()===y&&d.getMonth()>=qs&&d.getMonth()<=qe&&(!extra||extra(x)); }).reduce((s,x)=>s+(parseFloat(valFn(x))||0),0);
     }
-    const qtrs = [3,2,1,0].map(i=>({label:getQuarterLabel(i),leadsCreated:qCount(DB.leads,l=>l.createdAt||l.date,i),dealsCreated:qCount(DB.deals,d=>d.createdAt||d.closeDate,i),dealsWon:qCount(DB.deals,d=>d.closeDate,i,d=>d.stage==='Closed Won'),revenue:qSum(DB.deals,d=>d.closeDate,d=>d.value,i,d=>d.stage==='Closed Won')}));
+    const qtrs = [3,2,1,0].map(i=>({label:getQuarterLabel(i),leadsCreated:qCount(DB.leads,l=>l.createdAt||l.date,i),dealsCreated:qCount(DB.deals,d=>d.createdAt||d.closeDate,i),dealsWon:qCount(DB.deals,d=>d.closeDate,i,d=>isWon(d)),revenue:qSum(DB.deals,d=>d.closeDate,d=>d.value,i,d=>isWon(d))}));
     // Source breakdown
     const srcMap = {};
     DB.leads.filter(l=>{ const dt=new Date(l.createdAt||l.date||''); return dt.getMonth()===thisMonth&&dt.getFullYear()===thisYear; }).forEach(l=>{ const s=l.source||'Unknown'; srcMap[s]=(srcMap[s]||0)+1; });
     const srcRows = Object.entries(srcMap).sort((a,b)=>b[1]-a[1]).slice(0,8);
     // Pipeline by stage
     const stageMap = {};
-    DB.deals.filter(d=>d.stage&&d.stage!=='Closed Won'&&d.stage!=='Closed Lost').forEach(d=>{ stageMap[d.stage]=(stageMap[d.stage]||0)+1; });
+    DB.deals.filter(d=>d.stage&&isActive(d)).forEach(d=>{ stageMap[d.stage]=(stageMap[d.stage]||0)+1; });
     const stageRows = Object.entries(stageMap).sort((a,b)=>b[1]-a[1]);
     // Top open deals
-    const topOpen = [...DB.deals].filter(d=>d.stage!=='Closed Won'&&d.stage!=='Closed Lost').sort((a,b)=>(parseFloat(b.value)||0)-(parseFloat(a.value)||0)).slice(0,10);
+    const topOpen = [...DB.deals].filter(d=>isActive(d)).sort((a,b)=>(parseFloat(b.value)||0)-(parseFloat(a.value)||0)).slice(0,10);
     // Top closed deals this month
-    const topClosed = DB.deals.filter(d=>{ const dt=new Date(d.closeDate||''); return d.stage==='Closed Won'&&dt.getMonth()===thisMonth&&dt.getFullYear()===thisYear; }).sort((a,b)=>(parseFloat(b.value)||0)-(parseFloat(a.value)||0)).slice(0,10);
+    const topClosed = DB.deals.filter(d=>{ const dt=new Date(d.closeDate||''); return isWon(d)&&dt.getMonth()===thisMonth&&dt.getFullYear()===thisYear; }).sort((a,b)=>(parseFloat(b.value)||0)-(parseFloat(a.value)||0)).slice(0,10);
     // Big deals lost
     const bigLost = DB.deals.filter(d=>{ const dt=new Date(d.closeDate||''); return d.stage==='Closed Lost'&&dt.getMonth()===thisMonth&&dt.getFullYear()===thisYear; }).sort((a,b)=>(parseFloat(b.value)||0)-(parseFloat(a.value)||0)).slice(0,10);
     // Top accounts by revenue
     const accRev = {};
-    DB.deals.filter(d=>d.stage==='Closed Won'&&d.company).forEach(d=>{ accRev[d.company]=(accRev[d.company]||0)+(parseFloat(d.value)||0); });
+    DB.deals.filter(d=>isWon(d)&&d.company).forEach(d=>{ accRev[d.company]=(accRev[d.company]||0)+(parseFloat(d.value)||0); });
     const topAcc = Object.entries(accRev).sort((a,b)=>b[1]-a[1]).slice(0,20);
     function fmt(n){return n>=10000000?'₹'+(n/10000000).toFixed(1)+'Cr':n>=100000?'₹'+(n/100000).toFixed(1)+'L':n>=1000?'₹'+(n/1000).toFixed(1)+'K':'₹'+n;}
     function emptyChart(label){return `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;gap:10px"><svg width="80" height="60" viewBox="0 0 80 60" fill="none"><path d="M10 50 Q20 20 30 35 Q40 50 50 25 Q60 0 70 15" stroke="#C8D3E8" stroke-width="2" fill="none"/><circle cx="30" cy="35" r="4" fill="#C8D3E8"/><circle cx="50" cy="25" r="4" fill="#C8D3E8"/><circle cx="70" cy="15" r="4" fill="#C8D3E8"/><line x1="5" y1="55" x2="75" y2="55" stroke="#C8D3E8" stroke-width="1.5"/><line x1="5" y1="10" x2="5" y2="55" stroke="#C8D3E8" stroke-width="1.5"/></svg><div style="font-size:13px;color:#8FA3C8">${label}</div></div>`;}
