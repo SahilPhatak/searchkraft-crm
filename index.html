@@ -3395,7 +3395,8 @@ async function load() {
     referenceNumber:  r.referenceNumber  || r.reference_number,
     startDate:        r.startDate        || r.start_date,
     expiryDate:       r.expiryDate       || r.expiry_date,
-    custom_perms:     r.custom_perms     || null,
+    custom_perms:           r.custom_perms            || null,
+    force_password_change:  r.force_password_change   || false,
   });
   DB.leads      = leads.map(norm);
   DB.contacts   = contacts.map(norm);
@@ -5402,11 +5403,19 @@ function renderUserDetail() {
         <span style="color:var(--fg2)">Distance Unit</span><span style="color:var(--fg)">Kilometers (km)</span>
       </div>
     </div>
-    <!-- Permissions Matrix -->
+    <!-- Permissions Matrix — Admin cannot edit Super Admin perms -->
+    ${!isSuperAdmin() && u.role === 'Super Admin' ? `
+    <div style="background:var(--surface);border-radius:12px;padding:18px 20px;box-shadow:0 1px 4px rgba(0,0,0,0.05);display:flex;align-items:center;gap:12px">
+      <span style="font-size:22px">🔒</span>
+      <div>
+        <div style="font-size:13px;font-weight:700;color:var(--fg)">Access &amp; Permissions</div>
+        <div style="font-size:12px;color:var(--fg3);margin-top:2px">Super Admin permissions are not visible to Admins.</div>
+      </div>
+    </div>` : `
     <div style="background:var(--surface);border-radius:12px;padding:18px 20px;box-shadow:0 1px 4px rgba(0,0,0,0.05)">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
         <div style="font-size:13px;font-weight:700;color:var(--fg)">Access &amp; Permissions</div>
-        <div style="font-size:12px;color:var(--fg3)">Based on role: <strong>${u.role}</strong></div>
+        <div style="font-size:12px;color:var(--fg3)">Based on role: <strong>${u.role}</strong>${u.custom_perms ? ' <span style="color:#f59e0b;font-size:11px">(customised)</span>' : ''}</div>
       </div>
       <table class="perm-table">
         <thead><tr>
@@ -5418,16 +5427,19 @@ function renderUserDetail() {
             <td style="font-weight:500;text-transform:capitalize">${mod}</td>
             ${actions.map(act => {
               const has = (perms[mod]||[]).includes(act);
-              return `<td style="text-align:center"><input type="checkbox" class="perm-check" ${has?'checked':''} onchange="updatePerm('${u.id}','${mod}','${act}',this.checked)"></td>`;
+              const disabled = u.role === 'Super Admin'; // Super Admin perms are always full
+              return `<td style="text-align:center"><input type="checkbox" class="perm-check" ${has?'checked':''} ${disabled?'disabled title="Super Admin always has full access"':''} onchange="updatePerm('${u.id}','${mod}','${act}',this.checked)"></td>`;
             }).join('')}
           </tr>`).join('')}
         </tbody>
       </table>
-      <div style="margin-top:14px;display:flex;gap:10px">
+      <div style="margin-top:14px;display:flex;gap:10px;align-items:center">
         <button onclick="saveUserPerms('${u.id}')" style="padding:8px 20px;background:#2EA44F;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Save Permissions</button>
         <button onclick="resetPerms('${u.id}')" style="padding:8px 16px;background:none;border:1.5px solid var(--border);border-radius:8px;font-size:13px;cursor:pointer;color:var(--fg2)">Reset to Role Default</button>
+        ${u.custom_perms ? `<span style="font-size:11px;color:#f59e0b;font-style:italic">Custom permissions active</span>` : `<span style="font-size:11px;color:var(--fg3);font-style:italic">Using role defaults</span>`}
       </div>
-    </div>`;
+    </div>`}
+    `;
 }
 
 function updatePerm(uid, mod, act, checked) {
@@ -5589,21 +5601,37 @@ async function saveUserFromModal(uid) {
     }
   } else {
     // NEW USER: create Supabase Auth account so they can log in
-    // Step 1: Sign them up with admin-set password
     const pwdInput = document.getElementById('um-password');
     const enteredPwd = pwdInput ? pwdInput.value.trim() : '';
     if (!enteredPwd || enteredPwd.length < 8) { alert('Password is required and must be at least 8 characters.'); return; }
-    const tempPass = enteredPwd;
     let newAuthId = null;
     try {
-      const { data: signUpData, error: signUpErr } = await DB_CLIENT.auth.signUp({
-        email,
-        password: tempPass,
-        options: { data: { name, role } }
-      });
+      // Save current admin session before signUp (signUp auto-logs in the new user)
+      const { data: currentSession } = await DB_CLIENT.auth.getSession();
+      const adminAccessToken  = currentSession?.session?.access_token;
+      const adminRefreshToken = currentSession?.session?.refresh_token;
+
+      // Suppress onAuthStateChange during signUp so admin isn't kicked out
+      _suppressAuthChange = true;
+      let signUpErr = null;
+      try {
+        const { data: signUpData, error: err } = await DB_CLIENT.auth.signUp({
+          email, password: enteredPwd,
+          options: { data: { name, role } }
+        });
+        signUpErr = err;
+        newAuthId = signUpData?.user?.id;
+      } finally {
+        _suppressAuthChange = false;
+      }
       if (signUpErr) throw signUpErr;
-      newAuthId = signUpData?.user?.id;
+
+      // Restore admin's session immediately so they stay logged in
+      if (adminAccessToken && adminRefreshToken) {
+        await DB_CLIENT.auth.setSession({ access_token: adminAccessToken, refresh_token: adminRefreshToken });
+      }
     } catch(e) {
+      _suppressAuthChange = false;
       const msg = e?.message || String(e);
       if (msg.includes('already registered') || msg.includes('already exists')) {
         showToast('A user with this email already exists.', '#dc2626');
@@ -5612,22 +5640,22 @@ async function saveUserFromModal(uid) {
       }
       return;
     }
-    // Step 2: Upsert profile row with all details
+    // Upsert profile row — mark force_password_change so new user sets their own password on first login
     if (newAuthId) {
       try {
         await DB_CLIENT.from('profiles').upsert({
           id: newAuthId, name, email, phone, title, dept, role, status,
+          force_password_change: true,
           created_at: new Date().toISOString(), updated_at: new Date().toISOString()
         });
-        // Add to DB.users so UI reflects immediately
         const colors = ['#1a56db','#7c3aed','#0891b2','#059669','#dc2626','#ea580c','#d97706'];
         DB.users.push({ id: newAuthId, name, email, phone, title, dept, role, status,
           avatar: name.split(' ').map(p=>p[0]).join('').toUpperCase().slice(0,2),
-          color: colors[Math.floor(Math.random()*colors.length)] });
+          color: colors[Math.floor(Math.random()*colors.length)], force_password_change: true });
         syncSetupUsersFromDB();
-        audit('Create', 'Users', name, `New user invited as ${role}`);
+        audit('Create', 'Users', name, `New user created as ${role}`);
         closeUserModal();
-        showToast(`✓ ${name} created. They can now log in with their email and the password you set.`, '#2EA44F');
+        showToast(`✓ ${name} created! They can log in with the password you set and will be prompted to change it.`, '#2EA44F');
         renderUserList();
         renderUserDetail();
         return;
@@ -7599,6 +7627,45 @@ function hideAuthLoading() {
   if (el) el.style.display = 'none';
 }
 
+// Show "set your new password" screen for first-time users
+function showSetPasswordScreen(user) {
+  hideAuthLoading();
+  document.getElementById('login-page').style.display = 'none';
+  const el = document.getElementById('set-password-screen');
+  if (el) {
+    el.style.display = 'flex';
+    document.getElementById('sp-user-name').textContent = user.name || user.email;
+    // Store user temporarily for after password set
+    el._pendingUser = user;
+  }
+}
+
+async function submitNewPassword() {
+  const p1 = document.getElementById('sp-pwd1').value;
+  const p2 = document.getElementById('sp-pwd2').value;
+  const err = document.getElementById('sp-err');
+  err.textContent = '';
+  if (!p1 || p1.length < 8) { err.textContent = 'Password must be at least 8 characters.'; return; }
+  if (p1 !== p2) { err.textContent = 'Passwords do not match.'; return; }
+  const btn = document.getElementById('sp-submit-btn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+  try {
+    const { error } = await DB_CLIENT.auth.updateUser({ password: p1 });
+    if (error) throw error;
+    // Clear the force_password_change flag
+    await DB_CLIENT.from('profiles').update({ force_password_change: false, updated_at: new Date().toISOString() })
+      .eq('id', DB_CLIENT.auth.getUser ? (await DB_CLIENT.auth.getUser()).data?.user?.id : '');
+    // Hide set-password screen, continue to app
+    document.getElementById('set-password-screen').style.display = 'none';
+    const el = document.getElementById('set-password-screen');
+    const user = el._pendingUser;
+    if (user) { user.force_password_change = false; applyLoggedInUser(user); showAppPage(); await load(); syncSetupUsersFromDB(); const page = getHashPage(); if (page && page !== 'login') { history.replaceState({page},'',' #/'+page); _doNavigate(page); } else { history.replaceState({page:'dashboard'},'','#/dashboard'); renderDashboard(); } }
+  } catch(e) {
+    err.textContent = 'Failed: ' + (e?.message || e);
+    btn.disabled = false; btn.textContent = 'Set Password & Continue';
+  }
+}
+
 function showLoginPage() {
   hideAuthLoading();
   const sb = document.getElementById('sidebar');
@@ -7730,8 +7797,14 @@ async function onSignedIn(authUser) {
         color: profile.color || user.color,
         status: profile.status || 'active',
         custom_perms: profile.custom_perms || null,
+        force_password_change: profile.force_password_change || false,
         online: true
       };
+      // New user first login — show password change screen before app
+      if (profile.force_password_change) {
+        showSetPasswordScreen(user);
+        return;
+      }
     }
   } catch(e) { /* profiles table may not exist yet — use auth metadata */ }
 
@@ -7776,7 +7849,11 @@ function whenDOMReady(fn) {
   }
 }
 
+// Flag to suppress auth state changes during admin-initiated signUp
+let _suppressAuthChange = false;
+
 DB_CLIENT.auth.onAuthStateChange(async (event, session) => {
+  if (_suppressAuthChange) return; // admin is creating a new user — ignore
   if (event === 'SIGNED_OUT') {
     _authInitialized = true;
     LOGGED_IN_USER = null;
@@ -7792,6 +7869,29 @@ DB_CLIENT.auth.onAuthStateChange(async (event, session) => {
   }
 });
 </script>
+
+<!-- SET PASSWORD SCREEN (first login) -->
+<div id="set-password-screen" style="display:none;position:fixed;inset:0;background:linear-gradient(135deg,#0f1b3d 0%,#1a3a6b 50%,#0d2451 100%);z-index:10000;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,sans-serif;padding:24px">
+  <div style="background:#fff;border-radius:20px;padding:40px;width:100%;max-width:420px;box-shadow:0 32px 80px rgba(0,0,0,0.35)">
+    <div style="text-align:center;margin-bottom:28px">
+      <div style="display:inline-flex;align-items:center;justify-content:center;width:52px;height:52px;background:linear-gradient(135deg,#1a56db,#1e40af);border-radius:13px;margin-bottom:12px">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </div>
+      <div style="font-size:20px;font-weight:800;color:#0f172a">Welcome to SearchKraft!</div>
+      <div style="font-size:13px;color:#64748b;margin-top:6px">Hi <strong id="sp-user-name"></strong>, please set your own password to continue.</div>
+    </div>
+    <div style="margin-bottom:16px">
+      <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px">New Password</label>
+      <input id="sp-pwd1" type="password" placeholder="Min 8 characters" style="width:100%;padding:11px 14px;border:1.5px solid #d1d5db;border-radius:8px;font-size:14px;outline:none;box-sizing:border-box" onfocus="this.style.borderColor='#1a56db'" onblur="this.style.borderColor='#d1d5db'">
+    </div>
+    <div style="margin-bottom:20px">
+      <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px">Confirm Password</label>
+      <input id="sp-pwd2" type="password" placeholder="Repeat your password" style="width:100%;padding:11px 14px;border:1.5px solid #d1d5db;border-radius:8px;font-size:14px;outline:none;box-sizing:border-box" onfocus="this.style.borderColor='#1a56db'" onblur="this.style.borderColor='#d1d5db'" onkeydown="if(event.key==='Enter')submitNewPassword()">
+    </div>
+    <div id="sp-err" style="color:#dc2626;font-size:13px;margin-bottom:12px;min-height:18px"></div>
+    <button id="sp-submit-btn" onclick="submitNewPassword()" style="width:100%;padding:12px;background:linear-gradient(135deg,#1a56db,#1e40af);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer">Set Password &amp; Continue →</button>
+  </div>
+</div>
 
 <!-- LOGIN PAGE -->
 <div id="login-page" style="display:none;position:fixed;inset:0;background:linear-gradient(135deg,#0f1b3d 0%,#1a3a6b 50%,#0d2451 100%);z-index:9999;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,sans-serif;overflow-y:auto;padding:24px 16px">
