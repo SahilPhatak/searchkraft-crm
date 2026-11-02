@@ -545,8 +545,7 @@ tbody tr td.name-cell:hover { text-decoration: underline; }
 
 .content {
   flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
   padding: 0;
   position: relative;
   z-index: 1;
@@ -554,6 +553,8 @@ tbody tr td.name-cell:hover { text-decoration: underline; }
   flex-direction: column;
   min-height: 0;
 }
+/* Pages that scroll the whole page (dashboard, reports, etc.) need overflow on themselves */
+.page.active:not(#page-setup) { overflow-y: auto; }
 /* Pages that need inner padding (dashboard, reports, etc.) */
 .page-pad {
   padding: 20px 24px 24px;
@@ -928,10 +929,10 @@ textarea { min-height: 80px; resize: vertical; }
 
 /* ---- PAGES (hidden/shown) ---- */
 .page { display: none; }
-.page.active { display: block; }
-.page.active.page-flex { display: flex; }
+.page.active { display: block; flex: 1; min-height: 0; }
+.page.active.page-flex { display: flex; flex: 1; min-height: 0; }
 /* Setup page must fill the content area height so inner panels can scroll */
-#page-setup { height: 100%; min-height: 0; }
+#page-setup { flex: 1; min-height: 0; height: 0; }
 .setup-panel { min-height: 0; flex: 1; }
 
 /* ---- WORKQUEUE NAV ITEMS ---- */
@@ -5308,7 +5309,7 @@ function renderUserDetail() {
           <div style="font-size:20px;font-weight:700;color:var(--fg)">${u.name}</div>
           <span class="user-badge badge-${u.role === 'Super Admin' ? 'super' : u.role === 'Admin' ? 'admin' : u.role === 'Manager' ? 'manager' : u.role === 'Restricted' ? 'restricted' : 'user'}" style="font-size:12px;padding:3px 12px">${u.role}</span>
           <button onclick="openEditUserModal('${u.id}')" style="background:none;border:1.5px solid var(--border);border-radius:7px;padding:4px 12px;font-size:12px;cursor:pointer;color:var(--fg)">✎ Edit</button>
-          ${isAdminOrAbove() && u.id !== (window.LOGGED_IN_USER?.id || '') && u.email !== (window.LOGGED_IN_USER?.email || '') ? `<button onclick="confirmDeleteUser('${u.id}')" style="background:none;border:1.5px solid #ef4444;border-radius:7px;padding:4px 12px;font-size:12px;cursor:pointer;color:#ef4444">🗑 Delete</button>` : ''}
+          ${isSuperAdmin() && u.id !== (window.LOGGED_IN_USER?.id || '') && u.email !== (window.LOGGED_IN_USER?.email || '') ? `<button onclick="confirmDeleteUser('${u.id}')" style="background:none;border:1.5px solid #ef4444;border-radius:7px;padding:4px 12px;font-size:12px;cursor:pointer;color:#ef4444">🗑 Delete</button>` : ''}
         </div>
         ${isAdminOrAbove() ? `<div style="display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap">
           <label style="font-size:12px;color:var(--fg2);font-weight:500">Change Role:</label>
@@ -5498,23 +5499,24 @@ async function saveUserFromModal(uid) {
 // Merge real DB users into SETUP_USERS so the Users panel shows live data
 function syncSetupUsersFromDB() {
   if (!DB.users || !DB.users.length) return;
-  DB.users.forEach(dbU => {
-    const existing = SETUP_USERS.find(x => x.email === dbU.email || x.id === dbU.id);
-    if (existing) {
-      existing.name = dbU.name || existing.name;
-      existing.role = dbU.role || existing.role;
-      existing.title = dbU.title || existing.title;
-      existing.dept = dbU.dept || existing.dept;
-      existing.phone = dbU.phone || existing.phone;
-      existing.status = dbU.status || existing.status;
-      existing.id = dbU.id || existing.id; // use real UUID
-      existing.avatar = (dbU.name||existing.name).split(' ').map(p=>p[0]).join('').toUpperCase().slice(0,2);
-      existing.color = dbU.color || existing.color;
-    }
-    // If not found, add as new entry
-    else {
-      SETUP_USERS.push({ id: dbU.id, name: dbU.name, email: dbU.email, role: dbU.role||'User', title: dbU.title||'', dept: dbU.dept||'', phone: dbU.phone||'', status: dbU.status||'active', avatar: (dbU.name||'').split(' ').map(p=>p[0]).join('').toUpperCase().slice(0,2), color: dbU.color||'#1a56db', online: false });
-    }
+  // Rebuild SETUP_USERS entirely from real DB — never show mock/hardcoded users
+  // that don't exist in Supabase profiles table
+  const colors = ['#1a56db','#7c3aed','#0891b2','#059669','#dc2626','#ea580c','#d97706'];
+  SETUP_USERS.length = 0; // clear existing (including mock data)
+  DB.users.forEach((dbU, i) => {
+    SETUP_USERS.push({
+      id:     dbU.id,
+      name:   dbU.name   || 'Unknown',
+      email:  dbU.email  || '',
+      role:   dbU.role   || 'User',
+      title:  dbU.title  || '',
+      dept:   dbU.dept   || '',
+      phone:  dbU.phone  || '',
+      status: dbU.status || 'active',
+      avatar: (dbU.name||'?').split(' ').map(p=>p[0]).join('').toUpperCase().slice(0,2),
+      color:  dbU.color  || colors[i % colors.length],
+      online: false
+    });
   });
 }
 
