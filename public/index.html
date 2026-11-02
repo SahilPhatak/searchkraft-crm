@@ -1604,7 +1604,7 @@ textarea { min-height: 80px; resize: vertical; }
       </div>
 
       <!-- ── Recent Activity + Pipeline ── -->
-      <div class="grid-2" id="dash-activity-pipeline">
+      <div class="grid-2 mb-16" id="dash-activity-pipeline">
         <div class="dash-card">
           <div class="dash-card-header">
             <div class="dash-section-hdr">
@@ -1626,6 +1626,75 @@ textarea { min-height: 80px; resize: vertical; }
           <div style="padding:16px 20px">
             <div id="dash-pipeline"></div>
           </div>
+        </div>
+      </div>
+
+      <!-- ── Revenue Target ── -->
+      <div class="dash-card mb-16" id="dash-revenue-target-card">
+        <div class="dash-card-header">
+          <div class="dash-section-hdr">
+            <div class="dot" style="background:#10b981"></div>
+            Revenue Target — This Year
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:12px;color:var(--fg3)">Annual Target (₹)</span>
+            <input id="dash-target-input" type="number" min="0"
+              style="width:130px;padding:5px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-weight:600;color:var(--fg);background:var(--surface);outline:none;font-family:'Plus Jakarta Sans','Inter',sans-serif"
+              placeholder="e.g. 1000000"
+              oninput="renderRevenueTarget()"
+              onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+          </div>
+        </div>
+        <div style="padding:24px 28px 28px">
+          <!-- Org-level bullet bar -->
+          <div style="margin-bottom:20px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
+              <span style="font-size:12px;font-weight:600;color:var(--fg2)">Entire Org</span>
+              <span id="dash-target-label" style="font-size:12px;color:var(--fg3)"></span>
+            </div>
+            <div style="position:relative;height:36px;background:var(--surface2);border-radius:8px;overflow:visible">
+              <!-- achieved bar -->
+              <div id="dash-achieved-bar" style="position:absolute;top:4px;bottom:4px;left:0;background:linear-gradient(90deg,#10b981,#34d399);border-radius:6px;transition:width 0.5s ease;min-width:0"></div>
+              <!-- target line -->
+              <div id="dash-target-line" style="position:absolute;top:-4px;bottom:-4px;width:2px;background:#1f2937;border-radius:2px;display:none">
+                <div id="dash-target-line-label" style="position:absolute;top:50%;transform:translateY(-50%);left:6px;white-space:nowrap;font-size:11px;font-weight:600;color:#1f2937;background:var(--surface);padding:2px 6px;border-radius:4px;border:1px solid var(--border)"></div>
+              </div>
+            </div>
+            <!-- x-axis ticks -->
+            <div id="dash-target-axis" style="display:flex;justify-content:space-between;margin-top:6px;font-size:11px;color:var(--fg3)"></div>
+          </div>
+          <!-- Summary row -->
+          <div style="display:flex;gap:20px;flex-wrap:wrap">
+            <div style="background:var(--surface2);border-radius:10px;padding:12px 18px;flex:1;min-width:120px;text-align:center">
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:var(--fg3);margin-bottom:6px">Achieved</div>
+              <div id="dash-achieved-val" style="font-size:22px;font-weight:800;color:#10b981;font-family:'Plus Jakarta Sans','Inter',sans-serif;letter-spacing:-0.5px">₹0</div>
+            </div>
+            <div style="background:var(--surface2);border-radius:10px;padding:12px 18px;flex:1;min-width:120px;text-align:center">
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:var(--fg3);margin-bottom:6px">Target</div>
+              <div id="dash-target-val" style="font-size:22px;font-weight:800;color:var(--fg);font-family:'Plus Jakarta Sans','Inter',sans-serif;letter-spacing:-0.5px">—</div>
+            </div>
+            <div style="background:var(--surface2);border-radius:10px;padding:12px 18px;flex:1;min-width:120px;text-align:center">
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:var(--fg3);margin-bottom:6px">Remaining</div>
+              <div id="dash-remaining-val" style="font-size:22px;font-weight:800;color:#ef4444;font-family:'Plus Jakarta Sans','Inter',sans-serif;letter-spacing:-0.5px">—</div>
+            </div>
+            <div style="background:var(--surface2);border-radius:10px;padding:12px 18px;flex:1;min-width:120px;text-align:center">
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:var(--fg3);margin-bottom:6px">% Achieved</div>
+              <div id="dash-pct-val" style="font-size:22px;font-weight:800;color:#6366f1;font-family:'Plus Jakarta Sans','Inter',sans-serif;letter-spacing:-0.5px">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Monthly Revenue by Quarter ── -->
+      <div class="dash-card mb-16" id="dash-monthly-rev-card">
+        <div class="dash-card-header">
+          <div class="dash-section-hdr">
+            <div class="dot" style="background:#6366f1"></div>
+            Monthly Revenue — <span id="dash-monthly-year"></span>
+          </div>
+        </div>
+        <div style="padding:0 0 4px">
+          <div id="dash-quarterly-grid" style="display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--border)"></div>
         </div>
       </div>
 
@@ -4147,6 +4216,111 @@ function renderDashboard() {
       <span style="color:var(--fg2)">${s}</span>
       <span style="font-weight:600;color:var(--fg)">${c} deal${c>1?'s':''}</span>
     </div>`).join('')||'<div style="color:var(--fg3);font-size:13px;padding:12px 0">No deals yet.</div>'}`;
+
+  renderRevenueTarget();
+  renderMonthlyRevenue();
+}
+
+function renderRevenueTarget() {
+  const achieved = DB.deals
+    .filter(d => d.stage === 'Closed Won' && (d.wonAt||d.closeDate||'').startsWith(new Date().getFullYear()+''))
+    .reduce((a,d) => a + Number(d.amount||0), 0);
+
+  const inputEl = document.getElementById('dash-target-input');
+  const target = inputEl ? Number(inputEl.value) || 0 : 0;
+
+  // save target to localStorage
+  if (inputEl && inputEl.value) localStorage.setItem('sk_rev_target', inputEl.value);
+  else if (inputEl && !inputEl.value) {
+    const saved = localStorage.getItem('sk_rev_target');
+    if (saved) { inputEl.value = saved; }
+  }
+  const finalTarget = inputEl ? Number(inputEl.value) || 0 : 0;
+
+  const pct = finalTarget > 0 ? Math.min(Math.round(achieved / finalTarget * 100), 100) : 0;
+  const remaining = finalTarget > 0 ? Math.max(finalTarget - achieved, 0) : 0;
+  const maxVal = finalTarget > 0 ? Math.max(finalTarget * 1.2, achieved * 1.2, 1000) : Math.max(achieved * 1.2, 10000);
+
+  // bar
+  const bar = document.getElementById('dash-achieved-bar');
+  const line = document.getElementById('dash-target-line');
+  const lineLabel = document.getElementById('dash-target-line-label');
+  const axis = document.getElementById('dash-target-axis');
+
+  if (bar) bar.style.width = (achieved / maxVal * 100) + '%';
+
+  if (line && lineLabel) {
+    if (finalTarget > 0) {
+      const linePos = Math.min(finalTarget / maxVal * 100, 98);
+      line.style.left = linePos + '%';
+      line.style.display = 'block';
+      lineLabel.textContent = 'Target: ' + fmt(finalTarget);
+    } else {
+      line.style.display = 'none';
+    }
+  }
+
+  // axis ticks — 5 evenly spaced
+  if (axis) {
+    const ticks = [0,1,2,3,4,5].map(i => Math.round(maxVal / 5 * i));
+    axis.innerHTML = ticks.map(t => `<span>${fmt(t)}</span>`).join('');
+  }
+
+  const setEl = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
+  setEl('dash-achieved-val', fmt(achieved));
+  setEl('dash-target-val',   finalTarget > 0 ? fmt(finalTarget) : '—');
+  setEl('dash-remaining-val',finalTarget > 0 ? fmt(remaining) : '—');
+  setEl('dash-pct-val',      finalTarget > 0 ? pct + '%' : '—');
+  setEl('dash-target-label', finalTarget > 0 ? `${pct}% of ${fmt(finalTarget)} achieved` : 'Set a target above');
+}
+
+function renderMonthlyRevenue() {
+  const yr = new Date().getFullYear();
+  const el = document.getElementById('dash-monthly-year');
+  if (el) el.textContent = yr;
+
+  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  // Sum Closed Won revenue per month
+  const monthly = Array(12).fill(0);
+  DB.deals.filter(d => d.stage === 'Closed Won').forEach(d => {
+    const dt = d.wonAt || d.closeDate || d.createdAt || '';
+    if (dt.startsWith(yr+'')) {
+      const m = parseInt(dt.slice(5,7),10) - 1;
+      if (m >= 0 && m < 12) monthly[m] += Number(d.amount||0);
+    }
+  });
+
+  const maxMon = Math.max(...monthly, 1);
+  const quarters = [[0,1,2],[3,4,5],[6,7,8],[9,10,11]];
+  const qColors = ['#6366f1','#3b82f6','#10b981','#f59e0b'];
+  const qNames = ['Q1','Q2','Q3','Q4'];
+
+  const grid = document.getElementById('dash-quarterly-grid');
+  if (!grid) return;
+
+  grid.innerHTML = quarters.map((qMons, qi) => {
+    const qTotal = qMons.reduce((a,m) => a + monthly[m], 0);
+    const bars = qMons.map(m => {
+      const h = Math.round(monthly[m] / maxMon * 80);
+      return `
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex:1">
+          <div style="font-size:11px;font-weight:600;color:${qColors[qi]}">${monthly[m]>0?fmt(monthly[m]):''}</div>
+          <div style="width:100%;background:var(--surface2);border-radius:6px 6px 0 0;height:80px;display:flex;align-items:flex-end;overflow:hidden">
+            <div style="width:100%;height:${h}px;background:${qColors[qi]};opacity:0.85;border-radius:4px 4px 0 0;transition:height 0.4s ease"></div>
+          </div>
+          <div style="font-size:11px;color:var(--fg3);font-weight:500">${monthNames[m]}</div>
+        </div>`;
+    }).join('');
+
+    return `
+      <div style="padding:20px 16px 16px;border-right:1px solid var(--border);${qi===3?'border-right:none':''}">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:16px">
+          <span style="font-size:13px;font-weight:800;color:${qColors[qi]};font-family:'Plus Jakarta Sans','Inter',sans-serif">${qNames[qi]}</span>
+          <span style="font-size:13px;font-weight:700;color:var(--fg);font-family:'Plus Jakarta Sans','Inter',sans-serif">${fmt(qTotal)}</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:flex-end">${bars}</div>
+      </div>`;
+  }).join('');
 }
 
 // ---- MY DAY ----
