@@ -3976,7 +3976,8 @@ function updateNavBadges() {
 let _realtimeChannel = null;
 
 function startRealtimeSync() {
-  if (_realtimeChannel) return; // already subscribed
+  if (window._realtimeStarted) return; // already subscribed
+  window._realtimeStarted = true;
   const norm = (r) => ({
     ...r,
     createdAt:        r.createdAt        || r.created_at,
@@ -4067,8 +4068,8 @@ function startRealtimeSync() {
   // Subscribe to each table individually for broader Supabase plan compatibility
   const tables = Object.keys(TABLE_MAP);
   tables.forEach(tbl => {
-    DB_CLIENT.channel('crm-' + tbl)
-      .on('postgres_changes', { event: '*', schema: 'public', table: tbl }, handleRealtimePayload)
+    const ch = DB_CLIENT.channel('crm-' + tbl);
+    ch.on('postgres_changes', { event: '*', schema: 'public', table: tbl }, handleRealtimePayload)
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') console.log('[RT] subscribed:', tbl);
         if (status === 'CHANNEL_ERROR') console.warn('[RT] channel error:', tbl);
@@ -4197,8 +4198,11 @@ function renderDashboard() {
       </tr>`).join('');
   }
 
-  // Recent Activity feed — show real audit trail (who added/updated/deleted what)
+  // Recent Activity feed — admin/superadmin only
   const actEl = document.getElementById('dash-activity');
+  const actParentCard = actEl ? actEl.closest('.dash-card') : null;
+  if (actParentCard) actParentCard.style.display = isAdminOrAbove() ? '' : 'none';
+  if (isAdminOrAbove() && actEl) {
   const auditEntries = DB.audit.slice(0, 10);
   const callMeetings = DB.activities.slice(0, 6);
   const feedItems = auditEntries.length ? auditEntries : [];
@@ -8473,7 +8477,10 @@ async function doSendOtp(e) {
   btn.disabled = false; btn.textContent = 'Send Code →';
   if (error) {
     msgEl.style.cssText = 'display:block;font-size:12px;padding:8px 12px;border-radius:8px;margin-bottom:10px;background:#fef2f2;border:1px solid #fca5a5;color:#dc2626';
-    msgEl.textContent = error.message;
+    const msg = error.message || '';
+    msgEl.textContent = (msg.includes('504') || msg.includes('500') || msg.includes('timeout') || msg.includes('sending'))
+      ? 'Email sending failed. SMTP not configured — contact your admin.'
+      : msg;
   } else {
     _otpEmail = email;
     document.getElementById('forgot-email-display').textContent = email;
