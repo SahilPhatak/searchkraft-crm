@@ -4668,17 +4668,29 @@ function renderReports() {
 
   const el_pm = document.getElementById('an-perf-matrix');
   if (el_pm) {
-    const hCell = (txt, accent) => `<div style="padding:9px 10px;font-size:11px;font-weight:700;color:${accent?'var(--accent)':'var(--fg3)'};text-align:center;border-bottom:${accent?'2px solid var(--accent)':'1px solid var(--border)'};background:var(--surface2)">${txt}</div>`;
-    const labelCell = txt => `<div style="padding:9px 14px;font-size:12px;font-weight:600;color:var(--fg2);border-bottom:1px solid var(--border);background:var(--surface)">${txt}</div>`;
-    const valCell = (v, isCur) => `<div style="padding:9px 10px;font-size:13px;font-weight:700;color:var(--fg);border-bottom:1px solid var(--border);text-align:center">${isCur?fmt(v):v}</div>`;
-    el_pm.innerHTML =
-      // Header row
-      `<div style="padding:9px 14px;border-bottom:1px solid var(--border);background:var(--surface2)"></div>` +
-      hCell(mLabel(m1), false) + hCell(mLabel(m2), false) + hCell(mLabel(m3)+' ★', true) +
-      // Data rows
-      matrixRows.map(r =>
-        labelCell(r.label) + r.vals.map(v => valCell(v, r.isCurrency)).join('')
-      ).join('');
+    const months = [m1, m2, m3];
+    // Track active (highlighted) column; default = current month (index 2)
+    let activeIdx = parseInt(el_pm.dataset.activeIdx ?? '2');
+
+    function renderPerfMatrix() {
+      el_pm.dataset.activeIdx = activeIdx;
+      const hCell = (txt, accent, idx) => `<div onclick="window._pmSetActive(${idx})" style="padding:9px 10px;font-size:11px;font-weight:700;cursor:pointer;user-select:none;color:${accent?'var(--accent)':'var(--fg3)'};text-align:center;border-bottom:${accent?'2px solid var(--accent)':'1px solid var(--border)'};background:var(--surface2)">${txt}</div>`;
+      const labelCell = txt => `<div style="padding:9px 14px;font-size:12px;font-weight:600;color:var(--fg2);border-bottom:1px solid var(--border);background:var(--surface)">${txt}</div>`;
+      const valCell = (v, isCur, isActive) => `<div style="padding:9px 10px;font-size:13px;font-weight:700;color:${isActive?'var(--accent)':'var(--fg)'};border-bottom:1px solid var(--border);text-align:center">${isCur?fmt(v):v}</div>`;
+      el_pm.innerHTML =
+        `<div style="padding:9px 14px;border-bottom:1px solid var(--border);background:var(--surface2)"></div>` +
+        months.map((mo, i) => hCell(mLabel(mo) + (i===activeIdx?' ★':''), i===activeIdx, i)).join('') +
+        matrixRows.map(r =>
+          labelCell(r.label) + r.vals.map((v, i) => valCell(v, r.isCurrency, i===activeIdx)).join('')
+        ).join('');
+    }
+
+    window._pmSetActive = function(idx) {
+      activeIdx = idx;
+      renderPerfMatrix();
+    };
+
+    renderPerfMatrix();
   }
 
   // Donut chart — Leads by Source
