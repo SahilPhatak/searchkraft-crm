@@ -2584,14 +2584,10 @@ textarea { min-height: 80px; resize: vertical; }
             <span style="margin-left:auto;font-size:12px;color:var(--fg3);cursor:pointer">↻</span>
             <span style="font-size:16px;color:var(--fg3);cursor:pointer">⋮</span>
           </div>
-          <!-- Month columns header -->
-          <div style="display:grid;grid-template-columns:140px repeat(3,1fr);border-bottom:1px solid var(--border)">
-            <div></div>
-            <div id="an-m1-label" style="padding:8px 10px;font-size:11px;font-weight:600;color:var(--fg3);text-align:center"></div>
-            <div id="an-m2-label" style="padding:8px 10px;font-size:11px;font-weight:600;color:var(--fg3);text-align:center"></div>
-            <div id="an-m3-label" style="padding:8px 10px;font-size:11px;font-weight:600;color:var(--accent);text-align:center;border-bottom:2px solid var(--accent)"></div>
+          <!-- Performance matrix: single grid — header row + data rows all in one grid -->
+          <div id="an-perf-matrix" style="display:grid;grid-template-columns:150px repeat(3,1fr)">
+            <!-- header row injected by renderReports() -->
           </div>
-          <div id="an-perf-matrix"></div>
         </div>
 
         <!-- Leads by Source donut -->
@@ -4642,10 +4638,8 @@ function renderReports() {
   const el_acc = document.getElementById('an-accounts');
   if (el_acc) el_acc.textContent = accts.length;
 
-  // Performance Matrix header months — m1=2 months ago, m2=last month, m3=this month (newest last)
-  const el_m1 = document.getElementById('an-m1-label'); if(el_m1) { el_m1.textContent=mLabel(m1); el_m1.style.color='var(--fg3)'; el_m1.style.borderBottom='none'; }
-  const el_m2 = document.getElementById('an-m2-label'); if(el_m2) { el_m2.textContent=mLabel(m2); el_m2.style.color='var(--fg3)'; el_m2.style.borderBottom='none'; }
-  const el_m3 = document.getElementById('an-m3-label'); if(el_m3) { el_m3.textContent=mLabel(m3)+' ★'; el_m3.style.color='var(--accent)'; el_m3.style.borderBottom='2px solid var(--accent)'; }
+  // Performance matrix rendered as a single unified grid (header + rows)
+  // m1 = 2 months ago, m2 = last month, m3 = this month
 
   function monthCount(arr, dateField, mo) { return arr.filter(x=>x[dateField]&&x[dateField].startsWith(mo)).length; }
   function monthSum(arr, dateField, valField, mo) { return arr.filter(x=>x[dateField]&&x[dateField].startsWith(mo)).reduce((s,x)=>s+Number(x[valField]||0),0); }
@@ -4669,11 +4663,19 @@ function renderReports() {
   ];
 
   const el_pm = document.getElementById('an-perf-matrix');
-  if (el_pm) el_pm.innerHTML = matrixRows.map(r=>`
-    <div style="display:contents">
-      <div style="padding:8px 12px;font-size:12px;font-weight:600;color:var(--fg2);border-bottom:1px solid var(--border);background:var(--surface)">${r.label}</div>
-      ${r.vals.map(v=>`<div style="padding:8px 12px;font-size:13px;font-weight:600;color:var(--fg);border-bottom:1px solid var(--border);text-align:center">${r.isCurrency?fmt(v):v}</div>`).join('')}
-    </div>`).join('');
+  if (el_pm) {
+    const hCell = (txt, accent) => `<div style="padding:9px 10px;font-size:11px;font-weight:700;color:${accent?'var(--accent)':'var(--fg3)'};text-align:center;border-bottom:${accent?'2px solid var(--accent)':'1px solid var(--border)'};background:var(--surface2)">${txt}</div>`;
+    const labelCell = txt => `<div style="padding:9px 14px;font-size:12px;font-weight:600;color:var(--fg2);border-bottom:1px solid var(--border);background:var(--surface)">${txt}</div>`;
+    const valCell = (v, isCur) => `<div style="padding:9px 10px;font-size:13px;font-weight:700;color:var(--fg);border-bottom:1px solid var(--border);text-align:center">${isCur?fmt(v):v}</div>`;
+    el_pm.innerHTML =
+      // Header row
+      `<div style="padding:9px 14px;border-bottom:1px solid var(--border);background:var(--surface2)"></div>` +
+      hCell(mLabel(m1), false) + hCell(mLabel(m2), false) + hCell(mLabel(m3)+' ★', true) +
+      // Data rows
+      matrixRows.map(r =>
+        labelCell(r.label) + r.vals.map(v => valCell(v, r.isCurrency)).join('')
+      ).join('');
+  }
 
   // Donut chart — Leads by Source
   const sourceMap = {};
