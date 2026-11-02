@@ -144,10 +144,16 @@ if (!window.supabase) {
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-html, body { height: 100%; font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif; }
+html, body { height: 100%; font-family: 'Inter', system-ui, sans-serif; }
 
-* { font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif; }
-input, select, textarea, button { font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif; font-size: 14px; }
+* { font-family: 'Inter', system-ui, sans-serif; }
+input, select, textarea, button { font-family: 'Inter', system-ui, sans-serif; font-size: 14px; }
+/* Plus Jakarta Sans for display headings only */
+.lf-title, .topbar-title, #topbar-title, .nav-section-label,
+h1, h2, h3 { font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif; }
+/* All numbers use Inter with slashed zero — 0 never looks like 8 */
+.stat-tile .value, .nav-badge, #lq-leads, #lq-deals, #lq-won, #lq-revenue, #lq-winrate,
+td, .mono { font-variant-numeric: tabular-nums slashed-zero; }
 
 body {
   background: var(--bg);
@@ -633,13 +639,8 @@ tbody tr td.name-cell:hover { text-decoration: underline; }
 .stat-tile .trend-up { color: var(--green); }
 .stat-tile .trend-dn { color: var(--red); }
 
-/* Premium numeric font — slashed zero so 0 never looks like 8 */
-.num, .nav-badge, td.amount, td.num,
-#lq-grid [style*="font-size:28px"], #lq-grid [style*="font-size:24px"] {
-  font-family: 'Inter', system-ui, sans-serif !important;
-  font-variant-numeric: tabular-nums slashed-zero;
-  letter-spacing: -0.3px;
-}
+/* Slashed zero on all numeric display */
+* { font-variant-numeric: tabular-nums slashed-zero; }
 
 /* ---- GRID HELPERS ---- */
 .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
@@ -1097,9 +1098,6 @@ textarea { min-height: 80px; resize: vertical; }
   <div class="nav-section">
     <button class="nav-item active" data-page="dashboard">
       <span class="icon">⌂</span><span class="label"> Home</span>
-    </button>
-    <button class="nav-item" data-page="my-day">
-      <span class="icon">☰</span><span class="label"> Workqueue</span>
     </button>
     <button class="nav-item" data-page="reports">
       <span class="icon">📊</span><span class="label"> Reports</span>
@@ -1638,8 +1636,7 @@ textarea { min-height: 80px; resize: vertical; }
         <button class="crm-toolbar-btn" onclick="toggleFilter('companies-filter')">⊟ Filter</button>
         <button class="crm-toolbar-btn">↕ Sort</button>
         <div style="display:flex;gap:2px;margin-left:4px">
-          <button class="crm-view-btn active-view-btn" title="List">☰</button>
-          <button class="crm-view-btn" title="Kanban">⊞</button>
+          <button class="crm-view-btn active-view-btn" title="List view" style="cursor:default">☰</button>
         </div>
         <div style="flex:1"></div>
         <div class="search-bar" style="max-width:200px"><input type="text" placeholder="Search accounts…" oninput="renderTable('companies',this.value)"></div>
@@ -1775,8 +1772,7 @@ textarea { min-height: 80px; resize: vertical; }
         <button class="crm-toolbar-btn" onclick="toggleFilter('contacts-filter')">⊟ Filter</button>
         <button class="crm-toolbar-btn">↕ Sort</button>
         <div style="display:flex;gap:2px;margin-left:4px">
-          <button class="crm-view-btn active-view-btn">☰</button>
-          <button class="crm-view-btn">⊞</button>
+          <button class="crm-view-btn active-view-btn" title="List view" style="cursor:default">☰</button>
         </div>
         <div style="flex:1"></div>
         <div class="search-bar" style="max-width:200px"><input type="text" placeholder="Search contacts…" oninput="renderTable('contacts',this.value)"></div>
@@ -1937,8 +1933,8 @@ textarea { min-height: 80px; resize: vertical; }
         <button class="crm-toolbar-btn" onclick="toggleFilter('leads-filter')">⊟ Filter</button>
         <button class="crm-toolbar-btn">↕ Sort</button>
         <div style="display:flex;gap:2px;margin-left:4px">
-          <button class="crm-view-btn active-view-btn">☰</button>
-          <button class="crm-view-btn" onclick="switchLeadTab('board',this)">⊞</button>
+          <button id="leads-btn-list" class="crm-view-btn active-view-btn" onclick="switchLeadTab('list',this)" title="List view">☰</button>
+          <button id="leads-btn-grid" class="crm-view-btn" onclick="switchLeadTab('board',this)" title="Pipeline board">⊞</button>
         </div>
         <div style="flex:1"></div>
         <div class="search-bar" style="max-width:200px"><input type="text" placeholder="Search leads…" oninput="renderTable('leads',this.value)"></div>
@@ -2150,8 +2146,8 @@ textarea { min-height: 80px; resize: vertical; }
         <button class="crm-toolbar-btn" onclick="toggleFilter('deals-filter')">⊟ Filter</button>
         <button class="crm-toolbar-btn">↕ Sort</button>
         <div style="display:flex;gap:2px;margin-left:4px">
-          <button class="crm-view-btn active-view-btn">☰</button>
-          <button class="crm-view-btn" onclick="switchDealTab('board',this)">⊞</button>
+          <button id="deals-btn-list" class="crm-view-btn active-view-btn" onclick="switchDealTab('list',this)" title="List view">☰</button>
+          <button id="deals-btn-grid" class="crm-view-btn" onclick="switchDealTab('board',this)" title="Pipeline board">⊞</button>
         </div>
         <div style="flex:1"></div>
         <div class="search-bar" style="max-width:200px"><input type="text" placeholder="Search deals…" oninput="renderTable('deals',this.value)"></div>
@@ -4321,16 +4317,32 @@ function renderAudit() {
 
 // ---- TAB HELPERS ----
 function switchLeadTab(view, el) {
+  // Update subtab pills
   document.querySelectorAll('#page-leads .crm-subtab').forEach(t=>t.classList.remove('active-subtab'));
-  if(el) el.classList.add('active-subtab');
+  const pill = document.querySelector(`#page-leads .crm-subtab[onclick*="${view==='board'?'board':'list'}"]`);
+  if(pill) pill.classList.add('active-subtab');
+  else if(el && el.classList.contains('crm-subtab')) el.classList.add('active-subtab');
+  // Update icon buttons
+  const lb = document.getElementById('leads-btn-list'), gb = document.getElementById('leads-btn-grid');
+  if(lb) lb.classList.toggle('active-view-btn', view!=='board');
+  if(gb) gb.classList.toggle('active-view-btn', view==='board');
+  // Show/hide panels
   document.getElementById('leads-board').style.display = view==='board'?'flex':'none';
   document.getElementById('leads-list').style.display = view==='board'?'none':'block';
   if(view==='board') renderLeadsBoard();
   else renderTable('leads','');
 }
 function switchDealTab(view, el) {
+  // Update subtab pills
   document.querySelectorAll('#page-deals .crm-subtab').forEach(t=>t.classList.remove('active-subtab'));
-  if(el) el.classList.add('active-subtab');
+  const pill = document.querySelector(`#page-deals .crm-subtab[onclick*="${view==='board'?'board':'list'}"]`);
+  if(pill) pill.classList.add('active-subtab');
+  else if(el && el.classList.contains('crm-subtab')) el.classList.add('active-subtab');
+  // Update icon buttons
+  const lb = document.getElementById('deals-btn-list'), gb = document.getElementById('deals-btn-grid');
+  if(lb) lb.classList.toggle('active-view-btn', view!=='board');
+  if(gb) gb.classList.toggle('active-view-btn', view==='board');
+  // Show/hide panels
   document.getElementById('deals-board').style.display = view==='board'?'flex':'none';
   document.getElementById('deals-list').style.display = view==='board'?'none':'block';
   if(view==='board') renderDealsBoard();
