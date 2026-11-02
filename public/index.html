@@ -1439,12 +1439,11 @@ textarea { min-height: 80px; resize: vertical; }
         <div style="position:absolute;top:-40px;right:-40px;width:180px;height:180px;border-radius:50%;background:rgba(99,102,241,0.12);pointer-events:none"></div>
         <div style="position:absolute;bottom:-30px;right:120px;width:100px;height:100px;border-radius:50%;background:rgba(59,130,246,0.09);pointer-events:none"></div>
         <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;position:relative;z-index:1">
-          <!-- Avatar + Name -->
-          <div id="dash-avatar" style="width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,#6366f1,#3b82f6);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#fff;font-family:'Plus Jakarta Sans','Inter',sans-serif;flex-shrink:0;box-shadow:0 4px 12px rgba(99,102,241,0.35)">S</div>
+          <!-- Name + Date (no avatar) -->
           <div style="flex:1;min-width:140px">
-            <div style="font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-bottom:4px">Welcome back</div>
-            <div id="dash-welcome-name" style="font-size:26px;font-weight:800;letter-spacing:-0.8px;font-family:'Plus Jakarta Sans','DM Sans','Inter',sans-serif;line-height:1.1;display:flex;align-items:center;gap:10px">—<span style="font-size:26px;letter-spacing:0">👋</span></div>
-            <div id="dash-welcome-date" style="font-size:13px;color:rgba(255,255,255,0.45);margin-top:6px;font-weight:400;letter-spacing:0.2px"></div>
+            <div style="font-size:11px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:rgba(255,255,255,0.4);margin-bottom:6px">Welcome back</div>
+            <div id="dash-welcome-name" style="font-size:34px;font-weight:800;letter-spacing:-1.2px;font-family:'Plus Jakarta Sans','DM Sans','Inter',sans-serif;line-height:1;display:flex;align-items:center;gap:12px">—<span style="font-size:32px;letter-spacing:0">👋</span></div>
+            <div id="dash-welcome-date" style="font-size:14px;color:rgba(255,255,255,0.4);margin-top:10px;font-weight:500;letter-spacing:0.3px"></div>
           </div>
           <!-- Quick stats strip inside banner -->
           <div style="display:flex;gap:0;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:12px;overflow:hidden;flex-shrink:0">
@@ -4003,8 +4002,7 @@ function renderDashboard() {
   setDashView(currentDashView);
 
   // Welcome banner — avatar initial + name
-  const avatarEl = document.getElementById('dash-avatar');
-  if (avatarEl) avatarEl.textContent = (cu||'U').charAt(0).toUpperCase();
+  // avatar removed — no-op
   const nameEl = document.getElementById('dash-welcome-name');
   if (nameEl) nameEl.innerHTML = `<span>${cu || 'User'}</span><span style="font-size:26px;letter-spacing:0">👋</span>`;
   // Live clock
