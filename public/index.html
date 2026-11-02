@@ -8474,7 +8474,7 @@ async function doSendOtp(e) {
   const btn   = document.getElementById('forgot-btn');
   btn.disabled = true; btn.textContent = 'Sending…';
   msgEl.style.display = 'none';
-  const { error } = await DB_CLIENT.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
+  const { error } = await DB_CLIENT.auth.signInWithOtp({ email, options: { shouldCreateUser: false, emailRedirectTo: null } });
   btn.disabled = false; btn.textContent = 'Send Code →';
   if (error) {
     msgEl.style.cssText = 'display:block;font-size:12px;padding:8px 12px;border-radius:8px;margin-bottom:10px;background:#fef2f2;border:1px solid #fca5a5;color:#dc2626';
@@ -8493,7 +8493,7 @@ async function doSendOtp(e) {
 
 async function doResendOtp() {
   if (!_otpEmail) return;
-  await DB_CLIENT.auth.signInWithOtp({ email: _otpEmail, options: { shouldCreateUser: false } });
+  await DB_CLIENT.auth.signInWithOtp({ email: _otpEmail, options: { shouldCreateUser: false, emailRedirectTo: null } });
   const m = document.getElementById('otp-msg');
   m.style.cssText = 'display:block;font-size:12px;padding:8px 12px;border-radius:8px;margin-bottom:10px;background:#f0fdf4;border:1px solid #86efac;color:#166534';
   m.textContent = '✓ A new code was sent to your email.';
