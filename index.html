@@ -4257,6 +4257,15 @@ function renderDashboard() {
   renderMonthlyRevenue();
 }
 
+// Compact format: ₹4.13L, ₹1.00Cr — 2 decimal digits + unit
+function fmtC(n) {
+  const num = Number(n) || 0;
+  if (num >= 1e7) return '₹' + (num/1e7).toFixed(2) + 'Cr';
+  if (num >= 1e5) return '₹' + (num/1e5).toFixed(2) + 'L';
+  if (num >= 1e3) return '₹' + (num/1e3).toFixed(2) + 'K';
+  return '₹' + num.toFixed(0);
+}
+
 function renderRevenueTarget() {
   const achieved = DB.deals
     .filter(d => isWon(d) && (d.wonAt||d.closeDate||'').startsWith(new Date().getFullYear()+''))
@@ -4290,7 +4299,7 @@ function renderRevenueTarget() {
       const linePos = Math.min(finalTarget / maxVal * 100, 98);
       line.style.left = linePos + '%';
       line.style.display = 'block';
-      lineLabel.textContent = 'Target: ' + fmt(finalTarget);
+      lineLabel.textContent = 'Target: ' + fmtC(finalTarget);
     } else {
       line.style.display = 'none';
     }
@@ -4299,15 +4308,15 @@ function renderRevenueTarget() {
   // axis ticks — 5 evenly spaced
   if (axis) {
     const ticks = [0,1,2,3,4,5].map(i => Math.round(maxVal / 5 * i));
-    axis.innerHTML = ticks.map(t => `<span>${fmt(t)}</span>`).join('');
+    axis.innerHTML = ticks.map(t => `<span>${fmtC(t)}</span>`).join('');
   }
 
   const setEl = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
-  setEl('dash-achieved-val', fmt(achieved));
-  setEl('dash-target-val',   finalTarget > 0 ? fmt(finalTarget) : '—');
-  setEl('dash-remaining-val',finalTarget > 0 ? fmt(remaining) : '—');
+  setEl('dash-achieved-val', fmtC(achieved));
+  setEl('dash-target-val',   finalTarget > 0 ? fmtC(finalTarget) : '—');
+  setEl('dash-remaining-val',finalTarget > 0 ? fmtC(remaining) : '—');
   setEl('dash-pct-val',      finalTarget > 0 ? pct + '%' : '—');
-  setEl('dash-target-label', finalTarget > 0 ? `${pct}% of ${fmt(finalTarget)} achieved` : 'Set a target above');
+  setEl('dash-target-label', finalTarget > 0 ? `${pct}% of ${fmtC(finalTarget)} achieved` : 'Set a target above');
 }
 
 function renderMonthlyRevenue() {
