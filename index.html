@@ -4680,13 +4680,24 @@ function renderReports() {
   // KPI Tiles
   const leadsThisMonth = DB.leads.filter(l=>recLocalYM(l,'createdAt')===thisMonth).length;
   const leadsLastMonth = DB.leads.filter(l=>recLocalYM(l,'createdAt')===m2).length;
-  const pct = leadsLastMonth>0 ? Math.round((leadsThisMonth-leadsLastMonth)/leadsLastMonth*100) : 0;
+  // % change: if last month had 0, show +100% per new lead (not ÷0)
+  let pct, pctLabel, pctColor;
+  if (leadsLastMonth === 0 && leadsThisMonth === 0) {
+    pctLabel = '—'; pctColor = 'var(--fg3)';
+  } else if (leadsLastMonth === 0 && leadsThisMonth > 0) {
+    pct = 100 * leadsThisMonth;
+    pctLabel = '+' + pct + '% vs last month'; pctColor = 'var(--green)';
+  } else {
+    pct = Math.round((leadsThisMonth - leadsLastMonth) / leadsLastMonth * 100);
+    pctLabel = (pct >= 0 ? '+' : '') + pct + '% vs last month';
+    pctColor = pct >= 0 ? 'var(--green)' : 'var(--red)';
+  }
   const el_lm = document.getElementById('an-leads-month');
   if (el_lm) el_lm.textContent = leadsThisMonth;
   const el_pct = document.getElementById('an-leads-pct');
-  if (el_pct) { el_pct.textContent = (pct>=0?'+':'')+pct+'% vs last month'; el_pct.style.color=pct>=0?'var(--green)':'var(--red)'; }
+  if (el_pct) { el_pct.textContent = pctLabel; el_pct.style.color = pctColor; }
   const el_ll = document.getElementById('an-leads-last');
-  if (el_ll) el_ll.textContent = leadsLastMonth+' last month';
+  if (el_ll) el_ll.textContent = leadsLastMonth === 0 ? 'No leads last month' : leadsLastMonth + ' last month';
 
   const wonDeals = DB.deals.filter(d=>d.stage==='Closed Won'&&recLocalYM(d,'closeDate')===thisMonth);
   const revenue = wonDeals.reduce((s,d)=>s+Number(d.amount||0),0);
