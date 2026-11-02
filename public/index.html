@@ -2845,8 +2845,10 @@ textarea { min-height: 80px; resize: vertical; }
             <span style="font-size:16px;color:var(--fg3);cursor:pointer">⋮</span>
           </div>
           <!-- Performance matrix: single grid — header row + data rows all in one grid -->
-          <div id="an-perf-matrix" style="display:grid;grid-template-columns:150px repeat(3,1fr)">
-            <!-- header row injected by renderReports() -->
+          <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+            <div id="an-perf-matrix" style="display:grid;grid-template-columns:140px repeat(3,minmax(90px,1fr));min-width:400px">
+              <!-- header row injected by renderReports() -->
+            </div>
           </div>
         </div>
 
