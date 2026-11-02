@@ -5228,14 +5228,14 @@ function renderReports() {
       DB.deals.filter(d=>isWon(d)).filter(d=>recLocalYM(d,'closeDate')===sm3).length,
     ]},
     { label:'Revenue Won', vals:[
-      monthSum(DB.deals.filter(d=>isWon(d)),'closeDate','amount',sm1),
-      monthSum(DB.deals.filter(d=>isWon(d)),'closeDate','amount',sm2),
-      monthSum(DB.deals.filter(d=>isWon(d)),'closeDate','amount',sm3)
+      monthSum(DB.deals.filter(d=>d.stage==='Joined'),'wonAt','expectedRevenue',sm1),
+      monthSum(DB.deals.filter(d=>d.stage==='Joined'),'wonAt','expectedRevenue',sm2),
+      monthSum(DB.deals.filter(d=>d.stage==='Joined'),'wonAt','expectedRevenue',sm3)
     ], isCurrency:true },
     { label:'Open Amount', vals:[
-      monthSum(DB.deals.filter(d=>isActive(d)),'createdAt','amount',sm1),
-      monthSum(DB.deals.filter(d=>isActive(d)),'createdAt','amount',sm2),
-      monthSum(DB.deals.filter(d=>isActive(d)),'createdAt','amount',sm3),
+      monthSum(DB.deals.filter(d=>d.stage==='Offered'),'createdAt','expectedRevenue',sm1),
+      monthSum(DB.deals.filter(d=>d.stage==='Offered'),'createdAt','expectedRevenue',sm2),
+      monthSum(DB.deals.filter(d=>d.stage==='Offered'),'createdAt','expectedRevenue',sm3),
     ], isCurrency:true }
   ];
 
@@ -5304,7 +5304,7 @@ function renderReports() {
 
   // Prolific sales reps
   const repMap = {};
-  DB.deals.filter(d=>isWon(d)).forEach(d=>{ const o=d.owner||'Unknown'; repMap[o]=(repMap[o]||0)+Number(d.amount||0); });
+  DB.deals.filter(d=>d.stage==='Joined').forEach(d=>{ const o=d.owner||'Unknown'; repMap[o]=(repMap[o]||0)+Number(d.expectedRevenue||d.amount||0); });
   const repEntries = Object.entries(repMap).sort((a,b)=>b[1]-a[1]).slice(0,5);
   const maxRep = repEntries.length ? repEntries[0][1] : 1;
   const el_reps = document.getElementById('an-reps');
@@ -5390,8 +5390,8 @@ function renderReportUsersView() {
       const name = u.name || u.email || '—';
       const leads = DB.leads.filter(l => l.owner === name && (l.createdAt||'').startsWith(thisMonth)).length;
       const deals = DB.deals.filter(d => d.owner === name && (d.createdAt||'').startsWith(thisMonth)).length;
-      const won   = DB.deals.filter(d => d.owner === name && isWon(d)).length;
-      const rev   = DB.deals.filter(d => d.owner === name && isWon(d)).reduce((s,d)=>s+Number(d.amount||0),0);
+      const won   = DB.deals.filter(d => d.owner === name && d.stage==='Joined').length;
+      const rev   = DB.deals.filter(d => d.owner === name && d.stage==='Joined').reduce((s,d)=>s+Number(d.expectedRevenue||d.amount||0),0);
       const tasks = DB.tasks.filter(t => t.owner === name && (t.status === 'Pending' || t.status === 'In Progress')).length;
       const acts  = DB.activities.filter(a => a.owner === name).length;
       return `<tr onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
@@ -5484,9 +5484,9 @@ function openCreateDashboard() {
   const leadsNow  = DB.leads.filter(l => (l.createdAt||'').startsWith(thisMonth)).length;
   const leadsPrev = DB.leads.filter(l => (l.createdAt||'').startsWith(prevMonth)).length;
   const dealsNow  = DB.deals.filter(d => (d.createdAt||'').startsWith(thisMonth)).length;
-  const wonDeals  = DB.deals.filter(d => isWon(d)).length;
-  const revenue   = DB.deals.filter(d => isWon(d)).reduce((s,d)=>s+Number(d.amount||0),0);
-  const pipeline  = DB.deals.filter(d => isActive(d)).reduce((s,d)=>s+Number(d.amount||0),0);
+  const wonDeals  = DB.deals.filter(d => d.stage==='Joined').length;
+  const revenue   = DB.deals.filter(d => d.stage==='Joined').reduce((s,d)=>s+Number(d.expectedRevenue||d.amount||0),0);
+  const pipeline  = DB.deals.filter(d => d.stage==='Offered').reduce((s,d)=>s+Number(d.expectedRevenue||d.amount||0),0);
   const contacts  = DB.contacts.length;
   const companies = DB.companies.length;
 
@@ -5542,9 +5542,9 @@ function saveDashboardSnapshot() {
       leadsNow:  DB.leads.filter(l => (l.createdAt||'').startsWith(thisMonth)).length,
       leadsPrev: DB.leads.filter(l => (l.createdAt||'').startsWith(prevMonth)).length,
       dealsNow:  DB.deals.filter(d => (d.createdAt||'').startsWith(thisMonth)).length,
-      wonDeals:  DB.deals.filter(d => isWon(d)).length,
-      revenue:   DB.deals.filter(d => isWon(d)).reduce((s,d)=>s+Number(d.amount||0),0),
-      pipeline:  DB.deals.filter(d => isActive(d)).reduce((s,d)=>s+Number(d.amount||0),0),
+      wonDeals:  DB.deals.filter(d => d.stage==='Joined').length,
+      revenue:   DB.deals.filter(d => d.stage==='Joined').reduce((s,d)=>s+Number(d.expectedRevenue||d.amount||0),0),
+      pipeline:  DB.deals.filter(d => d.stage==='Offered').reduce((s,d)=>s+Number(d.expectedRevenue||d.amount||0),0),
       contacts:  DB.contacts.length,
       companies: DB.companies.length,
     }
