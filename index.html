@@ -4483,6 +4483,65 @@ function openDocUpload(prefillClientId, prefillClientName) {
   openModal('document', null, { clientId: prefillClientId||'', clientName: prefillClientName||'' });
 }
 
+function handleDocFileSelect(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  showDocFileInfo(file);
+}
+function handleDocFileDrop(e) {
+  const file = e.dataTransfer.files && e.dataTransfer.files[0];
+  if (!file) return;
+  const input = document.getElementById('f-file');
+  // Assign file to input via DataTransfer so save() can read it
+  try {
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    input.files = dt.files;
+  } catch(err) { /* Safari fallback — store on input */ input._droppedFile = file; }
+  showDocFileInfo(file);
+}
+function showDocFileInfo(file) {
+  const nameEl = document.getElementById('doc-file-name');
+  const sizeEl = document.getElementById('doc-file-size');
+  const infoEl = document.getElementById('doc-file-info');
+  if (nameEl) nameEl.textContent = file.name;
+  if (sizeEl) sizeEl.textContent = formatFileSize(file.size);
+  if (infoEl) infoEl.style.display = 'block';
+}
+function formatFileSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+  return (bytes/(1024*1024)).toFixed(1) + ' MB';
+}
+async function uploadDocFile(file) {
+  const MAX = 50 * 1024 * 1024; // 50 MB
+  if (file.size > MAX) { alert('File is too large (max 50 MB)'); return null; }
+  const progressWrap = document.getElementById('doc-upload-progress');
+  const progressBar  = document.getElementById('doc-progress-bar');
+  const statusEl     = document.getElementById('doc-upload-status');
+  if (progressWrap) progressWrap.style.display = 'block';
+  if (statusEl) statusEl.textContent = 'Uploading…';
+  if (progressBar) progressBar.style.width = '10%';
+
+  const ext = file.name.split('.').pop();
+  const path = `documents/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+  try {
+    const { data, error } = await DB_CLIENT.storage.from('crm-documents').upload(path, file, { cacheControl: '3600', upsert: false });
+    if (error) throw error;
+    if (progressBar) progressBar.style.width = '80%';
+    // Get public URL
+    const { data: urlData } = DB_CLIENT.storage.from('crm-documents').getPublicUrl(path);
+    if (progressBar) progressBar.style.width = '100%';
+    if (statusEl) statusEl.textContent = 'Upload complete ✓';
+    return { url: urlData.publicUrl, path };
+  } catch(err) {
+    console.error('Upload failed:', err);
+    if (progressWrap) progressWrap.style.display = 'none';
+    alert('Upload failed: ' + (err.message || 'Unknown error') + '\n\nMake sure you have a Supabase Storage bucket named "crm-documents" with public access enabled.');
+    return null;
+  }
+}
+
 // ---- COMMERCIAL ----
 function renderCommercial() {
   const total = DB.invoices.reduce((a,i)=>a+Number(i.amount||0),0);
@@ -5974,10 +6033,28 @@ const MODAL_FORMS = {
         <div class="form-group"><label>Start Date</label><input id="f-startDate" type="date" value="${r.startDate||''}"></div>
         <div class="form-group"><label>Expiry Date</label><input id="f-expiryDate" type="date" value="${r.expiryDate||''}"></div>
       </div>
-      <div class="form-group"><label>File URL / Link</label><input id="f-fileUrl" type="url" placeholder="https://…" value="${esc(r.fileUrl||'')}"></div>
+      <div class="form-group">
+        <label>Attach File${r.fileUrl ? ' <span style="font-weight:400;color:var(--fg3)">(already uploaded)</span>' : ''}</label>
+        <div id="doc-drop-zone" style="border:2px dashed var(--border);border-radius:8px;padding:20px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s" onclick="document.getElementById('f-file').click()" ondragover="event.preventDefault();this.style.borderColor='var(--primary)';this.style.background='var(--surface2)'" ondragleave="this.style.borderColor='var(--border)';this.style.background=''" ondrop="event.preventDefault();this.style.borderColor='var(--border)';this.style.background='';handleDocFileDrop(event)">
+          <div style="font-size:28px;margin-bottom:6px">📎</div>
+          <div style="font-size:13px;color:var(--fg2);font-weight:500">Click to browse or drag &amp; drop</div>
+          <div style="font-size:11px;color:var(--fg3);margin-top:4px">PDF, DOCX, XLSX, PPTX, JPG, PNG — max 50 MB</div>
+          ${r.fileUrl ? `<div style="margin-top:8px"><a href="${esc(r.fileUrl)}" target="_blank" style="font-size:12px;color:var(--primary)">View current file ↗</a></div>` : ''}
+        </div>
+        <input type="file" id="f-file" style="display:none" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.zip,.txt" onchange="handleDocFileSelect(this)">
+        <div id="doc-file-info" style="margin-top:8px;font-size:13px;color:var(--fg2);display:none">
+          <span id="doc-file-name" style="font-weight:600"></span> — <span id="doc-file-size"></span>
+        </div>
+        <div id="doc-upload-progress" style="display:none;margin-top:8px">
+          <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden">
+            <div id="doc-progress-bar" style="height:100%;background:var(--primary);width:0%;transition:width .2s"></div>
+          </div>
+          <div id="doc-upload-status" style="font-size:12px;color:var(--fg3);margin-top:4px">Uploading…</div>
+        </div>
+      </div>
       <div class="form-group"><label>Description</label><textarea id="f-description" rows="3">${esc(r.description||'')}</textarea></div>`;
     },
-    save: (id) => {
+    save: async (id) => {
       const clientId = v('clientId');
       const clientEl = document.getElementById('f-clientId');
       const clientName = clientEl ? clientEl.options[clientEl.selectedIndex]?.text : '';
@@ -5986,13 +6063,33 @@ const MODAL_FORMS = {
         category: v('category'), stage: v('stage'), status: v('status'),
         fileType: v('fileType'), referenceNumber: v('referenceNumber'),
         uploadedBy: v('uploadedBy'), startDate: v('startDate'), expiryDate: v('expiryDate'),
-        fileUrl: v('fileUrl'), description: v('description')
+        description: v('description')
       };
       if (!r.name) return alert('Document name is required');
       if (!r.clientId) return alert('Please select a client');
       if (!r.category) return alert('Please select a category');
       if (!r.stage) return alert('Please select a stage');
       if (!r.status) return alert('Please select a status');
+
+      // Handle file upload if a new file was selected
+      const fileInput = document.getElementById('f-file');
+      const file = fileInput && fileInput.files && fileInput.files[0];
+      if (file) {
+        const uploaded = await uploadDocFile(file);
+        if (!uploaded) return; // upload failed — error already shown
+        r.fileUrl = uploaded.url;
+        r.fileSize = formatFileSize(file.size);
+        // Auto-detect file type from extension if not manually set
+        if (!r.fileType) {
+          const ext = file.name.split('.').pop().toUpperCase();
+          const known = ['PDF','DOCX','DOC','XLSX','XLS','PPTX','PPT','JPG','JPEG','PNG'];
+          r.fileType = known.includes(ext) ? (ext==='JPEG'?'JPG':ext==='DOC'?'DOCX':ext==='XLS'?'XLSX':ext==='PPT'?'PPTX':ext) : 'Other';
+        }
+      } else {
+        // Keep existing fileUrl/fileSize when editing without replacing file
+        const existing = id ? DB.documents.find(d => d.id === id) : null;
+        if (existing) { r.fileUrl = existing.fileUrl; r.fileSize = existing.fileSize; }
+      }
       upsert('documents', id, r);
     }
   }
