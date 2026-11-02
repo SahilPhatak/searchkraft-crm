@@ -2507,7 +2507,7 @@ textarea { min-height: 80px; resize: vertical; }
               <table>
                 <thead><tr>
                   <th style="width:36px"><input type="checkbox" style="accent-color:var(--accent)"></th>
-                  <th>Deal Name</th><th>Company</th><th>Amount</th><th>Stage</th><th>Close Date</th><th>Owner</th><th>Actions</th>
+                  <th>Deal Name</th><th>Company</th><th>Candidate Name</th><th>Amount</th><th>Stage</th><th>Close Date</th><th>Owner</th><th>Actions</th>
                 </tr></thead>
                 <tbody id="deals-body"></tbody>
               </table>
@@ -4656,8 +4656,8 @@ function renderTable(type, q='') {
       <td>${r.industry||'—'}</td><td>${r.city||'—'}</td>
       <td>${badge(r.status)}</td><td>${r.bdOwner||'—'}</td>
       <td style="white-space:nowrap">
-        <button class="btn btn-ghost btn-sm" title="Edit" onclick="openModal('company','${r.id}')" style="padding:4px 7px">${ICON_EDIT}</button>
-        <button class="btn btn-ghost btn-sm" title="Delete" onclick="deleteCRMRecord('companies','${r.id}')" style="padding:4px 7px;color:#ef4444">${ICON_TRASH}</button>
+        ${canDo('accounts','edit')?`<button class="btn btn-ghost btn-sm" title="Edit" onclick="openModal('company','${r.id}')" style="padding:4px 7px">${ICON_EDIT}</button>`:''}
+        ${canDo('accounts','delete')?`<button class="btn btn-ghost btn-sm" title="Delete" onclick="deleteCRMRecord('companies','${r.id}')" style="padding:4px 7px;color:#ef4444">${ICON_TRASH}</button>`:''}
       </td>
     </tr>`).join('') : '<tr><td colspan="7" class="empty-state">No accounts found</td></tr>';
   }
@@ -4672,8 +4672,8 @@ function renderTable(type, q='') {
       <td>${r.title||'—'}</td><td>${getCompanyName(r.companyId)}</td>
       <td class="mono">${r.email||'—'}</td><td class="mono">${r.phone||'—'}</td>
       <td style="white-space:nowrap">
-        <button class="btn btn-ghost btn-sm" title="Edit" onclick="openModal('contact','${r.id}')" style="padding:4px 7px">${ICON_EDIT}</button>
-        <button class="btn btn-ghost btn-sm" title="Delete" onclick="deleteCRMRecord('contacts','${r.id}')" style="padding:4px 7px;color:#ef4444">${ICON_TRASH}</button>
+        ${canDo('contacts','edit')?`<button class="btn btn-ghost btn-sm" title="Edit" onclick="openModal('contact','${r.id}')" style="padding:4px 7px">${ICON_EDIT}</button>`:''}
+        ${canDo('contacts','delete')?`<button class="btn btn-ghost btn-sm" title="Delete" onclick="deleteCRMRecord('contacts','${r.id}')" style="padding:4px 7px;color:#ef4444">${ICON_TRASH}</button>`:''}
       </td>
     </tr>`).join('') : '<tr><td colspan="7" class="empty-state">No contacts found</td></tr>';
   }
@@ -4691,8 +4691,8 @@ function renderTable(type, q='') {
       <td class="mono">${r.phone||'—'}</td>
       <td>${r.owner||'—'}</td>
       <td style="white-space:nowrap">
-        <button class="btn btn-ghost btn-sm" title="Edit" onclick="openModal('lead','${r.id}')" style="padding:4px 7px">${ICON_EDIT}</button>
-        <button class="btn btn-ghost btn-sm" title="Delete" onclick="deleteCRMRecord('leads','${r.id}')" style="padding:4px 7px;color:#ef4444">${ICON_TRASH}</button>
+        ${canDo('leads','edit')?`<button class="btn btn-ghost btn-sm" title="Edit" onclick="openModal('lead','${r.id}')" style="padding:4px 7px">${ICON_EDIT}</button>`:''}
+        ${canDo('leads','delete')?`<button class="btn btn-ghost btn-sm" title="Delete" onclick="deleteCRMRecord('leads','${r.id}')" style="padding:4px 7px;color:#ef4444">${ICON_TRASH}</button>`:''}
       </td>
     </tr>`).join('') : '<tr><td colspan="8" class="empty-state">No leads found</td></tr>';
   }
@@ -4705,15 +4705,16 @@ function renderTable(type, q='') {
       <td><input type="checkbox" style="accent-color:var(--accent)"></td>
       <td class="name-cell" onclick="openModal('deal','${r.id}')">${r.name||'—'}</td>
       <td>${r.companyName||'—'}</td>
+      <td>${r.candidateName||'—'}</td>
       <td class="mono fw-600">${fmt(r.amount||0)}</td>
       <td>${badge(r.stage)}</td>
       <td>${fmtDate(r.closeDate)}</td>
       <td>${r.owner||'—'}</td>
       <td style="white-space:nowrap">
-        <button class="btn btn-ghost btn-sm" title="Edit" onclick="openModal('deal','${r.id}')" style="padding:4px 7px">${ICON_EDIT}</button>
-        <button class="btn btn-ghost btn-sm" title="Delete" onclick="deleteCRMRecord('deals','${r.id}')" style="padding:4px 7px;color:#ef4444">${ICON_TRASH}</button>
+        ${canDo('deals','edit')?`<button class="btn btn-ghost btn-sm" title="Edit" onclick="openModal('deal','${r.id}')" style="padding:4px 7px">${ICON_EDIT}</button>`:''}
+        ${canDo('deals','delete')?`<button class="btn btn-ghost btn-sm" title="Delete" onclick="deleteCRMRecord('deals','${r.id}')" style="padding:4px 7px;color:#ef4444">${ICON_TRASH}</button>`:''}
       </td>
-    </tr>`).join('') : '<tr><td colspan="8" class="empty-state">No deals found</td></tr>';
+    </tr>`).join('') : '<tr><td colspan="9" class="empty-state">No deals found</td></tr>';
   }
 
   else if (type==='tasks') {
@@ -7953,9 +7954,11 @@ async function upsert(collection, id, data) {
 }
 
 async function deleteCRMRecord(collection, id) {
-  // Only Super Admin and Admin can delete records
-  if (!isAdminOrAbove()) {
-    alert('Permission denied: only Admins and Super Admins can delete records.');
+  // Check delete permission via canDo() — respects custom permissions set by admin
+  const moduleMap = { companies:'accounts', contacts:'contacts', leads:'leads', deals:'deals', tasks:'tasks', activities:'activities', documents:'documents' };
+  const mod = moduleMap[collection] || collection;
+  if (!canDo(mod, 'delete')) {
+    alert('Permission denied: you do not have delete access for this module.');
     return;
   }
   const rec = DB[collection].find(r=>r.id===id);
