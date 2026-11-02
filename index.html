@@ -496,8 +496,8 @@ tbody tr td.name-cell:hover { text-decoration: underline; }
 .setup-tab { padding:12px 18px;border:none;background:none;font-size:13px;font-weight:500;color:var(--fg2);cursor:pointer;border-bottom:2px solid transparent;transition:color 0.15s,border-color 0.15s;white-space:nowrap; }
 .setup-tab:hover { color:var(--fg); }
 .setup-tab.active { color:var(--accent);border-bottom:2px solid var(--accent);font-weight:600; }
-.setup-panel { display:none;flex:1;min-height:0; }
-.setup-panel.sp-active { display:flex; }
+.setup-panel { display:none; }
+.setup-panel.sp-active { display:flex; flex:1; min-height:0; overflow:hidden; }
 .setup-link { font-size:13px;color:var(--fg2);padding:5px 0;cursor:pointer;transition:color 0.12s; }
 .setup-link:hover { color:var(--accent);text-decoration:underline; }
 .setup-dd-item { padding:8px 14px;font-size:13px;color:var(--fg2);cursor:pointer; }
@@ -932,8 +932,7 @@ textarea { min-height: 80px; resize: vertical; }
 .page.active { display: block; flex: 1; min-height: 0; }
 .page.active.page-flex { display: flex; flex: 1; min-height: 0; }
 /* Setup page must fill the content area height so inner panels can scroll */
-#page-setup { flex: 1; min-height: 0; height: 0; }
-.setup-panel { min-height: 0; flex: 1; }
+#page-setup { flex: 1 !important; min-height: 0 !important; height: 0 !important; }
 
 /* ---- WORKQUEUE NAV ITEMS ---- */
 .wq-nav-item {
@@ -2676,7 +2675,7 @@ textarea { min-height: 80px; resize: vertical; }
     </div>
 
     <!-- ===================== SETUP ===================== -->
-    <div class="page page-flex" id="page-setup" style="flex-direction:column;height:100%;overflow:hidden;background:var(--bg)">
+    <div class="page page-flex" id="page-setup" style="flex-direction:column;flex:1;min-height:0;height:0;overflow:hidden;background:var(--bg)">
       <!-- Setup subtab bar -->
       <div style="display:flex;align-items:center;border-bottom:1px solid var(--border);background:var(--surface);padding:0 16px;gap:0;flex-shrink:0;overflow-x:auto">
         <button class="setup-tab active" data-stab="setup-home" onclick="switchSetupTab(this,'setup-home')">Setup</button>
@@ -5308,16 +5307,16 @@ function renderUserDetail() {
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
           <div style="font-size:20px;font-weight:700;color:var(--fg)">${u.name}</div>
           <span class="user-badge badge-${u.role === 'Super Admin' ? 'super' : u.role === 'Admin' ? 'admin' : u.role === 'Manager' ? 'manager' : u.role === 'Restricted' ? 'restricted' : 'user'}" style="font-size:12px;padding:3px 12px">${u.role}</span>
-          <button onclick="openEditUserModal('${u.id}')" style="background:none;border:1.5px solid var(--border);border-radius:7px;padding:4px 12px;font-size:12px;cursor:pointer;color:var(--fg)">✎ Edit</button>
+          ${(isSuperAdmin() || (isAdminOrAbove() && u.role !== 'Super Admin')) ? `<button onclick="openEditUserModal('${u.id}')" style="background:none;border:1.5px solid var(--border);border-radius:7px;padding:4px 12px;font-size:12px;cursor:pointer;color:var(--fg)">✎ Edit</button>` : ''}
           ${isSuperAdmin() && u.id !== (window.LOGGED_IN_USER?.id || '') && u.email !== (window.LOGGED_IN_USER?.email || '') ? `<button onclick="confirmDeleteUser('${u.id}')" style="background:none;border:1.5px solid #ef4444;border-radius:7px;padding:4px 12px;font-size:12px;cursor:pointer;color:#ef4444">🗑 Delete</button>` : ''}
         </div>
-        ${isAdminOrAbove() ? `<div style="display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap">
+        ${(isSuperAdmin() || (isAdminOrAbove() && u.role !== 'Super Admin')) ? `<div style="display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap">
           <label style="font-size:12px;color:var(--fg2);font-weight:500">Change Role:</label>
           <select id="quick-role-${u.id}" style="padding:4px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:12px;color:var(--fg);background:var(--surface)">
             ${(isSuperAdmin() ? ['Super Admin','Admin','Manager','User','Restricted'] : ['Admin','Manager','User','Restricted']).map(r=>`<option${r===u.role?' selected':''}>${r}</option>`).join('')}
           </select>
           <button onclick="quickSaveRole('${u.id}')" style="padding:4px 14px;background:var(--accent);color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer">Save Role</button>
-        </div>` : ''}
+        </div>` : (isAdminOrAbove() && u.role === 'Super Admin' ? `<div style="margin-top:8px;font-size:12px;color:var(--fg3);font-style:italic">🔒 Only Super Admin can edit another Super Admin</div>` : '')}
         <div style="font-size:13px;color:var(--fg2);margin-top:8px">${u.title} · ${u.dept} · Searchkraft AI Labs</div>
         <div style="display:flex;align-items:center;gap:18px;margin-top:6px;font-size:12px;color:var(--fg3)">
           <span>✉ ${u.email}</span>
@@ -5447,6 +5446,7 @@ function userModalForm(u) {
         <option${u?.status==='inactive' ? ' selected' : ''}>inactive</option>
       </select>
     </div>
+    ${!u ? `<div class="um-field"><label class="um-label">Password <span style="color:var(--fg3);font-size:11px">(user can change later)</span></label><input class="um-input" id="um-password" type="password" placeholder="Min 8 characters" autocomplete="new-password"></div>` : ''}
     <div style="display:flex;gap:10px;margin-top:18px">
       <button onclick="saveUserFromModal(${u ? `'${u.id}'` : 'null'})" style="flex:1;padding:10px;background:#2EA44F;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer">Save User</button>
       <button onclick="closeUserModal()" style="padding:10px 18px;background:none;border:1.5px solid var(--border);border-radius:8px;font-size:13px;cursor:pointer;color:var(--fg2)">Cancel</button>
@@ -5486,8 +5486,53 @@ async function saveUserFromModal(uid) {
       } catch(e) { console.warn('Profile update failed:', e); }
     }
   } else {
-    const colors = ['#1a56db','#7c3aed','#0891b2','#059669','#dc2626','#ea580c','#d97706'];
-    SETUP_USERS.push({ id:'u'+(SETUP_USERS.length+1), name, email, phone, title, dept, role, status, avatar: name.split(' ').map(p=>p[0]).join('').toUpperCase().slice(0,2), color: colors[Math.floor(Math.random()*colors.length)], online:false });
+    // NEW USER: create Supabase Auth account so they can log in
+    // Step 1: Sign them up with admin-set password
+    const pwdInput = document.getElementById('um-password');
+    const enteredPwd = pwdInput ? pwdInput.value.trim() : '';
+    if (!enteredPwd || enteredPwd.length < 8) { alert('Password is required and must be at least 8 characters.'); return; }
+    const tempPass = enteredPwd;
+    let newAuthId = null;
+    try {
+      const { data: signUpData, error: signUpErr } = await DB_CLIENT.auth.signUp({
+        email,
+        password: tempPass,
+        options: { data: { name, role } }
+      });
+      if (signUpErr) throw signUpErr;
+      newAuthId = signUpData?.user?.id;
+    } catch(e) {
+      const msg = e?.message || String(e);
+      if (msg.includes('already registered') || msg.includes('already exists')) {
+        showToast('A user with this email already exists.', '#dc2626');
+      } else {
+        showToast('Failed to create auth account: ' + msg, '#dc2626');
+      }
+      return;
+    }
+    // Step 2: Upsert profile row with all details
+    if (newAuthId) {
+      try {
+        await DB_CLIENT.from('profiles').upsert({
+          id: newAuthId, name, email, phone, title, dept, role, status,
+          created_at: new Date().toISOString(), updated_at: new Date().toISOString()
+        });
+        // Add to DB.users so UI reflects immediately
+        const colors = ['#1a56db','#7c3aed','#0891b2','#059669','#dc2626','#ea580c','#d97706'];
+        DB.users.push({ id: newAuthId, name, email, phone, title, dept, role, status,
+          avatar: name.split(' ').map(p=>p[0]).join('').toUpperCase().slice(0,2),
+          color: colors[Math.floor(Math.random()*colors.length)] });
+        syncSetupUsersFromDB();
+        audit('Create', 'Users', name, `New user invited as ${role}`);
+        closeUserModal();
+        showToast(`✓ ${name} created. They can now log in with their email and the password you set.`, '#2EA44F');
+        renderUserList();
+        renderUserDetail();
+        return;
+      } catch(e) {
+        console.warn('Profile upsert failed:', e);
+      }
+    }
   }
   closeUserModal();
   syncSetupUsersFromDB(); // refresh from live DB
