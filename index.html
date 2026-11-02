@@ -5365,7 +5365,7 @@ function renderUserDetail() {
           <div style="font-size:20px;font-weight:700;color:var(--fg)">${u.name}</div>
           <span class="user-badge badge-${u.role === 'Super Admin' ? 'super' : u.role === 'Admin' ? 'admin' : u.role === 'Manager' ? 'manager' : u.role === 'Restricted' ? 'restricted' : 'user'}" style="font-size:12px;padding:3px 12px">${u.role}</span>
           ${(isSuperAdmin() || (isAdminOrAbove() && u.role !== 'Super Admin')) ? `<button onclick="openEditUserModal('${u.id}')" style="background:none;border:1.5px solid var(--border);border-radius:7px;padding:4px 12px;font-size:12px;cursor:pointer;color:var(--fg)">✎ Edit</button>` : ''}
-          ${isSuperAdmin() && u.id !== (window.LOGGED_IN_USER?.id || '') && u.email !== (window.LOGGED_IN_USER?.email || '') ? `<button onclick="confirmDeleteUser('${u.id}')" style="background:none;border:1.5px solid #ef4444;border-radius:7px;padding:4px 12px;font-size:12px;cursor:pointer;color:#ef4444">🗑 Delete</button>` : ''}
+          ${isAdminOrAbove() && u.id !== (window.LOGGED_IN_USER?.id || '') && u.email !== (window.LOGGED_IN_USER?.email || '') ? `<button onclick="confirmDeleteUser('${u.id}')" style="background:none;border:1.5px solid #ef4444;border-radius:7px;padding:4px 12px;font-size:12px;cursor:pointer;color:#ef4444">🗑 Delete</button>` : ''}
         </div>
         ${(isSuperAdmin() || (isAdminOrAbove() && u.role !== 'Super Admin')) ? `<div style="display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap">
           <label style="font-size:12px;color:var(--fg2);font-weight:500">Change Role:</label>
