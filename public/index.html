@@ -1678,7 +1678,7 @@ textarea { min-height: 80px; resize: vertical; }
             </div>
           </div>
           <div id="dash-revenue-pie-wrap" style="padding:16px 20px 20px;display:flex;align-items:center;gap:24px">
-            <canvas id="dash-revenue-pie" width="180" height="180" style="flex-shrink:0"></canvas>
+            <canvas id="dash-revenue-pie" style="flex-shrink:0"></canvas>
             <div id="dash-revenue-pie-legend" style="flex:1;display:flex;flex-direction:column;gap:6px;overflow-y:auto;max-height:180px"></div>
           </div>
         </div>
@@ -4318,7 +4318,17 @@ function renderRevenuePie() {
 
   const palette = ['#6366f1','#f59e0b','#10b981','#ef4444','#3b82f6','#ec4899','#14b8a6','#f97316','#a855f7'];
   const ctx = canvas.getContext('2d');
-  const cx = canvas.width / 2, cy = canvas.height / 2, r = 76, inner = 40;
+
+  // HiDPI / retina fix
+  const dpr = window.devicePixelRatio || 1;
+  const size = 180;
+  canvas.width = size * dpr;
+  canvas.height = size * dpr;
+  canvas.style.width = size + 'px';
+  canvas.style.height = size + 'px';
+  ctx.scale(dpr, dpr);
+
+  const cx = size / 2, cy = size / 2, r = 76, inner = 40;
 
   // resolve CSS vars via computed style on the card element
   const cardEl = canvas.closest('.dash-card') || document.body;
@@ -4326,7 +4336,7 @@ function renderRevenuePie() {
   const bgColor = cs.backgroundColor || '#ffffff';
   const fgColor = cs.color || '#111111';
 
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.clearRect(0, 0, size, size);
 
   // draw slices with white separators (using actual resolved bg)
   let angle = -Math.PI / 2;
