@@ -3577,20 +3577,27 @@ async function deleteRecord(table, id) {
 // load() — fetches all CRM data from Supabase into local DB cache
 // Graceful: if a table doesn't exist yet, that collection stays empty
 async function load() {
-  const safe = async (query) => {
-    try { const r = await query; return r.error ? [] : (r.data || []); }
-    catch(e) { return []; }
+  const safe = async (query, label) => {
+    try {
+      const r = await query;
+      if (r.error) {
+        console.error(`load() failed for [${label}]:`, r.error.message);
+        return null; // null = failed, don't overwrite existing DB cache
+      }
+      return r.data || [];
+    }
+    catch(e) { console.error(`load() exception [${label}]:`, e); return null; }
   };
   const [leads, contacts, companies, deals, tasks, activities, users, documents, auditRows] = await Promise.all([
-    safe(DB_CLIENT.from('leads').select('*').order('created_at', { ascending: false })),
-    safe(DB_CLIENT.from('contacts').select('*').order('created_at', { ascending: false })),
-    safe(DB_CLIENT.from('companies').select('*').order('created_at', { ascending: false })),
-    safe(DB_CLIENT.from('deals').select('*').order('created_at', { ascending: false })),
-    safe(DB_CLIENT.from('tasks').select('*').order('created_at', { ascending: false })),
-    safe(DB_CLIENT.from('activities').select('*').order('created_at', { ascending: false })),
-    safe(DB_CLIENT.from('profiles').select('*').order('created_at', { ascending: true })),
-    safe(DB_CLIENT.from('documents').select('*').order('created_at', { ascending: false })),
-    safe(DB_CLIENT.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(200)),
+    safe(DB_CLIENT.from('leads').select('*').order('created_at', { ascending: false }), 'leads'),
+    safe(DB_CLIENT.from('contacts').select('*').order('created_at', { ascending: false }), 'contacts'),
+    safe(DB_CLIENT.from('companies').select('*').order('created_at', { ascending: false }), 'companies'),
+    safe(DB_CLIENT.from('deals').select('*').order('created_at', { ascending: false }), 'deals'),
+    safe(DB_CLIENT.from('tasks').select('*').order('created_at', { ascending: false }), 'tasks'),
+    safe(DB_CLIENT.from('activities').select('*').order('created_at', { ascending: false }), 'activities'),
+    safe(DB_CLIENT.from('profiles').select('*').order('created_at', { ascending: true }), 'profiles'),
+    safe(DB_CLIENT.from('documents').select('*').order('created_at', { ascending: false }), 'documents'),
+    safe(DB_CLIENT.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(200), 'audit_logs'),
   ]);
   // Normalize snake_case from Supabase → camelCase used throughout the app
   const norm = (r) => ({
@@ -3647,16 +3654,17 @@ async function load() {
     custom_perms:           r.custom_perms            || null,
     force_password_change:  r.force_password_change   || false,
   });
-  DB.leads      = leads.map(norm);
-  DB.contacts   = contacts.map(norm);
-  DB.companies  = companies.map(norm);
-  DB.deals      = deals.map(norm);
-  DB.tasks      = tasks.map(norm);
-  DB.activities = activities.map(norm);
-  DB.users      = users.map(norm);
-  DB.documents  = documents.map(norm);
+  // Only overwrite DB cache if Supabase returned data (null = query failed, keep existing cache)
+  if (leads      !== null) DB.leads      = leads.map(norm);
+  if (contacts   !== null) DB.contacts   = contacts.map(norm);
+  if (companies  !== null) DB.companies  = companies.map(norm);
+  if (deals      !== null) DB.deals      = deals.map(norm);
+  if (tasks      !== null) DB.tasks      = tasks.map(norm);
+  if (activities !== null) DB.activities = activities.map(norm);
+  if (users      !== null) DB.users      = users.map(norm);
+  if (documents  !== null) DB.documents  = documents.map(norm);
   // Load audit log from Supabase (merge with any in-memory entries from this session)
-  const auditFromDB = auditRows.map(r => ({
+  const auditFromDB = (auditRows||[]).map(r => ({
     id: r.id, ts: r.created_at, user: r.user_name, action: r.action, module: r.module, record: r.record_name
   }));
   const existingIds = new Set(auditFromDB.map(r => r.id));
@@ -7907,30 +7915,33 @@ function toSupabase(collection, data) {
 }
 
 async function upsert(collection, id, data) {
+  const now = new Date().toISOString();
+  let mergedData;
   if (id) {
+    // Always merge with the full existing record so no fields get wiped on edit
+    const existing = DB[collection].find(r=>r.id===id) || {};
+    mergedData = { ...existing, ...data, id, updatedAt: now, updated_at: now };
     const i = DB[collection].findIndex(r=>r.id===id);
-    if (i>=0) { DB[collection][i] = { ...DB[collection][i], ...data }; }
+    if (i>=0) DB[collection][i] = mergedData;
     audit('Update', collection, data.name||data.title||id);
   } else {
     const newId = uid();
-    const rec = { id: newId, createdAt: new Date().toISOString(), created_at: new Date().toISOString(), ...data };
-    DB[collection].unshift(rec);
+    mergedData = { id: newId, createdAt: now, created_at: now, updatedAt: now, updated_at: now, ...data };
+    DB[collection].unshift(mergedData);
     audit('Create', collection, data.name||data.title||newId);
     id = newId;
-    data = rec;
   }
-  // Persist to Supabase — only whitelisted snake_case columns
+  // Persist to Supabase — await so errors surface immediately
   const tbl = SUPA_TABLE[collection];
   if (tbl) {
-    const payload = toSupabase(collection, { id, ...data });
-    DB_CLIENT.from(tbl).upsert(payload, { onConflict: 'id' })
-      .then(({ error }) => {
-        if (error) {
-          console.error('Supabase upsert error:', error.message, JSON.stringify(payload));
-          // Show a subtle toast so the user knows something failed
-          showToast && showToast('Save failed: ' + error.message, 'error');
-        }
-      });
+    const payload = toSupabase(collection, mergedData);
+    const { error } = await DB_CLIENT.from(tbl).upsert(payload, { onConflict: 'id' });
+    if (error) {
+      console.error('Supabase upsert error:', error.message, payload);
+      if (typeof showToast === 'function') showToast('⚠️ Save failed: ' + error.message, '#dc2626');
+      // DO NOT close modal — let user retry
+      return;
+    }
   }
   closeModal();
   refreshCurrentPage();
