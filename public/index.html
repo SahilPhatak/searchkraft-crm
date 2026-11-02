@@ -5662,11 +5662,11 @@ var SETUP_USERS = [
 
 // Module access permissions per role
 const ROLE_PERMS = {
-  'Super Admin': { leads:['view','create','edit','delete'], contacts:['view','create','edit','delete'], accounts:['view','create','edit','delete'], deals:['view','create','edit','delete'], reports:['view','create','edit','delete'], setup:['view','manage'] },
-  'Admin':       { leads:['view','create','edit','delete'], contacts:['view','create','edit','delete'], accounts:['view','create','edit','delete'], deals:['view','create','edit','delete'], reports:['view','create'],                  setup:['view'] },
-  'Manager':     { leads:['view','create','edit'],          contacts:['view','create','edit'],          accounts:['view','create','edit'],          deals:['view','create','edit'],          reports:['view'],                           setup:[] },
-  'User':        { leads:['view','create'],                 contacts:['view','create'],                 accounts:['view'],                          deals:['view','create'],                 reports:['view'],                           setup:[] },
-  'Restricted':  { leads:['view'],                         contacts:[],                                accounts:[],                                deals:[],                                reports:[],                                 setup:[] }
+  'Super Admin': { leads:['view','create','edit','delete'], contacts:['view','create','edit','delete'], accounts:['view','create','edit','delete'], deals:['view','create','edit','delete'], reports:['view','create','edit','delete'], documents:['view','create','edit','delete'], setup:['view','manage'] },
+  'Admin':       { leads:['view','create','edit','delete'], contacts:['view','create','edit','delete'], accounts:['view','create','edit','delete'], deals:['view','create','edit','delete'], reports:['view','create'],                  documents:['view','create','edit','delete'], setup:['view'] },
+  'Manager':     { leads:['view','create','edit'],          contacts:['view','create','edit'],          accounts:['view','create','edit'],          deals:['view','create','edit'],          reports:['view'],                           documents:['view','create','edit'],          setup:[] },
+  'User':        { leads:['view','create'],                 contacts:['view','create'],                 accounts:['view'],                          deals:['view','create'],                 reports:['view'],                           documents:['view','create'],                 setup:[] },
+  'Restricted':  { leads:['view'],                         contacts:[],                                accounts:[],                                deals:[],                                reports:[],                                 documents:['view'],                          setup:[] }
 };
 
 let currentSetupUser = null;
