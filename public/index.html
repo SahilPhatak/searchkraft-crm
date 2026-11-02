@@ -3995,6 +3995,11 @@ function startRealtimeSync() {
     referenceNumber:  r.referenceNumber  || r.reference_number,
     startDate:        r.startDate        || r.start_date,
     expiryDate:       r.expiryDate       || r.expiry_date,
+    candidateName:    r.candidateName    || r.candidate_name,
+    contactName:      r.contactName      || r.contact_name,
+    nextStep:         r.nextStep         || r.next_step,
+    dealType:         r.dealType         || r.deal_type,
+    campaign:         r.campaign         || r.campaign,
   });
 
   // Map Supabase table name → DB key + page hash(es) to re-render
@@ -6968,6 +6973,10 @@ const MODAL_FORMS = {
       };
       if (!r.name) return alert('Deal name required');
       if (!r.companyName) return alert('Company / Account is required');
+      // Auto-set wonAt / lostAt timestamps when stage changes
+      const stage = r.stage;
+      if (stage === 'Closed Won' && !r.wonAt) r.wonAt = r.closeDate || new Date().toISOString().slice(0,10);
+      if (stage === 'Closed Lost' && !r.lostAt) r.lostAt = r.closeDate || new Date().toISOString().slice(0,10);
       upsert('deals', id, r);
     }
   },
@@ -7840,7 +7849,7 @@ const SUPA_COLS = {
     'country','addr_line1','street','city','state','zip','lat','lng','description'],
   contacts: ['id','name','email','phone','title','dept','company','company_id','owner','owner_id','created_at','updated_at'],
   companies: ['id','name','industry','website','phone','employees','revenue','address','city','state','country','status','bd_owner','owner_id','created_at','updated_at'],
-  deals: ['id','name','stage','amount','value','expected_revenue','currency','close_date','probability','source','notes','contact','contact_id','company','company_id','owner','owner_id','won_at','lost_at','lost_reason','created_at','updated_at'],
+  deals: ['id','name','stage','amount','value','expected_revenue','currency','close_date','probability','source','notes','contact','contact_id','company','company_id','owner','owner_id','won_at','lost_at','lost_reason','candidate_name','contact_name','next_step','campaign','deal_type','created_at','updated_at'],
   tasks: ['id','title','type','description','due_date','status','priority','owner','owner_id','lead_id','contact_id','deal_id','related_to','completed_at','created_at','updated_at'],
   activities: ['id','type','subject','description','date','duration','outcome','owner','owner_id','lead_id','contact_id','deal_id','created_at'],
   documents: ['id','name','client_id','client_name','category','stage','status','file_type','file_size','file_url','uploaded_by','owner_id','description','reference_number','start_date','expiry_date','created_at','updated_at'],
@@ -7859,6 +7868,8 @@ const CAMEL_TO_SNAKE = {
   clientName:'client_name', clientType:'client_type', deliveryPOC:'delivery_poc',
   numPositions:'num_positions', commercialsSigned:'commercials_signed',
   sourceSD:'source_sd', wonAt:'won_at', lostAt:'lost_at', lostReason:'lost_reason',
+  candidateName:'candidate_name', contactName:'contact_name', nextStep:'next_step',
+  dealType:'deal_type',
   completedAt:'completed_at', expectedRevenue:'expected_revenue', relatedTo:'related_to',
   clientId:'client_id', clientName:'client_name', fileType:'file_type', fileSize:'file_size',
   fileUrl:'file_url', uploadedBy:'uploaded_by', referenceNumber:'reference_number',
