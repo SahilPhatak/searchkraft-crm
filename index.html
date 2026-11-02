@@ -46,8 +46,8 @@ if (!window.supabase) {
   --red-bg:    #FEF2F2;
   --purple:    #7C3AED;
   --purple-bg: #F5F3FF;
-  --nav-bg:    #3B6FD4;
-  --nav-bg2:   #2A5BBF;
+  --nav-bg:    #0f1c2e;
+  --nav-bg2:   #0a1520;
   --nav-fg:    rgba(255,255,255,0.65);
   --nav-active:#FFFFFF;
   --nav-hover: rgba(255,255,255,0.12);
@@ -76,8 +76,8 @@ if (!window.supabase) {
     --red-bg:    #200E0E;
     --purple:    #8B5CF6;
     --purple-bg: #160F2A;
-    --nav-bg:    #2A5BBF;
-    --nav-bg2:   #1E4AA0;
+    --nav-bg:    #0f1c2e;
+    --nav-bg2:   #0a1520;
     --nav-fg:    rgba(255,255,255,0.6);
     --nav-active:#FFFFFF;
     --nav-hover: rgba(255,255,255,0.1);
@@ -105,8 +105,8 @@ if (!window.supabase) {
   --red-bg:    #200E0E;
   --purple:    #8B5CF6;
   --purple-bg: #160F2A;
-  --nav-bg:    #2A5BBF;
-  --nav-bg2:   #1E4AA0;
+  --nav-bg:    #0f1c2e;
+  --nav-bg2:   #0a1520;
   --nav-fg:    rgba(255,255,255,0.6);
   --nav-active:#FFFFFF;
   --nav-hover: rgba(255,255,255,0.1);
@@ -134,8 +134,8 @@ if (!window.supabase) {
   --red-bg:    #FEF2F2;
   --purple:    #7C3AED;
   --purple-bg: #F5F3FF;
-  --nav-bg:    #3B6FD4;
-  --nav-bg2:   #2A5BBF;
+  --nav-bg:    #0f1c2e;
+  --nav-bg2:   #0a1520;
   --nav-fg:    rgba(255,255,255,0.65);
   --nav-active:#FFFFFF;
   --nav-hover: rgba(255,255,255,0.12);
@@ -197,27 +197,30 @@ body {
   gap: 10px;
 }
 .sidebar-logo-icon {
-  width: 38px; height: 38px; flex-shrink: 0;
-  background: linear-gradient(135deg, #1a6b4a 0%, #1db366 100%);
-  border-radius: 10px;
+  width: 40px; height: 40px; flex-shrink: 0;
+  background: linear-gradient(145deg, #1a7a50 0%, #16a363 60%, #12b35a 100%);
+  border-radius: 12px;
   display: flex; align-items: center; justify-content: center;
-  font-size: 13px; font-weight: 800; color: #fff;
+  font-size: 14px; font-weight: 800; color: #fff;
   font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
-  letter-spacing: -0.3px;
+  letter-spacing: -0.4px;
+  box-shadow: 0 2px 10px rgba(22,163,99,0.35), inset 0 1px 0 rgba(255,255,255,0.15);
 }
 .sidebar-logo-text { flex: 1; min-width: 0; overflow: hidden; }
 .sidebar-logo-text .brand-sub {
-  font-size: 10px; font-weight: 600;
-  color: rgba(255,255,255,0.65);
-  letter-spacing: 0.8px; text-transform: uppercase;
+  font-size: 10px; font-weight: 700;
+  color: rgba(255,255,255,0.45);
+  letter-spacing: 1.2px; text-transform: uppercase;
   white-space: nowrap;
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
 }
 .sidebar-logo-text .brand-main {
-  font-size: 17px; font-weight: 800;
+  font-size: 18px; font-weight: 800;
   color: #FFFFFF;
-  letter-spacing: -0.4px;
+  letter-spacing: -0.5px;
   white-space: nowrap;
-  line-height: 1.1;
+  line-height: 1.15;
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
 }
 .sidebar-toggle {
   width: 28px; height: 28px; flex-shrink: 0;
