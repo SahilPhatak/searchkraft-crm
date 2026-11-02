@@ -2527,19 +2527,20 @@ textarea { min-height: 80px; resize: vertical; }
     <!-- ===================== REPORTS ===================== -->
     <div class="page page-pad" id="page-reports">
       <!-- Top filter bar -->
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;flex-wrap:wrap">
-        <div style="display:flex;align-items:center;gap:6px;padding:5px 12px;border:1px solid var(--border);border-radius:6px;background:var(--surface);font-size:13px;color:var(--fg2);cursor:pointer">
-          All <span style="font-size:10px">▾</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:6px;padding:5px 12px;border:1px solid var(--border);border-radius:6px;background:var(--surface);font-size:13px;color:var(--fg2);cursor:pointer">
-          ☆ Org Overview <span style="font-size:10px">▾</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:6px;padding:5px 12px;border:1px solid var(--border);border-radius:6px;background:var(--surface);font-size:13px;color:var(--fg2);cursor:pointer">
-          🌐 All Users
-        </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px;flex-wrap:wrap">
+        <button id="rpt-tab-all" class="btn btn-secondary btn-sm" style="border-color:var(--accent);color:var(--accent);font-weight:600" onclick="switchReportView('all',this)">All</button>
+        <button id="rpt-tab-org" class="btn btn-secondary btn-sm" onclick="switchReportView('org',this)">☆ Org Overview</button>
+        <button id="rpt-tab-users" class="btn btn-secondary btn-sm" onclick="switchReportView('users',this)">🌐 All Users</button>
         <div style="margin-left:auto;display:flex;gap:8px">
-          <button class="btn btn-secondary btn-sm">↻ Add Component</button>
-          <button class="btn btn-primary btn-sm">+ Create Dashboard</button>
+          <button class="btn btn-secondary btn-sm" onclick="alert('Add Component: share specific charts with your team by sending them a link to this Analytics page.')">↻ Add Component</button>
+          <button class="btn btn-primary btn-sm" onclick="alert('Saved dashboards coming soon. Currently your Analytics view auto-updates live.')">+ Create Dashboard</button>
+        </div>
+      </div>
+      <!-- All Users view (hidden by default) -->
+      <div id="rpt-users-view" style="display:none;margin-bottom:16px">
+        <div class="card" style="padding:0;overflow:hidden">
+          <div style="padding:14px 20px;border-bottom:1px solid var(--border);font-size:13px;font-weight:700;color:var(--fg)">All Users — Activity This Month</div>
+          <div id="rpt-users-table" style="overflow-x:auto"></div>
         </div>
       </div>
 
@@ -2586,9 +2587,9 @@ textarea { min-height: 80px; resize: vertical; }
           <!-- Month columns header -->
           <div style="display:grid;grid-template-columns:140px repeat(3,1fr);border-bottom:1px solid var(--border)">
             <div></div>
-            <div id="an-m1-label" style="padding:8px 10px;font-size:11px;font-weight:600;color:var(--accent);text-align:center;border-bottom:2px solid var(--accent)"></div>
+            <div id="an-m1-label" style="padding:8px 10px;font-size:11px;font-weight:600;color:var(--fg3);text-align:center"></div>
             <div id="an-m2-label" style="padding:8px 10px;font-size:11px;font-weight:600;color:var(--fg3);text-align:center"></div>
-            <div id="an-m3-label" style="padding:8px 10px;font-size:11px;font-weight:600;color:var(--fg3);text-align:center"></div>
+            <div id="an-m3-label" style="padding:8px 10px;font-size:11px;font-weight:600;color:var(--accent);text-align:center;border-bottom:2px solid var(--accent)"></div>
           </div>
           <div id="an-perf-matrix"></div>
         </div>
@@ -3247,7 +3248,7 @@ async function load() {
     try { const r = await query; return r.error ? [] : (r.data || []); }
     catch(e) { return []; }
   };
-  const [leads, contacts, companies, deals, tasks, activities, users, documents, audit] = await Promise.all([
+  const [leads, contacts, companies, deals, tasks, activities, users, documents, auditRows] = await Promise.all([
     safe(DB_CLIENT.from('leads').select('*').order('created_at', { ascending: false })),
     safe(DB_CLIENT.from('contacts').select('*').order('created_at', { ascending: false })),
     safe(DB_CLIENT.from('companies').select('*').order('created_at', { ascending: false })),
@@ -3256,7 +3257,7 @@ async function load() {
     safe(DB_CLIENT.from('activities').select('*').order('created_at', { ascending: false })),
     safe(DB_CLIENT.from('profiles').select('*').order('created_at', { ascending: true })),
     safe(DB_CLIENT.from('documents').select('*').order('created_at', { ascending: false })),
-    Promise.resolve([]), // audit_logs: not loaded from DB (in-memory session only)
+    safe(DB_CLIENT.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(200)),
   ]);
   // Normalize snake_case from Supabase → camelCase used throughout the app
   const norm = (r) => ({
@@ -3315,7 +3316,13 @@ async function load() {
   DB.activities = activities.map(norm);
   DB.users      = users.map(norm);
   DB.documents  = documents.map(norm);
-  // DB.audit stays in-memory only — not reloaded from Supabase
+  // Load audit log from Supabase (merge with any in-memory entries from this session)
+  const auditFromDB = auditRows.map(r => ({
+    id: r.id, ts: r.created_at, user: r.user_name, action: r.action, module: r.module, record: r.record_name
+  }));
+  const existingIds = new Set(auditFromDB.map(r => r.id));
+  DB.audit = [...DB.audit.filter(r => !existingIds.has(r.id)), ...auditFromDB]
+    .sort((a,b) => (b.ts||'').localeCompare(a.ts||'')).slice(0, 500);
   updateNavBadges();
 }
 
@@ -3327,14 +3334,27 @@ function save() {
 async function audit(action, module, record) {
   const user = LOGGED_IN_USER;
   const entry = {
+    id: uid(),
+    ts: new Date().toISOString(),
+    user: user ? user.name : 'System',
     action, module,
-    record_name: record || '',
-    user_name: user ? user.name : 'System',
+    record: record || '',
     user_id: user ? user.supaId || null : null
   };
-  // Keep only in-memory; do not persist to Supabase automatically
-  DB.audit.unshift({ id: uid(), ts: new Date().toISOString(), user: entry.user_name, action, module, record: entry.record_name });
-  if (DB.audit.length > 200) DB.audit = DB.audit.slice(0, 200);
+  DB.audit.unshift(entry);
+  if (DB.audit.length > 500) DB.audit = DB.audit.slice(0, 500);
+  // Persist to Supabase audit_logs table
+  try {
+    DB_CLIENT.from('audit_logs').insert({
+      id: entry.id,
+      user_name: entry.user,
+      user_id: entry.user_id,
+      action: entry.action,
+      module: entry.module,
+      record_name: entry.record,
+      created_at: entry.ts
+    }).then(({ error }) => { if (error) console.warn('Audit log write:', error.message); });
+  } catch(e) { /* silent — audit is best-effort */ }
 }
 function uid() {
   // Generate a proper UUID v4 for Supabase compatibility
@@ -3801,18 +3821,38 @@ function renderDashboard() {
       </tr>`).join('');
   }
 
-  // Recent Activity feed
+  // Recent Activity feed — show real audit trail (who added/updated/deleted what)
   const actEl = document.getElementById('dash-activity');
-  const acts = DB.activities.slice(0,6);
-  if (!acts.length) { actEl.innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>No activity yet</p></div>'; }
-  else actEl.innerHTML = acts.map(a=>`
-    <div class="activity-item">
-      <div class="activity-dot" style="background:${a.type==='Call'?'var(--green)':a.type==='Email'?'var(--accent)':'var(--amber)'}"></div>
-      <div class="activity-content">
-        <div class="act-text"><strong>${a.type}</strong> — ${a.summary}</div>
-        <div class="act-time">${a.owner} · ${fmtDate(a.date)}</div>
-      </div>
-    </div>`).join('');
+  const auditEntries = DB.audit.slice(0, 10);
+  const callMeetings = DB.activities.slice(0, 6);
+  const feedItems = auditEntries.length ? auditEntries : [];
+  const actionColors = { Create: 'var(--green)', Update: 'var(--accent)', Delete: 'var(--red)' };
+  const moduleIcons = { leads:'🎯', deals:'💼', contacts:'👤', companies:'🏢', tasks:'✅', activities:'📞', documents:'📄', invoices:'🧾' };
+  if (!feedItems.length && !callMeetings.length) {
+    actEl.innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>No activity yet</p></div>';
+  } else if (feedItems.length) {
+    actEl.innerHTML = feedItems.map(a => {
+      const icon = moduleIcons[a.module] || '📋';
+      const color = actionColors[a.action] || 'var(--fg3)';
+      const ts = a.ts ? new Date(a.ts).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',hour12:true}) : '—';
+      return `<div class="activity-item">
+        <div class="activity-dot" style="background:${color}"></div>
+        <div class="activity-content">
+          <div class="act-text">${icon} <strong>${a.user||'System'}</strong> <span style="color:${color};font-weight:600">${a.action}d</span> ${a.record ? '"'+a.record+'"' : 'a record'} in <span style="color:var(--fg2)">${a.module}</span></div>
+          <div class="act-time">${ts}</div>
+        </div>
+      </div>`;
+    }).join('');
+  } else {
+    actEl.innerHTML = callMeetings.map(a=>`
+      <div class="activity-item">
+        <div class="activity-dot" style="background:${a.type==='Call'?'var(--green)':a.type==='Email'?'var(--accent)':'var(--amber)'}"></div>
+        <div class="activity-content">
+          <div class="act-text"><strong>${a.type}</strong> — ${a.summary||a.subject||''}</div>
+          <div class="act-time">${a.owner} · ${fmtDate(a.date)}</div>
+        </div>
+      </div>`).join('');
+  }
 
   // Pipeline summary
   const pipEl = document.getElementById('dash-pipeline');
@@ -4602,10 +4642,10 @@ function renderReports() {
   const el_acc = document.getElementById('an-accounts');
   if (el_acc) el_acc.textContent = accts.length;
 
-  // Performance Matrix header months
-  const el_m1 = document.getElementById('an-m1-label'); if(el_m1) el_m1.textContent=mLabel(m1);
-  const el_m2 = document.getElementById('an-m2-label'); if(el_m2) el_m2.textContent=mLabel(m2);
-  const el_m3 = document.getElementById('an-m3-label'); if(el_m3) el_m3.textContent=mLabel(m3);
+  // Performance Matrix header months — m1=2 months ago, m2=last month, m3=this month (newest last)
+  const el_m1 = document.getElementById('an-m1-label'); if(el_m1) { el_m1.textContent=mLabel(m1); el_m1.style.color='var(--fg3)'; el_m1.style.borderBottom='none'; }
+  const el_m2 = document.getElementById('an-m2-label'); if(el_m2) { el_m2.textContent=mLabel(m2); el_m2.style.color='var(--fg3)'; el_m2.style.borderBottom='none'; }
+  const el_m3 = document.getElementById('an-m3-label'); if(el_m3) { el_m3.textContent=mLabel(m3)+' ★'; el_m3.style.color='var(--accent)'; el_m3.style.borderBottom='2px solid var(--accent)'; }
 
   function monthCount(arr, dateField, mo) { return arr.filter(x=>x[dateField]&&x[dateField].startsWith(mo)).length; }
   function monthSum(arr, dateField, valField, mo) { return arr.filter(x=>x[dateField]&&x[dateField].startsWith(mo)).reduce((s,x)=>s+Number(x[valField]||0),0); }
@@ -4705,6 +4745,77 @@ function renderReports() {
     }).join('') + `<line x1="${pad}" y1="${H2-25}" x2="${W2-pad}" y2="${H2-25}" stroke="var(--border)" stroke-width="1"/>`;
   }
 
+}
+
+// ---- REPORTS VIEW SWITCHER ----
+let _currentReportView = 'all';
+function switchReportView(view, el) {
+  _currentReportView = view;
+  // Update tab button styles
+  ['all','org','users'].forEach(t => {
+    const btn = document.getElementById('rpt-tab-'+t);
+    if (!btn) return;
+    if (t === view) { btn.style.borderColor = 'var(--accent)'; btn.style.color = 'var(--accent)'; btn.style.fontWeight = '600'; }
+    else { btn.style.borderColor = ''; btn.style.color = ''; btn.style.fontWeight = ''; }
+  });
+  const usersView = document.getElementById('rpt-users-view');
+  const mainView = document.getElementById('rpt-main-view');
+  if (view === 'users') {
+    if (usersView) usersView.style.display = '';
+    renderReportUsersView();
+  } else {
+    if (usersView) usersView.style.display = 'none';
+  }
+  if (view === 'org') {
+    // Org overview — jump to manager dashboard
+    navigateTo('dashboard');
+    setTimeout(() => setDashView('manager'), 100);
+  }
+}
+
+function renderReportUsersView() {
+  const now2 = new Date();
+  const thisMonth = now2.toISOString().slice(0,7);
+  const users = DB.users.filter(u => u.status !== 'Inactive');
+  const tbody = document.getElementById('rpt-users-table');
+  if (!tbody) return;
+  tbody.innerHTML = `<table style="width:100%;border-collapse:collapse">
+    <thead><tr>
+      <th style="padding:8px 16px;background:var(--surface2);color:var(--fg3);font-size:11px;font-weight:600;text-align:left;border-bottom:1px solid var(--border)">User</th>
+      <th style="padding:8px 12px;background:var(--surface2);color:var(--fg3);font-size:11px;font-weight:600;text-align:center;border-bottom:1px solid var(--border)">Role</th>
+      <th style="padding:8px 12px;background:var(--surface2);color:var(--fg3);font-size:11px;font-weight:600;text-align:center;border-bottom:1px solid var(--border)">Leads This Month</th>
+      <th style="padding:8px 12px;background:var(--surface2);color:var(--fg3);font-size:11px;font-weight:600;text-align:center;border-bottom:1px solid var(--border)">Deals This Month</th>
+      <th style="padding:8px 12px;background:var(--surface2);color:var(--fg3);font-size:11px;font-weight:600;text-align:center;border-bottom:1px solid var(--border)">Deals Won</th>
+      <th style="padding:8px 12px;background:var(--surface2);color:var(--fg3);font-size:11px;font-weight:600;text-align:right;border-bottom:1px solid var(--border)">Revenue Won</th>
+      <th style="padding:8px 12px;background:var(--surface2);color:var(--fg3);font-size:11px;font-weight:600;text-align:center;border-bottom:1px solid var(--border)">Open Tasks</th>
+      <th style="padding:8px 12px;background:var(--surface2);color:var(--fg3);font-size:11px;font-weight:600;text-align:center;border-bottom:1px solid var(--border)">Activities</th>
+    </tr></thead>
+    <tbody>
+    ${users.map(u => {
+      const name = u.name || u.email || '—';
+      const leads = DB.leads.filter(l => l.owner === name && (l.createdAt||'').startsWith(thisMonth)).length;
+      const deals = DB.deals.filter(d => d.owner === name && (d.createdAt||'').startsWith(thisMonth)).length;
+      const won   = DB.deals.filter(d => d.owner === name && d.stage === 'Closed Won').length;
+      const rev   = DB.deals.filter(d => d.owner === name && d.stage === 'Closed Won').reduce((s,d)=>s+Number(d.amount||0),0);
+      const tasks = DB.tasks.filter(t => t.owner === name && (t.status === 'Pending' || t.status === 'In Progress')).length;
+      const acts  = DB.activities.filter(a => a.owner === name).length;
+      return `<tr onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+        <td style="padding:10px 16px;border-bottom:1px solid var(--border)">
+          <div style="font-weight:600;font-size:13px;color:var(--fg)">${name}</div>
+          <div style="font-size:11px;color:var(--fg3)">${u.email||''}</div>
+        </td>
+        <td style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:center">${badge(u.role||'User')}</td>
+        <td style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:center;font-size:14px;font-weight:600;color:var(--fg)">${leads}</td>
+        <td style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:center;font-size:14px;font-weight:600;color:var(--fg)">${deals}</td>
+        <td style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:center;font-size:14px;font-weight:600;color:var(--green)">${won}</td>
+        <td style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:right;font-size:13px;font-weight:600;color:var(--fg)">${fmt(rev)}</td>
+        <td style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:center;font-size:14px;font-weight:600;color:${tasks>0?'var(--amber)':'var(--fg)'}">${tasks}</td>
+        <td style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:center;font-size:14px;font-weight:600;color:var(--fg)">${acts}</td>
+      </tr>`;
+    }).join('')}
+    ${users.length === 0 ? '<tr><td colspan="8" style="padding:32px;text-align:center;color:var(--fg3)">No active users</td></tr>' : ''}
+    </tbody>
+  </table>`;
 }
 
 // ---- AUDIT ----
@@ -6868,9 +6979,16 @@ async function upsert(collection, id, data) {
 }
 
 async function deleteCRMRecord(collection, id) {
+  // Only Super Admin and Admin can delete records
+  if (!isAdminOrAbove()) {
+    alert('Permission denied: only Admins and Super Admins can delete records.');
+    return;
+  }
   const rec = DB[collection].find(r=>r.id===id);
+  const label = rec?.name||rec?.title||id;
+  if (!confirm(`Delete "${label}"? This cannot be undone.`)) return;
   DB[collection] = DB[collection].filter(r=>r.id!==id);
-  audit('Delete', collection, rec?.name||rec?.title||id);
+  audit('Delete', collection, label);
   const tbl = SUPA_TABLE[collection];
   if (tbl) {
     DB_CLIENT.from(tbl).delete().eq('id', id)
