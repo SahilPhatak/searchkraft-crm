@@ -5777,13 +5777,16 @@ async function deleteUser(userId) {
   const dbUser = DB.users.find(x => x.id === userId) || (u ? DB.users.find(x => x.email === u.email) : null);
   try {
     if (dbUser) {
-      // Delete from Supabase auth (admin only via profiles delete)
-      const { error } = await DB_CLIENT.from('profiles').delete().eq('id', dbUser.id);
+      const { data, error, status, statusText } = await DB_CLIENT
+        .from('profiles').delete().eq('id', dbUser.id).select();
+      console.log('[deleteUser] status:', status, statusText, 'data:', data, 'error:', error);
       if (error) throw error;
-      // Remove from DB.users
+      // If RLS silently blocked it (no rows deleted, no error), throw manually
+      if (!data || data.length === 0) {
+        throw new Error(`RLS_SILENT_BLOCK: No rows deleted for id=${dbUser.id}. Check Supabase RLS policies.`);
+      }
       DB.users = DB.users.filter(x => x.id !== dbUser.id);
     }
-    // Remove from SETUP_USERS
     const idx = SETUP_USERS.findIndex(x => x.id === userId);
     if (idx >= 0) SETUP_USERS.splice(idx, 1);
     currentSetupUser = null;
@@ -5793,12 +5796,14 @@ async function deleteUser(userId) {
     if (dbUser) audit('Delete', 'Users', dbUser.name || u?.name || 'User', 'User removed');
   } catch(e) {
     const msg = e?.message || String(e);
-    if (msg.includes('row-level security') || msg.includes('violates')) {
-      showToast('Permission denied — run the profiles RLS fix SQL in Supabase.', '#dc2626');
+    console.error('[deleteUser] full error:', e);
+    if (msg.includes('RLS_SILENT_BLOCK')) {
+      showToast('RLS blocked delete — open browser console (F12) for the exact policy needed.', '#dc2626');
+    } else if (msg.includes('row-level security') || msg.includes('violates') || msg.includes('policy')) {
+      showToast('RLS policy blocked delete — run the SQL fix in Supabase.', '#dc2626');
     } else {
-      showToast('Failed to delete user: ' + msg, '#dc2626');
+      showToast('Failed to delete: ' + msg, '#dc2626');
     }
-    console.error('deleteUser error:', e);
   }
 }
 
