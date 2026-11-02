@@ -3411,6 +3411,10 @@ function uid() {
     return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
   });
 }
+// Shared SVG icons for table action buttons
+const ICON_EDIT  = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
+const ICON_TRASH = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`;
+
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function fmt(n) { return n >= 1e7 ? '₹' + (n/1e7).toFixed(1)+'Cr' : n >= 1e5 ? '₹'+(n/1e5).toFixed(1)+'L' : '₹'+n.toLocaleString('en-IN'); }
 function fmtDate(d) { if(!d) return '—'; try { return new Date(d).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}); } catch(e) { return d; } }
@@ -4230,8 +4234,10 @@ function renderTable(type, q='') {
       <td class="name-cell" onclick="openModal('company','${r.id}')">${r.name}</td>
       <td>${r.industry||'—'}</td><td>${r.city||'—'}</td>
       <td>${badge(r.status)}</td><td>${r.bdOwner||'—'}</td>
-      <td><button class="btn btn-ghost btn-sm" onclick="openModal('company','${r.id}')">Edit</button>
-          <button class="btn btn-ghost btn-sm" onclick="deleteCRMRecord('companies','${r.id}')">Del</button></td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-ghost btn-sm" title="Edit" onclick="openModal('company','${r.id}')" style="padding:4px 7px">${ICON_EDIT}</button>
+        <button class="btn btn-ghost btn-sm" title="Delete" onclick="deleteCRMRecord('companies','${r.id}')" style="padding:4px 7px;color:#ef4444">${ICON_TRASH}</button>
+      </td>
     </tr>`).join('') : '<tr><td colspan="7" class="empty-state">No accounts found</td></tr>';
   }
 
@@ -4244,8 +4250,10 @@ function renderTable(type, q='') {
       <td class="name-cell" onclick="openModal('contact','${r.id}')">${r.name}</td>
       <td>${r.title||'—'}</td><td>${getCompanyName(r.companyId)}</td>
       <td class="mono">${r.email||'—'}</td><td class="mono">${r.phone||'—'}</td>
-      <td><button class="btn btn-ghost btn-sm" onclick="openModal('contact','${r.id}')">Edit</button>
-          <button class="btn btn-ghost btn-sm" onclick="deleteCRMRecord('contacts','${r.id}')">Del</button></td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-ghost btn-sm" title="Edit" onclick="openModal('contact','${r.id}')" style="padding:4px 7px">${ICON_EDIT}</button>
+        <button class="btn btn-ghost btn-sm" title="Delete" onclick="deleteCRMRecord('contacts','${r.id}')" style="padding:4px 7px;color:#ef4444">${ICON_TRASH}</button>
+      </td>
     </tr>`).join('') : '<tr><td colspan="7" class="empty-state">No contacts found</td></tr>';
   }
 
@@ -4261,8 +4269,10 @@ function renderTable(type, q='') {
       <td class="mono">${r.email||'—'}</td>
       <td class="mono">${r.phone||'—'}</td>
       <td>${r.owner||'—'}</td>
-      <td><button class="btn btn-ghost btn-sm" onclick="openModal('lead','${r.id}')">Edit</button>
-          <button class="btn btn-ghost btn-sm" onclick="deleteCRMRecord('leads','${r.id}')">Del</button></td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-ghost btn-sm" title="Edit" onclick="openModal('lead','${r.id}')" style="padding:4px 7px">${ICON_EDIT}</button>
+        <button class="btn btn-ghost btn-sm" title="Delete" onclick="deleteCRMRecord('leads','${r.id}')" style="padding:4px 7px;color:#ef4444">${ICON_TRASH}</button>
+      </td>
     </tr>`).join('') : '<tr><td colspan="8" class="empty-state">No leads found</td></tr>';
   }
 
@@ -4278,8 +4288,10 @@ function renderTable(type, q='') {
       <td>${badge(r.stage)}</td>
       <td>${fmtDate(r.closeDate)}</td>
       <td>${r.owner||'—'}</td>
-      <td><button class="btn btn-ghost btn-sm" onclick="openModal('deal','${r.id}')">Edit</button>
-          <button class="btn btn-ghost btn-sm" onclick="deleteCRMRecord('deals','${r.id}')">Del</button></td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-ghost btn-sm" title="Edit" onclick="openModal('deal','${r.id}')" style="padding:4px 7px">${ICON_EDIT}</button>
+        <button class="btn btn-ghost btn-sm" title="Delete" onclick="deleteCRMRecord('deals','${r.id}')" style="padding:4px 7px;color:#ef4444">${ICON_TRASH}</button>
+      </td>
     </tr>`).join('') : '<tr><td colspan="8" class="empty-state">No deals found</td></tr>';
   }
 
@@ -4291,9 +4303,11 @@ function renderTable(type, q='') {
       <td>${r.relatedTo||'—'}</td><td>${r.owner||'—'}</td>
       <td style="color:${isOverdue(r.due)&&r.status!=='Done'?'var(--red)':'var(--fg2)'}">${fmtDate(r.due)}</td>
       <td>${badge(r.status)}</td>
-      <td><button class="btn btn-ghost btn-sm" onclick="openModal('task','${r.id}')">Edit</button>
-          ${r.status!=='Done'?`<button class="btn btn-ghost btn-sm" onclick="completeTask('${r.id}')">✓</button>`:''}
-          <button class="btn btn-ghost btn-sm" onclick="deleteCRMRecord('tasks','${r.id}')">Del</button></td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-ghost btn-sm" title="Edit" onclick="openModal('task','${r.id}')" style="padding:4px 7px">${ICON_EDIT}</button>
+        ${r.status!=='Done'?`<button class="btn btn-ghost btn-sm" title="Complete" onclick="completeTask('${r.id}')" style="padding:4px 7px;color:#22c55e">✓</button>`:''}
+        <button class="btn btn-ghost btn-sm" title="Delete" onclick="deleteCRMRecord('tasks','${r.id}')" style="padding:4px 7px;color:#ef4444">${ICON_TRASH}</button>
+      </td>
     </tr>`).join('') : '<tr><td colspan="7" class="empty-state">No tasks</td></tr>';
   }
 
@@ -4303,7 +4317,9 @@ function renderTable(type, q='') {
       <td class="mono text-xs">${r.email||'—'}</td>
       <td><span class="badge badge-purple">${r.role}</span></td>
       <td>${badge(r.status)}</td>
-      <td><button class="btn btn-ghost btn-sm" onclick="openModal('user','${r.id}')">Edit</button></td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-ghost btn-sm" title="Edit" onclick="openModal('user','${r.id}')" style="padding:4px 7px">${ICON_EDIT}</button>
+      </td>
     </tr>`).join('');
   }
 }
@@ -4740,12 +4756,19 @@ function renderReports() {
     // Sort descending, take 2 most recent before current month
     const pastMonths = [...monthSet].sort((a,b)=>b.localeCompare(a)).slice(0,2).reverse();
     // Pad with calendar months if fewer than 2 past months with data
-    while (pastMonths.length < 2) {
-      const offset = 2 - pastMonths.length;
-      const d = new Date(now2.getFullYear(), now2.getMonth() - offset, 1);
-      const ym = localYM(d);
-      if (!pastMonths.includes(ym) && ym !== thisMonth) pastMonths.unshift(ym);
-      else pastMonths.unshift(ym); // accept duplicate for padding
+    // Build a sorted candidate list: 2 months before current, then 1 month before
+    if (pastMonths.length < 2) {
+      const needed = [];
+      for (let off = 2; off >= 1; off--) {
+        const d = new Date(now2.getFullYear(), now2.getMonth() - off, 1);
+        const ym = localYM(d);
+        if (!pastMonths.includes(ym)) needed.push(ym);
+      }
+      // Insert missing months in correct chronological position
+      for (const ym of needed) {
+        if (pastMonths.length < 2) pastMonths.push(ym);
+      }
+      pastMonths.sort((a,b) => a.localeCompare(b));
     }
     return [pastMonths[0], pastMonths[1], thisMonth];
   }
@@ -5408,7 +5431,7 @@ function userModalForm(u) {
     <div class="um-field"><label class="um-label">First Name</label><input class="um-input" id="um-fname" value="${u ? u.name.split(' ')[0] : ''}"></div>
     <div class="um-field"><label class="um-label">Last Name</label><input class="um-input" id="um-lname" value="${u ? u.name.split(' ').slice(1).join(' ') : ''}"></div>
     <div class="um-field"><label class="um-label">Email</label><input class="um-input" id="um-email" type="email" value="${u?.email || ''}"></div>
-    <div class="um-field"><label class="um-label">Phone</label><input class="um-input" id="um-phone" value="${u?.phone || ''}"></div>
+    <div class="um-field"><label class="um-label">Phone</label><input class="um-input" id="um-phone" type="tel" value="${u?.phone || ''}" oninput="this.value=this.value.replace(/[^0-9+\\-() ]/g,'')"></div>
     <div class="um-field"><label class="um-label">Title / Designation</label><input class="um-input" id="um-title" value="${u?.title || ''}"></div>
     <div class="um-field"><label class="um-label">Department</label><input class="um-input" id="um-dept" value="${u?.dept || ''}"></div>
     <div class="um-field"><label class="um-label">Role / Access Level</label>
@@ -6068,7 +6091,7 @@ const MODAL_FORMS = {
         <div class="lf-field"><label>Account Owner</label>${ownerField('owner', r.owner, !!id)}</div>
         <div class="lf-field"><label>Rating</label><select id="f-rating"><option value="">-None-</option>${['Hot','Warm','Cold'].map(s=>`<option ${r.rating===s?'selected':''}>${s}</option>`).join('')}</select></div>
         <div class="lf-field"><label>Account Name *</label><input id="f-name" type="text" value="${r.name||''}" style="border-color:${r.name?'':'var(--red)'}"></div>
-        <div class="lf-field"><label>Phone</label><input id="f-phone" type="tel" value="${r.phone||''}"></div>
+        <div class="lf-field"><label>Phone</label><input id="f-phone" type="tel" value="${r.phone||''}" oninput="this.value=this.value.replace(/[^0-9+\\-() ]/g,'')"></div>
         <div class="lf-field"><label>Account Site</label><input id="f-accountSite" type="text" value="${r.accountSite||''}"></div>
         <div class="lf-field"><label>Fax</label><input id="f-fax" type="tel" value="${r.fax||''}"></div>
         <div class="lf-field"><label>Parent Account</label><input id="f-parentAccount" type="text" value="${r.parentAccount||''}"></div>
@@ -6176,7 +6199,7 @@ const MODAL_FORMS = {
         <div class="lf-field"><label>Vendor Name</label><input id="f-vendorName" type="text" value="${r.vendorName||''}"></div>
         <div class="lf-field"><label>Email</label><input id="f-email" type="email" value="${r.email||''}"></div>
         <div class="lf-field"><label>Title</label><input id="f-title" type="text" value="${r.title||''}"></div>
-        <div class="lf-field"><label>Phone</label><input id="f-phone" type="tel" value="${r.phone||''}"></div>
+        <div class="lf-field"><label>Phone</label><input id="f-phone" type="tel" value="${r.phone||''}" oninput="this.value=this.value.replace(/[^0-9+\\-() ]/g,'')"></div>
         <div class="lf-field"><label>Department</label><input id="f-department" type="text" value="${r.department||''}"></div>
         <div class="lf-field"><label>Other Phone</label><input id="f-otherPhone" type="tel" value="${r.otherPhone||''}"></div>
         <div class="lf-field"><label>Home Phone</label><input id="f-homePhone" type="tel" value="${r.homePhone||''}"></div>
@@ -6285,7 +6308,7 @@ const MODAL_FORMS = {
         <div class="lf-field"><label>Last Name *</label><input id="f-lastName" type="text" value="${r.lastName||''}" style="border-color:${r.lastName?'':'var(--red)'}"></div>
         <div class="lf-field"><label>Title / Designation</label><input id="f-title" type="text" value="${r.title||''}"></div>
         <div class="lf-field"><label>Email *</label><input id="f-email" type="email" required value="${r.email||''}" style="border-color:${r.email?'':'var(--red)'}"></div>
-        <div class="lf-field"><label>Phone *</label><input id="f-phone" type="tel" required value="${r.phone||''}" style="border-color:${r.phone?'':'var(--red)'}"></div>
+        <div class="lf-field"><label>Phone *</label><input id="f-phone" type="tel" required value="${r.phone||''}" oninput="this.value=this.value.replace(/[^0-9+\\-() ]/g,'')" style="border-color:${r.phone?'':'var(--red)'}"></div>
         <div class="lf-field"><label>Website</label><input id="f-website" type="text" value="${r.website||''}"></div>
         <div class="lf-field"><label>Lead Source</label><select id="f-source"><option value="">-None-</option>${['Cold Call','Email','Existing Client','Partner','Public Relations','Direct Mail','Conference','Trade Show','Web Site','Internal Seminar','Employees','Google AdWords','Word of Mouth','Other'].map(s=>`<option ${r.source===s?'selected':''}>${s}</option>`).join('')}</select></div>
         <div class="lf-field"><label>Lead Status</label><select id="f-stage"><option value="">-None-</option>${LEAD_STAGES.map(s=>`<option ${r.stage===s?'selected':''}>${s}</option>`).join('')}</select></div>
@@ -6967,7 +6990,7 @@ function openPsEditModal() {
   openGenericModal('Edit Profile', `
     <div class="um-field"><label class="um-label">First Name</label><input class="um-input" id="pse-first" value="${u.name.split(' ')[0]}"></div>
     <div class="um-field"><label class="um-label">Last Name</label><input class="um-input" id="pse-last" value="${u.name.split(' ').slice(1).join(' ')}"></div>
-    <div class="um-field"><label class="um-label">Phone</label><input class="um-input" id="pse-phone" value="${u.phone||''}"></div>
+    <div class="um-field"><label class="um-label">Phone</label><input class="um-input" id="pse-phone" type="tel" value="${u.phone||''}" oninput="this.value=this.value.replace(/[^0-9+\\-() ]/g,'')"></div>
     <div class="um-field"><label class="um-label">Title</label><input class="um-input" id="pse-title" value="${u.title||''}"></div>
     <div class="um-field"><label class="um-label">Department</label><input class="um-input" id="pse-dept" value="${u.dept||''}"></div>
     <div style="display:flex;gap:10px;margin-top:18px">
