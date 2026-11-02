@@ -3640,6 +3640,10 @@ async function load() {
     referenceNumber:  r.referenceNumber  || r.reference_number,
     startDate:        r.startDate        || r.start_date,
     expiryDate:       r.expiryDate       || r.expiry_date,
+    candidateName:    r.candidateName    || r.candidate_name,
+    contactName:      r.contactName      || r.contact_name,
+    nextStep:         r.nextStep         || r.next_step,
+    dealType:         r.dealType         || r.deal_type,
     custom_perms:           r.custom_perms            || null,
     force_password_change:  r.force_password_change   || false,
   });
@@ -7909,7 +7913,13 @@ async function upsert(collection, id, data) {
   if (tbl) {
     const payload = toSupabase(collection, { id, ...data });
     DB_CLIENT.from(tbl).upsert(payload, { onConflict: 'id' })
-      .then(({ error }) => { if (error) console.error('Supabase upsert error:', error.message, JSON.stringify(payload)); });
+      .then(({ error }) => {
+        if (error) {
+          console.error('Supabase upsert error:', error.message, JSON.stringify(payload));
+          // Show a subtle toast so the user knows something failed
+          showToast && showToast('Save failed: ' + error.message, 'error');
+        }
+      });
   }
   closeModal();
   refreshCurrentPage();
