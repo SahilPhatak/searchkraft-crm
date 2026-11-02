@@ -6947,6 +6947,7 @@ const MODAL_FORMS = {
         <div class="lf-field"><label>Lead Source</label><select id="f-source"><option value="">-None-</option>${['Cold Call','Email','Existing Client','Partner','Conference','Trade Show','Web Site','Word of Mouth','Internal HR','LinkedIn','Referral','Other'].map(s=>`<option ${r.source===s?'selected':''}>${s}</option>`).join('')}</select></div>
         <div class="lf-field"><label>Campaign Source</label><input id="f-campaign" type="text" value="${r.campaign||''}"></div>
         <div class="lf-field"><label>Contact Name</label><input id="f-contactName" type="text" value="${r.contactName||''}"></div>
+        <div class="lf-field"><label>Candidate Name</label><input id="f-candidateName" type="text" placeholder="Enter candidate name" value="${r.candidateName||''}"></div>
       </div>
 
       <!-- Description Information -->
@@ -6959,7 +6960,7 @@ const MODAL_FORMS = {
       const amt = Number(v('amount')||0);
       const prob = Number(v('probability')||0);
       const r = {
-        name:v('name'), owner:v('owner'), companyName:v('companyName'), contactName:v('contactName'),
+        name:v('name'), owner:v('owner'), companyName:v('companyName'), contactName:v('contactName'), candidateName:v('candidateName'),
         amount:amt, value:amt, closeDate:v('closeDate'), stage:v('stage'),
         probability:prob, source:v('source'), dealType:v('dealType'),
         expectedRevenue:Math.round(amt*prob/100),
