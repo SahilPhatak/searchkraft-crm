@@ -7373,6 +7373,16 @@ const MODAL_FORMS = {
         <div class="lf-field"><label>Candidate Name</label><input id="f-candidateName" type="text" placeholder="Enter candidate name" value="${r.candidateName||''}"></div>
       </div>
 
+      <!-- Recruitment Details -->
+      <div class="lf-section-title" style="margin-top:32px">Recruitment Details</div>
+      <div class="lf-grid">
+        <div class="lf-field"><label>Recruiter Name</label><select id="f-recruiterName"><option value="">-None-</option>${(typeof TEAM_MEMBERS!=='undefined'?TEAM_MEMBERS:[]).map(m=>`<option ${r.recruiterName===m?'selected':''}>${m}</option>`).join('')}</select></div>
+        <div class="lf-field"><label>Client SPOC</label><input id="f-clientSpoc" type="text" placeholder="Client point of contact" value="${r.clientSpoc||''}"></div>
+        <div class="lf-field"><label>Sourcer</label><select id="f-sourcer"><option value="">-None-</option>${(typeof TEAM_MEMBERS!=='undefined'?TEAM_MEMBERS:[]).map(m=>`<option ${r.sourcer===m?'selected':''}>${m}</option>`).join('')}</select></div>
+        <div class="lf-field"><label>Credit Sharing (%)</label><input id="f-creditSharing" type="number" min="0" max="100" step="1" placeholder="e.g. 50" value="${r.creditSharing!==undefined&&r.creditSharing!==''?r.creditSharing:''}"></div>
+        <div class="lf-field" style="grid-column:1/-1"><label>Candidate Management</label><select id="f-candidateMgmt"><option value="">-None-</option>${['Recruiter','Sourcer','Shared','Client Managed','Third Party'].map(s=>`<option ${r.candidateMgmt===s?'selected':''}>${s}</option>`).join('')}</select></div>
+      </div>
+
       <!-- Description Information -->
       <div class="lf-section-title" style="margin-top:32px">Description Information</div>
       <div style="display:grid;grid-template-columns:200px 1fr;gap:10px 8px;align-items:start">
@@ -7390,7 +7400,10 @@ const MODAL_FORMS = {
         amount:amt, value:amt, closeDate:v('closeDate'), stage:stage,
         probability:prob, source:v('source'), dealType:v('dealType'),
         expectedRevenue:Math.round(amt*prob/100),
-        campaign:v('campaign'), nextStep:v('nextStep'), description:v('description')
+        campaign:v('campaign'), nextStep:v('nextStep'), description:v('description'),
+        recruiterName:v('recruiterName'), sourcer:v('sourcer'),
+        creditSharing:v('creditSharing')!==''?Number(v('creditSharing')):undefined,
+        candidateMgmt:v('candidateMgmt'), clientSpoc:v('clientSpoc')
       };
       if (!r.name) return alert('Deal name required');
       if (!r.companyName) return alert('Company / Account is required');
