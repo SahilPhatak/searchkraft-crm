@@ -4537,22 +4537,35 @@ function renderRevenueTarget() {
 }
 
 function renderMonthlyRevenue() {
-  const yr = new Date().getFullYear();
+  // Indian FY: Apr–Mar (FY26 = Apr 2025 – Mar 2026)
+  const now = new Date();
+  const calYr = now.getFullYear();
+  // FY starts in April: if current month < April (0-indexed < 3), FY started last year
+  const fyStart = now.getMonth() < 3 ? calYr - 1 : calYr;
+  const fyEnd   = fyStart + 1;
   const el = document.getElementById('dash-monthly-year');
-  if (el) el.textContent = yr;
+  if (el) el.textContent = `FY${String(fyEnd).slice(2)}`; // e.g. "FY26"
 
+  // FY months in order: Apr(3) May(4) Jun(5) Jul(6) Aug(7) Sep(8) Oct(9) Nov(10) Dec(11) Jan(0) Feb(1) Mar(2)
+  const fyMonths = [3,4,5,6,7,8,9,10,11,0,1,2];
   const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  // Sum Closed Won revenue per month
+
+  // Sum Closed Won revenue per FY-month index (0=Apr … 11=Mar)
   const monthly = Array(12).fill(0);
   DB.deals.filter(d => isWon(d)).forEach(d => {
     const dt = d.wonAt || d.closeDate || d.createdAt || '';
-    if (dt.startsWith(yr+'')) {
-      const m = parseInt(dt.slice(5,7),10) - 1;
-      if (m >= 0 && m < 12) monthly[m] += Number(d.expectedRevenue||d.amount||0);
-    }
+    if (!dt) return;
+    const dYr = parseInt(dt.slice(0,4),10);
+    const dMo = parseInt(dt.slice(5,7),10) - 1; // 0-based calendar month
+    // Apr–Dec of fyStart OR Jan–Mar of fyEnd
+    const inFY = (dYr === fyStart && dMo >= 3) || (dYr === fyEnd && dMo <= 2);
+    if (!inFY) return;
+    const fyIdx = fyMonths.indexOf(dMo);
+    if (fyIdx >= 0) monthly[fyIdx] += Number(d.expectedRevenue||d.amount||0);
   });
 
   const maxMon = Math.max(...monthly, 1);
+  // FY quarters: Q1=Apr-Jun(0-2), Q2=Jul-Sep(3-5), Q3=Oct-Dec(6-8), Q4=Jan-Mar(9-11)
   const quarters = [[0,1,2],[3,4,5],[6,7,8],[9,10,11]];
 
   // Premium palette — rich, jewel-toned
@@ -4591,7 +4604,7 @@ function renderMonthlyRevenue() {
               ${hasVal ? `<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,0.18) 0%,transparent 60%)"></div>` : ''}
             </div>
           </div>
-          <div style="font-size:10.5px;color:var(--fg3);font-weight:600;letter-spacing:0.2px">${monthNames[m]}</div>
+          <div style="font-size:10.5px;color:var(--fg3);font-weight:600;letter-spacing:0.2px">${monthNames[fyMonths[m]]}</div>
         </div>`;
     }).join('');
 
