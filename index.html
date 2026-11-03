@@ -7376,7 +7376,13 @@ const MODAL_FORMS = {
       <!-- Recruitment Details -->
       <div class="lf-section-title" style="margin-top:32px">Recruitment Details</div>
       <div class="lf-grid">
-        <div class="lf-field"><label>Recruiter Name</label><select id="f-recruiterName"><option value="">-None-</option>${(typeof TEAM_MEMBERS!=='undefined'?TEAM_MEMBERS:[]).map(m=>`<option ${r.recruiterName===m?'selected':''}>${m}</option>`).join('')}</select></div>
+        <div class="lf-field"><label>Recruiter Name</label>
+          <input id="f-recruiterName" type="text" list="recruiter-list" placeholder="Type or select…" value="${r.recruiterName||''}" autocomplete="off">
+          <datalist id="recruiter-list">
+            ${['Urmila','Samyadeep','Sahil'].map(m=>`<option value="${m}">`).join('')}
+            ${(typeof TEAM_MEMBERS!=='undefined'?TEAM_MEMBERS:[]).filter(m=>!['Urmila','Samyadeep','Sahil'].includes(m)).map(m=>`<option value="${m}">`).join('')}
+          </datalist>
+        </div>
         <div class="lf-field"><label>Client SPOC</label><select id="f-clientSpoc"><option value="">-None-</option>${['Vikram','Samyadeep'].map(m=>`<option ${r.clientSpoc===m?'selected':''}>${m}</option>`).join('')}</select></div>
         <div class="lf-field"><label>Sourcer</label><select id="f-sourcer"><option value="">-None-</option>${['Samyadeep','Sahil','Urmila'].map(m=>`<option ${r.sourcer===m?'selected':''}>${m}</option>`).join('')}</select></div>
         <div class="lf-field"><label>Credit Sharing (%)</label><input id="f-creditSharing" type="number" min="0" max="100" step="1" placeholder="e.g. 50" value="${r.creditSharing!==undefined&&r.creditSharing!==''?r.creditSharing:''}"></div>
