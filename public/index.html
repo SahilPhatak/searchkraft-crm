@@ -154,10 +154,13 @@ input, select, textarea, button { font-family: 'Inter', system-ui, sans-serif; f
 .lf-title, .topbar-title, #topbar-title, .nav-section-label,
 h1, h2, h3 { font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif; }
 /* IBM Plex Mono for all numeric displays — naturally open zero, never looks like 8 */
-.stat-tile .value, #lq-leads, #lq-deals, #lq-won, #lq-revenue, #lq-winrate {
+.stat-tile .value {
   font-family: 'Roboto Mono', 'IBM Plex Mono', monospace !important;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.5px;
+}
+#lq-leads, #lq-deals, #lq-won, #lq-revenue, #lq-winrate {
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif !important;
 }
 
 body {
