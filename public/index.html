@@ -8511,6 +8511,11 @@ async function upsert(collection, id, data) {
     syncLeadToContact(mergedData);
   }
 
+  // Auto-sync Won deal → Contact + Account in real time
+  if (collection === 'deals' && WON_STAGES.has(mergedData.stage)) {
+    syncWonDealToContactAndAccount(mergedData);
+  }
+
   closeModal();
   refreshCurrentPage();
 }
@@ -8571,6 +8576,104 @@ async function syncLeadToContact(lead) {
       const payload = toSupabase('contacts', newContact);
       const { error } = await DB_CLIENT.from(tbl).upsert(payload, { onConflict: 'id' });
       if (error) console.warn('Lead→Contact sync create failed:', error.message);
+    }
+  }
+}
+
+// Sync a Won deal → Contact + Account (Companies)
+async function syncWonDealToContactAndAccount(deal) {
+  const now = new Date().toISOString();
+
+  // ── 1. CONTACT sync ─────────────────────────────────────────────
+  // Use contactName field from the deal as the person's name
+  if (deal.contactName || deal.candidateName) {
+    const fullName = deal.contactName || deal.candidateName || '';
+    const parts    = fullName.trim().split(' ');
+    const firstName = parts[0] || '';
+    const lastName  = parts.slice(1).join(' ') || '';
+
+    const contactData = {
+      firstName,
+      lastName,
+      name:        fullName,
+      company:     deal.companyName || '',
+      owner:       deal.owner       || '',
+      source:      deal.source      || '',
+      description: deal.description || '',
+      dealId:      deal.id,
+      syncedFromDeal: true,
+    };
+
+    // Match on name + company (no email on deals)
+    const existing = DB.contacts.find(c =>
+      c.name && c.name.toLowerCase() === fullName.toLowerCase() &&
+      (!c.company || c.company.toLowerCase() === (deal.companyName||'').toLowerCase())
+    );
+
+    if (existing) {
+      const merged = { ...existing, ...contactData, id: existing.id, updatedAt: now, updated_at: now };
+      const idx = DB.contacts.findIndex(c => c.id === existing.id);
+      if (idx >= 0) DB.contacts[idx] = merged;
+      const tbl = SUPA_TABLE['contacts'];
+      if (tbl) {
+        const { error } = await DB_CLIENT.from(tbl).upsert(toSupabase('contacts', merged), { onConflict: 'id' });
+        if (error) console.warn('Won deal→Contact update failed:', error.message);
+      }
+    } else {
+      const newId      = uid();
+      const newContact = { id: newId, createdAt: now, created_at: now, updatedAt: now, updated_at: now, ...contactData };
+      DB.contacts.unshift(newContact);
+      const tbl = SUPA_TABLE['contacts'];
+      if (tbl) {
+        const { error } = await DB_CLIENT.from(tbl).upsert(toSupabase('contacts', newContact), { onConflict: 'id' });
+        if (error) console.warn('Won deal→Contact create failed:', error.message);
+      }
+    }
+  }
+
+  // ── 2. ACCOUNT (Company) sync ────────────────────────────────────
+  if (deal.companyName) {
+    const accountData = {
+      name:        deal.companyName,
+      industry:    deal.industry    || '',
+      source:      deal.source      || '',
+      owner:       deal.owner       || '',
+      description: deal.description || '',
+      dealId:      deal.id,
+      syncedFromDeal: true,
+    };
+
+    // Match on company name (case-insensitive)
+    const existing = DB.companies.find(c =>
+      c.name && c.name.toLowerCase() === deal.companyName.toLowerCase()
+    );
+
+    if (existing) {
+      // Update — preserve existing fields, only fill blanks
+      const merged = {
+        ...existing,
+        industry:  existing.industry  || accountData.industry,
+        source:    existing.source    || accountData.source,
+        owner:     existing.owner     || accountData.owner,
+        id: existing.id, updatedAt: now, updated_at: now
+      };
+      const idx = DB.companies.findIndex(c => c.id === existing.id);
+      if (idx >= 0) DB.companies[idx] = merged;
+      const tbl = SUPA_TABLE['companies'];
+      if (tbl) {
+        const { error } = await DB_CLIENT.from(tbl).upsert(toSupabase('companies', merged), { onConflict: 'id' });
+        if (error) console.warn('Won deal→Account update failed:', error.message);
+      }
+    } else {
+      // Create new company
+      const newId      = uid();
+      const newCompany = { id: newId, createdAt: now, created_at: now, updatedAt: now, updated_at: now, ...accountData };
+      DB.companies.unshift(newCompany);
+      const tbl = SUPA_TABLE['companies'];
+      if (tbl) {
+        const { error } = await DB_CLIENT.from(tbl).upsert(toSupabase('companies', newCompany), { onConflict: 'id' });
+        if (error) console.warn('Won deal→Account create failed:', error.message);
+      }
     }
   }
 }
