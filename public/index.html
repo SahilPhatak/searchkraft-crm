@@ -670,52 +670,52 @@ h1,h2,h3,h4,h5,h6,
   gap: 16px;
 }
 .dash-kpi-card {
-  background: linear-gradient(145deg, color-mix(in srgb, var(--surface) 85%, var(--kpi-color,#6366f1) 15%) 0%, var(--surface) 100%);
-  border-radius: 20px;
+  background: linear-gradient(150deg, color-mix(in srgb, var(--surface) 92%, var(--kpi-color,#6366f1) 8%) 0%, var(--surface) 100%);
+  border-radius: 18px;
   padding: 22px 24px 20px;
-  border: 1px solid color-mix(in srgb, var(--border) 70%, var(--kpi-color,#6366f1) 30%);
+  border: 1px solid color-mix(in srgb, var(--border) 80%, var(--kpi-color,#6366f1) 20%);
   cursor: pointer;
-  transition: box-shadow 0.22s, transform 0.22s, border-color 0.22s;
+  transition: box-shadow 0.2s, transform 0.2s;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.06);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
 }
 .dash-kpi-card::before {
   content: '';
   position: absolute;
   top: 0; left: 0; right: 0;
-  height: 3px;
-  border-radius: 20px 20px 0 0;
-  background: linear-gradient(90deg, var(--kpi-color,#6366f1), color-mix(in srgb, var(--kpi-color,#6366f1) 60%, #fff 40%));
+  height: 2px;
+  border-radius: 18px 18px 0 0;
+  background: color-mix(in srgb, var(--kpi-color,#6366f1) 70%, transparent 30%);
+  opacity: 0.7;
 }
-/* Subtle radial glow behind icon area */
+/* Very subtle wash top-right */
 .dash-kpi-card::after {
   content: '';
   position: absolute;
-  top: -20px; right: -20px;
-  width: 100px; height: 100px;
+  top: -30px; right: -30px;
+  width: 120px; height: 120px;
   border-radius: 50%;
-  background: radial-gradient(circle, color-mix(in srgb, var(--kpi-color,#6366f1) 20%, transparent 80%) 0%, transparent 70%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--kpi-color,#6366f1) 10%, transparent 90%) 0%, transparent 70%);
   pointer-events: none;
 }
 .dash-kpi-card:hover {
-  box-shadow: 0 16px 40px rgba(0,0,0,0.14), 0 0 0 1px color-mix(in srgb, var(--kpi-color,#6366f1) 40%, transparent 60%);
-  transform: translateY(-3px);
-  border-color: color-mix(in srgb, var(--kpi-color,#6366f1) 55%, transparent 45%);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.09);
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--kpi-color,#6366f1) 35%, var(--border) 65%);
 }
 .dash-kpi-card .kpi-icon {
-  width: 42px; height: 42px; border-radius: 13px;
+  width: 40px; height: 40px; border-radius: 12px;
   display: flex; align-items: center; justify-content: center;
-  background: color-mix(in srgb, var(--kpi-color,#6366f1) 16%, var(--surface) 84%);
-  border: 1px solid color-mix(in srgb, var(--kpi-color,#6366f1) 25%, transparent 75%);
+  background: color-mix(in srgb, var(--kpi-color,#6366f1) 10%, var(--surface) 90%);
+  border: 1px solid color-mix(in srgb, var(--kpi-color,#6366f1) 18%, transparent 82%);
   margin-bottom: 18px;
   font-size: 18px;
-  box-shadow: 0 0 12px color-mix(in srgb, var(--kpi-color,#6366f1) 22%, transparent 78%);
 }
 .dash-kpi-card .kpi-label {
-  font-size: 10px; font-weight: 700; letter-spacing: 1px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.9px;
   text-transform: uppercase;
-  color: color-mix(in srgb, var(--kpi-color,#6366f1) 70%, var(--fg3) 30%);
+  color: color-mix(in srgb, var(--kpi-color,#6366f1) 55%, var(--fg3) 45%);
   margin-bottom: 9px;
 }
 .dash-kpi-card .kpi-value {
@@ -725,11 +725,10 @@ h1,h2,h3,h4,h5,h6,
   letter-spacing: -2px !important;
   line-height: 1 !important;
   display: block;
-  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--kpi-color,#6366f1) 30%, transparent 70%));
 }
 .dash-kpi-card .kpi-sub {
   font-size: 11.5px;
-  color: color-mix(in srgb, var(--fg3) 80%, var(--kpi-color,#6366f1) 20%);
+  color: var(--fg3);
   margin-top: 12px;
   display: flex; align-items: center; gap: 5px;
   font-weight: 500;
@@ -4590,36 +4589,33 @@ function renderMonthlyRevenue() {
     const barH = 92;
 
     const bars = qMons.map(m => {
-      const h = Math.max(Math.round(monthly[m] / maxMon * barH), monthly[m] > 0 ? 5 : 0);
+      const h = Math.max(Math.round(monthly[m] / maxMon * barH), monthly[m] > 0 ? 4 : 0);
       const hasVal = monthly[m] > 0;
       return `
         <div style="display:flex;flex-direction:column;align-items:center;gap:5px;flex:1;min-width:0">
-          <div style="font-size:10px;font-weight:700;color:${p.color};min-height:15px;line-height:1;letter-spacing:-0.3px;font-family:'Plus Jakarta Sans',Inter,sans-serif;text-shadow:0 0 10px ${p.color}66">${hasVal ? fmtC(monthly[m]) : ''}</div>
+          <div style="font-size:10px;font-weight:700;color:${p.color};min-height:15px;line-height:1;letter-spacing:-0.3px;font-family:'Plus Jakarta Sans',Inter,sans-serif">${hasVal ? fmtC(monthly[m]) : ''}</div>
           <div style="width:100%;height:${barH}px;display:flex;align-items:flex-end;position:relative">
-            <div style="position:absolute;inset:0;background:${hasQData?`color-mix(in srgb,${p.color} 8%,transparent)`:'rgba(128,128,128,0.05)'};border-radius:6px 6px 0 0;border:1px solid ${hasQData?`color-mix(in srgb,${p.color} 12%,transparent)`:'transparent'};border-bottom:none"></div>
-            <div style="width:100%;height:${h}px;border-radius:${h>=barH?'6px':'5px 5px 0 0'};position:relative;overflow:hidden;transition:height 0.55s cubic-bezier(.4,0,.2,1)">
-              <div style="position:absolute;inset:0;background:linear-gradient(180deg,${p.gFrom} 0%,${p.gTo} 100%);opacity:${hasVal?'1':'0'}"></div>
-              ${hasVal?`<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,0.22) 0%,transparent 55%)"></div><div style="position:absolute;bottom:0;left:0;right:0;height:30%;background:linear-gradient(0deg,rgba(0,0,0,0.15),transparent)"></div>`:''}
+            <div style="position:absolute;inset:0;background:color-mix(in srgb,${p.color} 6%,transparent);border-radius:5px 5px 0 0"></div>
+            <div style="width:100%;height:${h}px;border-radius:${h>=barH?'5px':'4px 4px 0 0'};position:relative;overflow:hidden;transition:height 0.5s ease">
+              <div style="position:absolute;inset:0;background:linear-gradient(180deg,${p.gFrom}cc 0%,${p.gTo} 100%);opacity:${hasVal?'1':'0'}"></div>
+              ${hasVal?`<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,0.15) 0%,transparent 50%)"></div>`:''}
             </div>
           </div>
-          <div style="font-size:10px;color:${hasQData?`color-mix(in srgb,${p.color} 60%,var(--fg3))`:'var(--fg3)'};font-weight:600;letter-spacing:0.3px">${monthNames[fyMonths[m]]}</div>
+          <div style="font-size:10px;color:var(--fg3);font-weight:500;letter-spacing:0.2px">${monthNames[fyMonths[m]]}</div>
         </div>`;
     }).join('');
 
-    // Rich tinted card background per quarter — always on, mirrors KPI card treatment
-    const cardBg = `linear-gradient(145deg, color-mix(in srgb,${p.color} 14%,var(--surface)) 0%, color-mix(in srgb,${p.color} 6%,var(--surface)) 100%)`;
-    const cardBorder = `color-mix(in srgb,${p.color} 22%,var(--border))`;
+    // Calm tinted background — light touch, same system as KPI cards
+    const cardBg = `linear-gradient(150deg, color-mix(in srgb,${p.color} 7%,var(--surface)) 0%, var(--surface) 100%)`;
 
     return `
       <div style="padding:18px 16px 16px;border-right:1px solid var(--border);background:${cardBg};position:relative;overflow:hidden;${qi===3?'border-right:none':''}">
-        <!-- Radial glow top-right -->
-        <div style="position:absolute;top:-30px;right:-30px;width:110px;height:110px;border-radius:50%;background:radial-gradient(circle,${p.color}28 0%,transparent 70%);pointer-events:none"></div>
-        <!-- Top accent line -->
-        <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,${p.gFrom},${p.gTo})"></div>
+        <!-- Faint top accent -->
+        <div style="position:absolute;top:0;left:0;right:0;height:2px;background:color-mix(in srgb,${p.color} 55%,transparent)"></div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
           <div style="display:flex;align-items:center;gap:7px">
-            <div style="width:7px;height:7px;border-radius:50%;background:${p.color};box-shadow:0 0 8px ${p.color}cc"></div>
-            <span style="font-size:11.5px;font-weight:800;color:${p.color};font-family:'Plus Jakarta Sans','Inter',sans-serif;letter-spacing:0.5px;text-shadow:0 0 12px ${p.color}55">${qNames[qi]}</span>
+            <div style="width:7px;height:7px;border-radius:50%;background:${p.color};opacity:0.85"></div>
+            <span style="font-size:11.5px;font-weight:800;color:${p.color};font-family:'Plus Jakarta Sans','Inter',sans-serif;letter-spacing:0.3px">${qNames[qi]}</span>
           </div>
           <span style="font-size:12px;font-weight:700;color:${hasQData?'var(--fg)':'var(--fg3)'};font-family:'Plus Jakarta Sans','Inter',sans-serif;letter-spacing:-0.5px">${fmtC(qTotal)}</span>
         </div>
