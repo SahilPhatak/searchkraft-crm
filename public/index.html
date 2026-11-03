@@ -4568,10 +4568,10 @@ function renderMonthlyRevenue() {
 
   // Clean standard palette — matches KPI cards
   const qPalette = [
-    { color: '#6366f1', gFrom: '#6366f1', gTo: '#4f46e5' },  // indigo  — Q1
-    { color: '#3b82f6', gFrom: '#3b82f6', gTo: '#2563eb' },  // blue    — Q2
-    { color: '#10b981', gFrom: '#10b981', gTo: '#059669' },  // green   — Q3
-    { color: '#f59e0b', gFrom: '#f59e0b', gTo: '#d97706' },  // amber   — Q4
+    { color:'#6366f1', gFrom:'#6366f1', gTo:'#4f46e5', pill:'#eef2ff', pillBorder:'#c7d2fe', textColor:'#4338ca' }, // Q1 indigo
+    { color:'#3b82f6', gFrom:'#3b82f6', gTo:'#2563eb', pill:'#eff6ff', pillBorder:'#bfdbfe', textColor:'#1d4ed8' }, // Q2 blue
+    { color:'#10b981', gFrom:'#10b981', gTo:'#059669', pill:'#f0fdf4', pillBorder:'#bbf7d0', textColor:'#15803d' }, // Q3 green
+    { color:'#f59e0b', gFrom:'#f59e0b', gTo:'#d97706', pill:'#fffbeb', pillBorder:'#fde68a', textColor:'#b45309' }, // Q4 amber
   ];
   const qNames = ['Q1','Q2','Q3','Q4'];
 
@@ -4602,14 +4602,13 @@ function renderMonthlyRevenue() {
     }).join('');
 
     return `
-      <div style="padding:18px 16px 16px;border-right:1px solid var(--border);background:var(--surface);position:relative;overflow:hidden;${qi===3?'border-right:none':''}">
-        <div style="position:absolute;top:0;left:0;right:0;height:2px;background:${p.color};opacity:0.45"></div>
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-          <div style="display:flex;align-items:center;gap:6px">
-            <div style="width:6px;height:6px;border-radius:50%;background:${p.color};opacity:0.7"></div>
-            <span style="font-size:11px;font-weight:700;color:var(--fg2);font-family:'Plus Jakarta Sans','Inter',sans-serif;letter-spacing:0.2px">${qNames[qi]}</span>
-          </div>
-          <span style="font-size:12px;font-weight:700;color:${hasQData?'var(--fg)':'var(--fg3)'};font-family:'Plus Jakarta Sans','Inter',sans-serif;letter-spacing:-0.3px">${fmtC(qTotal)}</span>
+      <div style="padding:16px 14px 14px;border-right:1px solid var(--border);background:var(--surface);${qi===3?'border-right:none':''}">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <span style="display:inline-flex;align-items:center;gap:5px;background:${p.pill};border:1px solid ${p.pillBorder};border-radius:20px;padding:3px 10px 3px 7px">
+            <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="${p.color}"/></svg>
+            <span style="font-size:11px;font-weight:600;color:${p.textColor};letter-spacing:0.2px">${qNames[qi]}</span>
+          </span>
+          <span style="font-size:12px;font-weight:700;color:${hasQData?'var(--fg)':'var(--fg3)'};letter-spacing:-0.3px">${fmtC(qTotal)}</span>
         </div>
         <div style="display:flex;gap:7px;align-items:flex-end">${bars}</div>
       </div>`;
