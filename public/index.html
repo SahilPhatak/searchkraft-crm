@@ -4946,7 +4946,7 @@ function renderTable(type, q='') {
     document.getElementById('contacts-body').innerHTML = rows.length ? rows.map(r=>`<tr>
       <td><input type="checkbox" style="accent-color:var(--accent)"></td>
       <td class="name-cell" onclick="openModal('contact','${r.id}')">${r.name}</td>
-      <td>${r.title||'—'}</td><td>${getCompanyName(r.companyId)}</td>
+      <td>${r.title||'—'}</td><td>${r.company||getCompanyName(r.companyId)||'—'}</td>
       <td class="mono">${r.email||'—'}</td><td class="mono">${r.phone||'—'}</td>
       <td style="white-space:nowrap">
         ${canDo('contacts','edit')?`<button class="btn btn-ghost btn-sm" title="Edit" onclick="openModal('contact','${r.id}')" style="padding:4px 7px">${ICON_EDIT}</button>`:''}
@@ -8536,7 +8536,7 @@ async function syncLeadToContact(lead) {
     email2:      lead.email2      || '',
     phone:       lead.phone       || '',
     title:       lead.title       || '',
-    company:     lead.companyName || lead.clientName || '',
+    company:     lead.company || lead.companyName || lead.clientName || '',
     industry:    lead.industry    || '',
     source:      lead.source      || '',
     owner:       lead.owner       || '',
@@ -8594,7 +8594,7 @@ async function syncWonLeadToContactAndAccount(lead) {
     email2:      lead.email2      || '',
     phone:       lead.phone       || '',
     title:       lead.title       || '',
-    company:     lead.companyName || lead.clientName || '',
+    company:     lead.company || lead.companyName || lead.clientName || '',
     industry:    lead.industry    || '',
     source:      lead.source      || '',
     owner:       lead.owner       || '',
