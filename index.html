@@ -5374,8 +5374,8 @@ function renderReports() {
   const el_ll = document.getElementById('an-leads-last');
   if (el_ll) el_ll.textContent = leadsLastMonth === 0 ? 'No leads last month' : leadsLastMonth + ' last month';
 
-  const wonDeals = DB.deals.filter(d=>isWon(d)&&recLocalYM(d,'closeDate')===thisMonth);
-  const revenue = wonDeals.reduce((s,d)=>s+Number(d.amount||0),0);
+  const wonDeals = DB.deals.filter(d=>isWon(d)&&recLocalYM(d,'wonAt')===thisMonth);
+  const revenue = wonDeals.reduce((s,d)=>s+Number(d.expectedRevenue||d.amount||0),0);
   const el_rev = document.getElementById('an-revenue');
   if (el_rev) el_rev.textContent = fmt(revenue);
 
@@ -5590,7 +5590,7 @@ function renderReports() {
   const el_bar = document.getElementById('revenue-bar-svg');
   if (el_bar) {
     const target = 500000;
-    const revenueMonths = [sm1,sm2,sm3].map(mo=>monthSum(DB.deals.filter(d=>isWon(d)),'closeDate','amount',mo));
+    const revenueMonths = [sm1,sm2,sm3].map(mo=>monthSum(DB.deals.filter(d=>isWon(d)),'wonAt','expectedRevenue',mo));
     const labels = [mLabel(sm1),mLabel(sm2),mLabel(sm3)];
     const W2=el_bar.parentElement?.offsetWidth||380, H2=120, pad=40;
     const bw2=36, gap2=(W2-pad*2)/3;
@@ -5602,7 +5602,7 @@ function renderReports() {
       return `<g>
         <rect x="${x}" y="${y}" width="${bw2}" height="${bh}" rx="4" fill="var(--accent)" opacity="0.85"/>
         <text x="${x+bw2/2}" y="${H2-8}" text-anchor="middle" font-size="10" fill="var(--fg3)">${labels[i].slice(0,3)}</text>
-        <text x="${x+bw2/2}" y="${y-4}" text-anchor="middle" font-size="9" fill="var(--fg)">${fmt(v)}</text>
+        <text x="${x+bw2/2}" y="${y-4}" text-anchor="middle" font-size="9" fill="var(--fg)">${fmtC(v)}</text>
       </g>`;
     }).join('') + `<line x1="${pad}" y1="${H2-25}" x2="${W2-pad}" y2="${H2-25}" stroke="var(--border)" stroke-width="1"/>`;
   }
