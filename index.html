@@ -670,52 +670,42 @@ h1,h2,h3,h4,h5,h6,
   gap: 16px;
 }
 .dash-kpi-card {
-  background: linear-gradient(150deg, color-mix(in srgb, var(--surface) 92%, var(--kpi-color,#6366f1) 8%) 0%, var(--surface) 100%);
+  background: var(--surface);
   border-radius: 18px;
   padding: 22px 24px 20px;
-  border: 1px solid color-mix(in srgb, var(--border) 80%, var(--kpi-color,#6366f1) 20%);
+  border: 1px solid var(--border);
   cursor: pointer;
   transition: box-shadow 0.2s, transform 0.2s;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
 }
+/* Thin accent bar only — one color signal per card */
 .dash-kpi-card::before {
   content: '';
   position: absolute;
   top: 0; left: 0; right: 0;
-  height: 2px;
+  height: 3px;
   border-radius: 18px 18px 0 0;
-  background: color-mix(in srgb, var(--kpi-color,#6366f1) 70%, transparent 30%);
-  opacity: 0.7;
+  background: var(--kpi-color, #6366f1);
+  opacity: 0.55;
 }
-/* Very subtle wash top-right */
-.dash-kpi-card::after {
-  content: '';
-  position: absolute;
-  top: -30px; right: -30px;
-  width: 120px; height: 120px;
-  border-radius: 50%;
-  background: radial-gradient(circle, color-mix(in srgb, var(--kpi-color,#6366f1) 10%, transparent 90%) 0%, transparent 70%);
-  pointer-events: none;
-}
+.dash-kpi-card::after { display: none; }
 .dash-kpi-card:hover {
-  box-shadow: 0 8px 24px rgba(0,0,0,0.09);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
   transform: translateY(-2px);
-  border-color: color-mix(in srgb, var(--kpi-color,#6366f1) 35%, var(--border) 65%);
 }
 .dash-kpi-card .kpi-icon {
-  width: 40px; height: 40px; border-radius: 12px;
+  width: 38px; height: 38px; border-radius: 10px;
   display: flex; align-items: center; justify-content: center;
-  background: color-mix(in srgb, var(--kpi-color,#6366f1) 10%, var(--surface) 90%);
-  border: 1px solid color-mix(in srgb, var(--kpi-color,#6366f1) 18%, transparent 82%);
-  margin-bottom: 18px;
-  font-size: 18px;
+  background: var(--surface2, #f1f5f9);
+  margin-bottom: 16px;
+  font-size: 17px;
 }
 .dash-kpi-card .kpi-label {
   font-size: 10px; font-weight: 700; letter-spacing: 0.9px;
   text-transform: uppercase;
-  color: color-mix(in srgb, var(--kpi-color,#6366f1) 55%, var(--fg3) 45%);
+  color: var(--fg3);
   margin-bottom: 9px;
 }
 .dash-kpi-card .kpi-value {
@@ -1515,63 +1505,63 @@ textarea { min-height: 80px; resize: vertical; }
       <!-- ── KPI Cards ── -->
       <div class="dash-kpi-grid mb-16" id="dash-kpi">
 
-        <!-- Leads — Indigo violet -->
-        <div class="dash-kpi-card" onclick="navigateTo('leads')" style="--kpi-color:#818cf8;cursor:pointer">
+        <!-- Leads — Indigo -->
+        <div class="dash-kpi-card" onclick="navigateTo('leads')" style="--kpi-color:#6366f1;cursor:pointer">
           <div class="kpi-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2.2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2.2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           </div>
           <div class="kpi-label">Leads This Month</div>
-          <div class="kpi-value" id="stat-leads-month" style="color:#818cf8">—</div>
+          <div class="kpi-value" id="stat-leads-month" style="color:#6366f1">—</div>
           <div class="kpi-sub">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             <span>Created in <span id="stat-month-name"></span></span>
           </div>
         </div>
 
-        <!-- Deals — Sky blue -->
-        <div class="dash-kpi-card" onclick="navigateTo('deals')" style="--kpi-color:#38bdf8;cursor:pointer">
+        <!-- Deals — Blue -->
+        <div class="dash-kpi-card" onclick="navigateTo('deals')" style="--kpi-color:#3b82f6;cursor:pointer">
           <div class="kpi-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2.2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
           </div>
           <div class="kpi-label">Deals This Month</div>
-          <div class="kpi-value" id="stat-deals-month" style="color:#38bdf8">—</div>
+          <div class="kpi-value" id="stat-deals-month" style="color:#3b82f6">—</div>
           <div class="kpi-sub" id="stat-deals-month-sub">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             <span>Created in <span id="stat-month-name2"></span></span>
           </div>
         </div>
 
-        <!-- Revenue — Emerald -->
-        <div class="dash-kpi-card" onclick="navigateTo('deals')" style="--kpi-color:#34d399;cursor:pointer">
-          <div class="kpi-icon" style="font-size:18px;font-weight:700;color:#34d399;font-family:'Plus Jakarta Sans','Inter',sans-serif">₹</div>
+        <!-- Revenue — Green -->
+        <div class="dash-kpi-card" onclick="navigateTo('deals')" style="--kpi-color:#10b981;cursor:pointer">
+          <div class="kpi-icon" style="font-size:18px;font-weight:700;color:#10b981;font-family:'Plus Jakarta Sans','Inter',sans-serif">₹</div>
           <div class="kpi-label">Revenue This Month</div>
-          <div class="kpi-value" id="stat-revenue-month" style="color:#34d399;font-size:30px;letter-spacing:-1.5px">—</div>
+          <div class="kpi-value" id="stat-revenue-month" style="color:#10b981;font-size:30px;letter-spacing:-1.5px">—</div>
           <div class="kpi-sub" id="stat-revenue-month-sub">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
             <span>Closed Won deals</span>
           </div>
         </div>
 
-        <!-- Tasks — Rose red -->
-        <div class="dash-kpi-card" onclick="navigateTo('tasks')" style="--kpi-color:#f43f5e;cursor:pointer">
+        <!-- Tasks — Red -->
+        <div class="dash-kpi-card" onclick="navigateTo('tasks')" style="--kpi-color:#ef4444;cursor:pointer">
           <div class="kpi-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f43f5e" stroke-width="2.2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
           </div>
           <div class="kpi-label">Open Tasks</div>
-          <div class="kpi-value" id="stat-overdue-tasks" style="color:#f43f5e">—</div>
+          <div class="kpi-value" id="stat-overdue-tasks" style="color:#ef4444">—</div>
           <div class="kpi-sub" id="stat-overdue-sub">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
             <span>Pending &amp; In Progress</span>
           </div>
         </div>
 
-        <!-- Win Rate — Amber gold -->
-        <div class="dash-kpi-card" style="--kpi-color:#fbbf24;cursor:default">
+        <!-- Win Rate — Amber -->
+        <div class="dash-kpi-card" style="--kpi-color:#f59e0b;cursor:default">
           <div class="kpi-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2.2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2.2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
           </div>
           <div class="kpi-label">Last Qtr Win Rate</div>
-          <div class="kpi-value" id="stat-winrate" style="color:#fbbf24">—</div>
+          <div class="kpi-value" id="stat-winrate" style="color:#f59e0b">—</div>
           <div class="kpi-sub" id="stat-winrate-sub">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
             <span>vs prev quarter</span>
@@ -1706,11 +1696,11 @@ textarea { min-height: 80px; resize: vertical; }
       </div>
 
       <!-- ── Monthly Revenue by Quarter ── -->
-      <div class="dash-card mb-16" id="dash-monthly-rev-card" style="background:linear-gradient(135deg,var(--surface) 0%,color-mix(in srgb,var(--surface) 92%,#6366f1 8%) 100%)">
-        <div class="dash-card-header" style="border-bottom:1px solid var(--border)">
+      <div class="dash-card mb-16" id="dash-monthly-rev-card">
+        <div class="dash-card-header">
           <div class="dash-section-hdr">
-            <div class="dot" style="background:#818cf8;box-shadow:0 0 8px #818cf888"></div>
-            Monthly Revenue — <span id="dash-monthly-year" style="color:var(--fg2)"></span>
+            <div class="dot" style="background:#6366f1"></div>
+            Monthly Revenue — <span id="dash-monthly-year"></span>
           </div>
         </div>
         <div style="padding:0 0 4px">
@@ -4567,12 +4557,12 @@ function renderMonthlyRevenue() {
   // FY quarters: Q1=Apr-Jun(0-2), Q2=Jul-Sep(3-5), Q3=Oct-Dec(6-8), Q4=Jan-Mar(9-11)
   const quarters = [[0,1,2],[3,4,5],[6,7,8],[9,10,11]];
 
-  // Premium palette — rich, jewel-toned
+  // Clean standard palette — matches KPI cards
   const qPalette = [
-    { color: '#818cf8', gFrom: '#818cf8', gTo: '#4f46e5', bg: 'rgba(99,102,241,0.08)', label: '#a5b4fc' },  // indigo
-    { color: '#38bdf8', gFrom: '#38bdf8', gTo: '#0284c7', bg: 'rgba(56,189,248,0.08)', label: '#7dd3fc' },  // sky
-    { color: '#34d399', gFrom: '#34d399', gTo: '#059669', bg: 'rgba(52,211,153,0.08)', label: '#6ee7b7' },  // emerald
-    { color: '#fbbf24', gFrom: '#fbbf24', gTo: '#d97706', bg: 'rgba(251,191,36,0.08)',  label: '#fcd34d' },  // amber
+    { color: '#6366f1', gFrom: '#6366f1', gTo: '#4f46e5' },  // indigo  — Q1
+    { color: '#3b82f6', gFrom: '#3b82f6', gTo: '#2563eb' },  // blue    — Q2
+    { color: '#10b981', gFrom: '#10b981', gTo: '#059669' },  // green   — Q3
+    { color: '#f59e0b', gFrom: '#f59e0b', gTo: '#d97706' },  // amber   — Q4
   ];
   const qNames = ['Q1','Q2','Q3','Q4'];
 
@@ -4595,29 +4585,22 @@ function renderMonthlyRevenue() {
         <div style="display:flex;flex-direction:column;align-items:center;gap:5px;flex:1;min-width:0">
           <div style="font-size:10px;font-weight:700;color:${p.color};min-height:15px;line-height:1;letter-spacing:-0.3px;font-family:'Plus Jakarta Sans',Inter,sans-serif">${hasVal ? fmtC(monthly[m]) : ''}</div>
           <div style="width:100%;height:${barH}px;display:flex;align-items:flex-end;position:relative">
-            <div style="position:absolute;inset:0;background:color-mix(in srgb,${p.color} 6%,transparent);border-radius:5px 5px 0 0"></div>
-            <div style="width:100%;height:${h}px;border-radius:${h>=barH?'5px':'4px 4px 0 0'};position:relative;overflow:hidden;transition:height 0.5s ease">
-              <div style="position:absolute;inset:0;background:linear-gradient(180deg,${p.gFrom}cc 0%,${p.gTo} 100%);opacity:${hasVal?'1':'0'}"></div>
-              ${hasVal?`<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,0.15) 0%,transparent 50%)"></div>`:''}
-            </div>
+            <div style="position:absolute;inset:0;background:var(--surface2,#f1f5f9);border-radius:4px 4px 0 0;opacity:0.5"></div>
+            <div style="width:100%;height:${h}px;border-radius:${h>=barH?'4px':'3px 3px 0 0'};background:${hasVal?p.color:'transparent'};opacity:${hasVal?'0.75':'0'};transition:height 0.5s ease;position:relative"></div>
           </div>
           <div style="font-size:10px;color:var(--fg3);font-weight:500;letter-spacing:0.2px">${monthNames[fyMonths[m]]}</div>
         </div>`;
     }).join('');
 
-    // Calm tinted background — light touch, same system as KPI cards
-    const cardBg = `linear-gradient(150deg, color-mix(in srgb,${p.color} 7%,var(--surface)) 0%, var(--surface) 100%)`;
-
     return `
-      <div style="padding:18px 16px 16px;border-right:1px solid var(--border);background:${cardBg};position:relative;overflow:hidden;${qi===3?'border-right:none':''}">
-        <!-- Faint top accent -->
-        <div style="position:absolute;top:0;left:0;right:0;height:2px;background:color-mix(in srgb,${p.color} 55%,transparent)"></div>
+      <div style="padding:18px 16px 16px;border-right:1px solid var(--border);background:var(--surface);position:relative;overflow:hidden;${qi===3?'border-right:none':''}">
+        <div style="position:absolute;top:0;left:0;right:0;height:2px;background:${p.color};opacity:0.45"></div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-          <div style="display:flex;align-items:center;gap:7px">
-            <div style="width:7px;height:7px;border-radius:50%;background:${p.color};opacity:0.85"></div>
-            <span style="font-size:11.5px;font-weight:800;color:${p.color};font-family:'Plus Jakarta Sans','Inter',sans-serif;letter-spacing:0.3px">${qNames[qi]}</span>
+          <div style="display:flex;align-items:center;gap:6px">
+            <div style="width:6px;height:6px;border-radius:50%;background:${p.color};opacity:0.7"></div>
+            <span style="font-size:11px;font-weight:700;color:var(--fg2);font-family:'Plus Jakarta Sans','Inter',sans-serif;letter-spacing:0.2px">${qNames[qi]}</span>
           </div>
-          <span style="font-size:12px;font-weight:700;color:${hasQData?'var(--fg)':'var(--fg3)'};font-family:'Plus Jakarta Sans','Inter',sans-serif;letter-spacing:-0.5px">${fmtC(qTotal)}</span>
+          <span style="font-size:12px;font-weight:700;color:${hasQData?'var(--fg)':'var(--fg3)'};font-family:'Plus Jakarta Sans','Inter',sans-serif;letter-spacing:-0.3px">${fmtC(qTotal)}</span>
         </div>
         <div style="display:flex;gap:7px;align-items:flex-end">${bars}</div>
       </div>`;
