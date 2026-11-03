@@ -5590,8 +5590,8 @@ function renderReports() {
   const el_bar = document.getElementById('revenue-bar-svg');
   if (el_bar) {
     const target = 500000;
-    const revenueMonths = [m1,m2,m3].map(mo=>monthSum(DB.deals.filter(d=>isWon(d)),'closeDate','amount',mo));
-    const labels = [mLabel(m1),mLabel(m2),mLabel(m3)];
+    const revenueMonths = [sm1,sm2,sm3].map(mo=>monthSum(DB.deals.filter(d=>isWon(d)),'closeDate','amount',mo));
+    const labels = [mLabel(sm1),mLabel(sm2),mLabel(sm3)];
     const W2=el_bar.parentElement?.offsetWidth||380, H2=120, pad=40;
     const bw2=36, gap2=(W2-pad*2)/3;
     const maxBar = Math.max(...revenueMonths, target/3, 1);
