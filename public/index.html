@@ -7056,7 +7056,7 @@ const MODAL_FORMS = {
       <!-- Account Information -->
       <div class="lf-section-title">Account Information</div>
       <div class="lf-grid">
-        <div class="lf-field"><label>Account Owner</label>${ownerField('owner', r.owner, !!id)}</div>
+        <div class="lf-field"><label>BD Owner</label>${ownerField('bdOwner', r.bdOwner||r.owner, !!id)}</div>
         <div class="lf-field"><label>Rating</label><select id="f-rating"><option value="">-None-</option>${['Hot','Warm','Cold'].map(s=>`<option ${r.rating===s?'selected':''}>${s}</option>`).join('')}</select></div>
         <div class="lf-field"><label>Account Name *</label><input id="f-name" type="text" value="${r.name||''}" style="border-color:${r.name?'':'var(--red)'}"></div>
         <div class="lf-field"><label>Phone</label><input id="f-phone" type="tel" value="${r.phone||''}" oninput="this.value=this.value.replace(/[^0-9+\\-() ]/g,'')"></div>
@@ -7129,8 +7129,11 @@ const MODAL_FORMS = {
         <textarea id="f-description" rows="4">${r.description||''}</textarea>
       </div>`,
     save: (id) => {
+      const existing = id ? (DB.companies.find(c=>c.id===id)||{}) : {};
       const r = {
-        name:v('name'), owner:v('owner'), rating:v('rating'),
+        name:v('name'), bdOwner:v('bdOwner'), rating:v('rating'),
+        // preserve existing status or default to Active
+        status: existing.status || 'Active',
         phone:v('phone'), fax:v('fax'), accountSite:v('accountSite'),
         website:v('website'), parentAccount:v('parentAccount'),
         accountNumber:v('accountNumber'), tickerSymbol:v('tickerSymbol'),
@@ -8506,9 +8509,14 @@ async function upsert(collection, id, data) {
       return;
     }
   }
-  // Auto-sync lead → contact in real time
+  // Auto-sync lead → contact in real time (every save)
+  // If stage is Won, also sync to Account — runs frontend-side in addition to DB trigger
+  // (DB trigger handles it server-side too, this just updates local cache instantly)
   if (collection === 'leads') {
     syncLeadToContact(mergedData);
+    if (mergedData.stage === 'Won') {
+      syncWonLeadToContactAndAccount(mergedData);
+    }
   }
 
   closeModal();
@@ -8637,13 +8645,14 @@ async function syncWonLeadToContactAndAccount(lead) {
       name:        companyName,
       industry:    lead.industry    || '',
       source:      lead.source      || '',
-      owner:       lead.owner       || '',
+      bdOwner:     lead.owner       || lead.bdOwner || '',  // lead_owner → bd_owner in accounts
       website:     lead.website     || '',
       phone:       lead.phone       || '',
       country:     lead.country     || '',
       city:        lead.city        || '',
       state:       lead.state       || '',
       description: lead.description || '',
+      status:      'Active',
       leadId:      lead.id,
       syncedFromLead: true,
     };
@@ -8658,12 +8667,13 @@ async function syncWonLeadToContactAndAccount(lead) {
         ...existingCompany,
         industry:  existingCompany.industry  || accountData.industry,
         source:    existingCompany.source    || accountData.source,
-        owner:     existingCompany.owner     || accountData.owner,
+        bdOwner:   existingCompany.bdOwner   || accountData.bdOwner,
         website:   existingCompany.website   || accountData.website,
         phone:     existingCompany.phone     || accountData.phone,
         country:   existingCompany.country   || accountData.country,
         city:      existingCompany.city      || accountData.city,
         state:     existingCompany.state     || accountData.state,
+        status:    existingCompany.status    || 'Active',
         id: existingCompany.id, updatedAt: now, updated_at: now
       };
       const idx = DB.companies.findIndex(c => c.id === existingCompany.id);

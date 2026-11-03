@@ -46,8 +46,8 @@ BEGIN
 
   v_company_name := COALESCE(NEW.company, NEW.client_name, '');
   IF v_company_name <> '' THEN
-    INSERT INTO companies (id, name, industry, website, phone, country, city, state, owner_id, created_at, updated_at)
-    VALUES (gen_random_uuid(), v_company_name, NEW.industry, NEW.website, NEW.phone, NEW.country, NEW.city, NEW.state, NEW.owner_id, v_now, v_now)
+    INSERT INTO companies (id, name, industry, website, phone, country, city, state, bd_owner, owner_id, status, created_at, updated_at)
+    VALUES (gen_random_uuid(), v_company_name, NEW.industry, NEW.website, NEW.phone, NEW.country, NEW.city, NEW.state, NEW.owner, NEW.owner_id, 'Active', v_now, v_now)
     ON CONFLICT (name)
     DO UPDATE SET
       industry   = COALESCE(companies.industry, EXCLUDED.industry),
@@ -56,6 +56,8 @@ BEGIN
       country    = COALESCE(companies.country,  EXCLUDED.country),
       city       = COALESCE(companies.city,     EXCLUDED.city),
       state      = COALESCE(companies.state,    EXCLUDED.state),
+      bd_owner   = COALESCE(companies.bd_owner, EXCLUDED.bd_owner),
+      status     = COALESCE(companies.status,   'Active'),
       updated_at = v_now
     WHERE companies.name = EXCLUDED.name;
   END IF;
