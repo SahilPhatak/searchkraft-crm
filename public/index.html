@@ -8506,8 +8506,73 @@ async function upsert(collection, id, data) {
       return;
     }
   }
+  // Auto-sync lead → contact in real time
+  if (collection === 'leads') {
+    syncLeadToContact(mergedData);
+  }
+
   closeModal();
   refreshCurrentPage();
+}
+
+// Mirror a lead record into the contacts collection automatically.
+// Matches on email (most reliable key). Creates a new contact if none exists.
+async function syncLeadToContact(lead) {
+  if (!lead.email) return; // can't link without email
+
+  const now = new Date().toISOString();
+
+  // Build the contact payload from lead fields
+  const contactData = {
+    firstName:   lead.firstName   || '',
+    lastName:    lead.lastName    || lead.clientName || '',
+    name:        lead.name        || lead.clientName || [lead.firstName, lead.lastName].filter(Boolean).join(' '),
+    email:       lead.email,
+    email2:      lead.email2      || '',
+    phone:       lead.phone       || '',
+    title:       lead.title       || '',
+    company:     lead.companyName || lead.clientName || '',
+    industry:    lead.industry    || '',
+    source:      lead.source      || '',
+    owner:       lead.owner       || '',
+    country:     lead.country     || '',
+    city:        lead.city        || '',
+    state:       lead.state       || '',
+    zip:         lead.zip         || '',
+    addrLine1:   lead.addrLine1   || '',
+    street:      lead.street      || '',
+    description: lead.description || '',
+    leadId:      lead.id,           // keep reference back to the lead
+    syncedFromLead: true,
+  };
+
+  // Check if a contact with this email already exists
+  const existing = DB.contacts.find(c => c.email && c.email.toLowerCase() === lead.email.toLowerCase());
+
+  if (existing) {
+    // Update the existing contact (merge — don't overwrite manual edits to contact-only fields)
+    const merged = { ...existing, ...contactData, id: existing.id, updatedAt: now, updated_at: now };
+    const idx = DB.contacts.findIndex(c => c.id === existing.id);
+    if (idx >= 0) DB.contacts[idx] = merged;
+    // Persist to Supabase
+    const tbl = SUPA_TABLE['contacts'];
+    if (tbl) {
+      const payload = toSupabase('contacts', merged);
+      const { error } = await DB_CLIENT.from(tbl).upsert(payload, { onConflict: 'id' });
+      if (error) console.warn('Lead→Contact sync update failed:', error.message);
+    }
+  } else {
+    // Create new contact
+    const newId = uid();
+    const newContact = { id: newId, createdAt: now, created_at: now, updatedAt: now, updated_at: now, ...contactData };
+    DB.contacts.unshift(newContact);
+    const tbl = SUPA_TABLE['contacts'];
+    if (tbl) {
+      const payload = toSupabase('contacts', newContact);
+      const { error } = await DB_CLIENT.from(tbl).upsert(payload, { onConflict: 'id' });
+      if (error) console.warn('Lead→Contact sync create failed:', error.message);
+    }
+  }
 }
 
 async function deleteCRMRecord(collection, id) {
