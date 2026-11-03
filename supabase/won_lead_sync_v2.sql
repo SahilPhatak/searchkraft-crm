@@ -26,7 +26,9 @@ BEGIN
 
   IF NEW.email IS NOT NULL AND NEW.email <> '' THEN
     INSERT INTO contacts (id, name, email, phone, title, company, owner, created_at, updated_at)
-    VALUES (gen_random_uuid(), v_full_name, NEW.email, NEW.phone, NEW.title, COALESCE(NEW.company, NEW.client_name), NEW.owner, v_now, v_now)
+    VALUES (gen_random_uuid(), v_full_name, NEW.email, NEW.phone, NEW.title,
+      COALESCE(NULLIF(TRIM(NEW.client_name),''), NULLIF(TRIM(NEW.company),'')),
+      NEW.owner, v_now, v_now)
     ON CONFLICT (email)
     DO UPDATE SET
       name       = EXCLUDED.name,
@@ -39,12 +41,15 @@ BEGIN
   ELSE
     IF v_full_name <> '' THEN
       INSERT INTO contacts (id, name, phone, title, company, owner, created_at, updated_at)
-      VALUES (gen_random_uuid(), v_full_name, NEW.phone, NEW.title, COALESCE(NEW.company, NEW.client_name), NEW.owner, v_now, v_now)
+      VALUES (gen_random_uuid(), v_full_name, NEW.phone, NEW.title,
+        COALESCE(NULLIF(TRIM(NEW.client_name),''), NULLIF(TRIM(NEW.company),'')),
+        NEW.owner, v_now, v_now)
       ON CONFLICT DO NOTHING;
     END IF;
   END IF;
 
-  v_company_name := COALESCE(NEW.company, NEW.client_name, '');
+  -- leads form saves company name into client_name column; company column is secondary
+  v_company_name := COALESCE(NULLIF(TRIM(NEW.client_name),''), NULLIF(TRIM(NEW.company),''), '');
   IF v_company_name <> '' THEN
     INSERT INTO companies (id, name, industry, website, phone, country, city, state, bd_owner, owner_id, status, created_at, updated_at)
     VALUES (gen_random_uuid(), v_company_name, NEW.industry, NEW.website, NEW.phone, NEW.country, NEW.city, NEW.state, NEW.owner, NEW.owner_id, 'Active', v_now, v_now)

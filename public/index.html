@@ -8509,14 +8509,11 @@ async function upsert(collection, id, data) {
       return;
     }
   }
-  // Auto-sync lead → contact in real time (every save)
-  // If stage is Won, also sync to Account — runs frontend-side in addition to DB trigger
-  // (DB trigger handles it server-side too, this just updates local cache instantly)
+  // Auto-sync lead → contact on every lead save
+  // Won lead → Account sync is handled ONLY by the Supabase DB trigger (won_lead_sync_v2.sql)
+  // Do NOT call syncWonLeadToContactAndAccount here — it causes duplicate contacts
   if (collection === 'leads') {
     syncLeadToContact(mergedData);
-    if (mergedData.stage === 'Won') {
-      syncWonLeadToContactAndAccount(mergedData);
-    }
   }
 
   closeModal();
