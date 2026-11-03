@@ -7386,7 +7386,7 @@ const MODAL_FORMS = {
         <div class="lf-field"><label>Client SPOC</label><select id="f-clientSpoc"><option value="">-None-</option>${['Vikram','Samyadeep'].map(m=>`<option ${r.clientSpoc===m?'selected':''}>${m}</option>`).join('')}</select></div>
         <div class="lf-field"><label>Sourcer</label><select id="f-sourcer"><option value="">-None-</option>${['Samyadeep','Sahil','Urmila'].map(m=>`<option ${r.sourcer===m?'selected':''}>${m}</option>`).join('')}</select></div>
         <div class="lf-field"><label>Credit Sharing (%)</label><input id="f-creditSharing" type="number" min="0" max="100" step="1" placeholder="e.g. 50" value="${r.creditSharing!==undefined&&r.creditSharing!==''?r.creditSharing:''}"></div>
-        <div class="lf-field" style="grid-column:1/-1"><label>Candidate Management</label><select id="f-candidateMgmt"><option value="">-None-</option>${(typeof TEAM_MEMBERS!=='undefined'?TEAM_MEMBERS:[]).map(m=>`<option ${r.candidateMgmt===m?'selected':''}>${m}</option>`).join('')}</select></div>
+        <div class="lf-field" style="grid-column:1/-1"><label>Candidate Management</label><select id="f-candidateMgmt"><option value="">-None-</option>${(DB.users&&DB.users.length?DB.users.map(u=>u.name||u.username||u.email||'').filter(Boolean):[...new Set([...TEAM_MEMBERS])]).map(m=>`<option ${r.candidateMgmt===m?'selected':''}>${m}</option>`).join('')}</select></div>
       </div>
 
       <!-- Description Information -->
