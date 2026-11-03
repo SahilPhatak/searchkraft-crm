@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum Role {
@@ -151,6 +152,14 @@ model Deal {
   wonAt       DateTime?
   lostAt      DateTime?
   lostReason  String?
+
+  // Recruitment details
+  recruiterName   String?
+  sourcer         String?
+  creditSharing   Int?
+  candidateMgmt   String?
+  clientSpoc      String?
+
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 

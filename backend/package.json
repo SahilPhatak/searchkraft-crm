@@ -1,17 +1,16 @@
 {
   "name": "searchkraft-crm-backend",
   "version": "1.0.0",
-  "description": "SearchKraft CRM Backend API",
-  "main": "dist/app.js",
+  "description": "SearchKraft CRM Backend API — Node.js + Express",
+  "main": "server.js",
   "scripts": {
-    "dev": "ts-node-dev --respawn --transpile-only src/app.ts",
-    "build": "tsc",
-    "start": "node dist/app.js",
-    "db:migrate": "prisma migrate dev",
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "db:migrate": "prisma migrate deploy",
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
-    "db:seed": "ts-node prisma/seed.ts",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "db:seed": "node prisma/seed.js"
   },
   "dependencies": {
     "@prisma/client": "^5.7.0",
@@ -24,18 +23,16 @@
     "express-validator": "^7.0.1",
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
-    "morgan": "^1.10.0",
-    "zod": "^3.22.4"
+    "morgan": "^1.10.0"
   },
   "devDependencies": {
-    "@types/bcryptjs": "^2.4.6",
-    "@types/cors": "^2.8.17",
-    "@types/express": "^4.17.21",
-    "@types/jsonwebtoken": "^9.0.5",
-    "@types/morgan": "^1.9.9",
-    "@types/node": "^20.10.0",
-    "prisma": "^5.7.0",
-    "ts-node-dev": "^2.0.0",
-    "typescript": "^5.3.2"
+    "nodemon": "^3.0.2",
+    "prisma": "^5.7.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
   }
 }
