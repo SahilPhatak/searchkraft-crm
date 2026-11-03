@@ -5066,8 +5066,6 @@ async function dropLeadCard(e, newStage) {
   // Persist to Supabase
   await DB_CLIENT.from('leads').update({ stage: newStage, updated_at: new Date().toISOString() }).eq('id', lead.id);
   audit('Update', 'Leads', lead.title||'Lead', `Stage → ${newStage}`);
-  // Auto-sync to Contact + Account when dragged to Won
-  if (newStage === 'Won') syncWonLeadToContactAndAccount(lead);
   _dragLeadId = null;
   renderLeadsBoard();
   renderTable('leads','');
@@ -8513,11 +8511,6 @@ async function upsert(collection, id, data) {
     syncLeadToContact(mergedData);
   }
 
-  // Auto-sync Won lead → Contact + Account in real time
-  if (collection === 'leads' && mergedData.stage === 'Won') {
-    syncWonLeadToContactAndAccount(mergedData);
-  }
-
   closeModal();
   refreshCurrentPage();
 }
@@ -8582,7 +8575,8 @@ async function syncLeadToContact(lead) {
   }
 }
 
-// Sync a Won lead → Contact + Account (Companies)
+// [Won lead → Contact + Account is handled by Supabase DB trigger: supabase/won_lead_sync.sql]
+// Keeping this stub so any accidental calls fail gracefully
 async function syncWonLeadToContactAndAccount(lead) {
   const now = new Date().toISOString();
 
