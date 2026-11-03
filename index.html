@@ -2966,27 +2966,33 @@ textarea { min-height: 80px; resize: vertical; }
 
         <!-- Revenue Won per Client -->
         <div class="card" style="padding:0;overflow:hidden">
-          <div style="padding:13px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px">
-            <div style="width:8px;height:8px;border-radius:2px;background:#10b981;flex-shrink:0"></div>
-            <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--fg3)">Revenue Won</span>
+          <div style="padding:12px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px">
+            <span style="display:inline-flex;align-items:center;gap:6px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:20px;padding:4px 12px 4px 8px">
+              <svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="5" r="5" fill="#16a34a"/></svg>
+              <span style="font-size:11px;font-weight:600;color:#15803d;letter-spacing:0.3px">Revenue Won</span>
+            </span>
           </div>
           <div id="an-client-won" style="overflow-y:auto;max-height:380px"></div>
         </div>
 
         <!-- Revenue Lost per Client -->
         <div class="card" style="padding:0;overflow:hidden">
-          <div style="padding:13px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px">
-            <div style="width:8px;height:8px;border-radius:2px;background:#ef4444;flex-shrink:0"></div>
-            <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--fg3)">Revenue Lost</span>
+          <div style="padding:12px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px">
+            <span style="display:inline-flex;align-items:center;gap:6px;background:#fff1f2;border:1px solid #fecdd3;border-radius:20px;padding:4px 12px 4px 8px">
+              <svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="5" r="5" fill="#dc2626"/></svg>
+              <span style="font-size:11px;font-weight:600;color:#b91c1c;letter-spacing:0.3px">Revenue Lost</span>
+            </span>
           </div>
           <div id="an-client-lost" style="overflow-y:auto;max-height:380px"></div>
         </div>
 
         <!-- Closures per Client -->
         <div class="card" style="padding:0;overflow:hidden">
-          <div style="padding:13px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px">
-            <div style="width:8px;height:8px;border-radius:2px;background:#6366f1;flex-shrink:0"></div>
-            <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--fg3)">Closures (Won Deals)</span>
+          <div style="padding:12px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px">
+            <span style="display:inline-flex;align-items:center;gap:6px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:20px;padding:4px 12px 4px 8px">
+              <svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="5" r="5" fill="#7c3aed"/></svg>
+              <span style="font-size:11px;font-weight:600;color:#6d28d9;letter-spacing:0.3px">Closures (Won Deals)</span>
+            </span>
           </div>
           <div id="an-client-closures" style="overflow-y:auto;max-height:380px"></div>
         </div>
@@ -5583,7 +5589,7 @@ function renderReports() {
     </div>`).join('') : '<div style="font-size:12px;color:var(--fg3)">No closed deals yet</div>';
 
   // ── Client Revenue Analysis ──
-  function clientTable(elId, entries, valueFormatter, barColor, emptyMsg) {
+  function clientTable(elId, entries, valueFormatter, barColor, emptyMsg, textColor) {
     const el = document.getElementById(elId);
     if (!el) return;
     if (!entries.length) {
@@ -5591,6 +5597,7 @@ function renderReports() {
       return;
     }
     const maxVal = entries[0][1] || 1;
+    const valColor = textColor || 'var(--fg)';
     el.innerHTML = entries.map(([client, val], i) => {
       const pct = Math.round(val / maxVal * 100);
       const rank = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i+1}.`;
@@ -5598,10 +5605,10 @@ function renderReports() {
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
           <span style="font-size:11px;color:var(--fg3);flex-shrink:0;width:22px;text-align:center">${rank}</span>
           <span style="font-size:13px;font-weight:600;color:var(--fg);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${client}</span>
-          <span style="font-size:13px;font-weight:800;color:${barColor};font-family:'Plus Jakarta Sans','Inter',sans-serif;flex-shrink:0">${valueFormatter(val)}</span>
+          <span style="font-size:13px;font-weight:700;color:${valColor};font-family:'Plus Jakarta Sans','Inter',sans-serif;flex-shrink:0">${valueFormatter(val)}</span>
         </div>
-        <div style="margin-left:30px;height:4px;background:var(--surface2);border-radius:2px">
-          <div style="height:4px;background:${barColor};border-radius:2px;width:${pct}%;opacity:0.75;transition:width 0.3s"></div>
+        <div style="margin-left:30px;height:3px;background:var(--surface2);border-radius:2px">
+          <div style="height:3px;background:${barColor};border-radius:2px;width:${pct}%;opacity:0.6;transition:width 0.3s"></div>
         </div>
       </div>`;
     }).join('');
@@ -5631,9 +5638,9 @@ function renderReports() {
   });
   const closureEntries = Object.entries(closuresByClient).sort((a,b) => b[1]-a[1]);
 
-  clientTable('an-client-won',      wonEntries,     fmtC,  '#10b981', 'No won deals yet');
-  clientTable('an-client-lost',     lostEntries,    fmtC,  '#ef4444', 'No lost deals yet');
-  clientTable('an-client-closures', closureEntries, v => v + (v===1?' deal':' deals'), '#6366f1', 'No closed deals yet');
+  clientTable('an-client-won',      wonEntries,     fmtC,  '#4ade80', 'No won deals yet',  '#15803d');
+  clientTable('an-client-lost',     lostEntries,    fmtC,  '#f87171', 'No lost deals yet', '#b91c1c');
+  clientTable('an-client-closures', closureEntries, v => v + (v===1?' deal':' deals'), '#a78bfa', 'No closed deals yet', '#6d28d9');
 
   // Revenue Target bar chart — 3 bars per month: Won / Lost / Open — premium grouped
   const el_bar = document.getElementById('revenue-bar-svg');
