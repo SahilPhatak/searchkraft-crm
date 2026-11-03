@@ -1684,11 +1684,11 @@ textarea { min-height: 80px; resize: vertical; }
       </div>
 
       <!-- ── Monthly Revenue by Quarter ── -->
-      <div class="dash-card mb-16" id="dash-monthly-rev-card">
-        <div class="dash-card-header">
+      <div class="dash-card mb-16" id="dash-monthly-rev-card" style="background:linear-gradient(135deg,var(--surface) 0%,color-mix(in srgb,var(--surface) 92%,#6366f1 8%) 100%)">
+        <div class="dash-card-header" style="border-bottom:1px solid var(--border)">
           <div class="dash-section-hdr">
-            <div class="dot" style="background:#6366f1"></div>
-            Monthly Revenue — <span id="dash-monthly-year"></span>
+            <div class="dot" style="background:#818cf8;box-shadow:0 0 8px #818cf888"></div>
+            Monthly Revenue — <span id="dash-monthly-year" style="color:var(--fg2)"></span>
           </div>
         </div>
         <div style="padding:0 0 4px">
@@ -4531,33 +4531,57 @@ function renderMonthlyRevenue() {
 
   const maxMon = Math.max(...monthly, 1);
   const quarters = [[0,1,2],[3,4,5],[6,7,8],[9,10,11]];
-  const qColors = ['#6366f1','#3b82f6','#10b981','#f59e0b'];
+
+  // Premium palette — rich, jewel-toned
+  const qPalette = [
+    { color: '#818cf8', gFrom: '#818cf8', gTo: '#4f46e5', bg: 'rgba(99,102,241,0.08)', label: '#a5b4fc' },  // indigo
+    { color: '#38bdf8', gFrom: '#38bdf8', gTo: '#0284c7', bg: 'rgba(56,189,248,0.08)', label: '#7dd3fc' },  // sky
+    { color: '#34d399', gFrom: '#34d399', gTo: '#059669', bg: 'rgba(52,211,153,0.08)', label: '#6ee7b7' },  // emerald
+    { color: '#fbbf24', gFrom: '#fbbf24', gTo: '#d97706', bg: 'rgba(251,191,36,0.08)',  label: '#fcd34d' },  // amber
+  ];
   const qNames = ['Q1','Q2','Q3','Q4'];
 
   const grid = document.getElementById('dash-quarterly-grid');
   if (!grid) return;
 
+  // Inject SVG gradient defs once
+  const svgNS = 'http://www.w3.org/2000/svg';
+
   grid.innerHTML = quarters.map((qMons, qi) => {
+    const p = qPalette[qi];
     const qTotal = qMons.reduce((a,m) => a + monthly[m], 0);
+    const barH = 88;
+
     const bars = qMons.map(m => {
-      const h = Math.round(monthly[m] / maxMon * 80);
+      const h = Math.max(Math.round(monthly[m] / maxMon * barH), monthly[m] > 0 ? 4 : 0);
+      const hasVal = monthly[m] > 0;
+      const gradId = `qg${qi}m${m}`;
       return `
-        <div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex:1">
-          <div style="font-size:11px;font-weight:600;color:${qColors[qi]}">${monthly[m]>0?fmtC(monthly[m]):''}</div>
-          <div style="width:100%;background:var(--surface2);border-radius:6px 6px 0 0;height:80px;display:flex;align-items:flex-end;overflow:hidden">
-            <div style="width:100%;height:${h}px;background:${qColors[qi]};opacity:0.85;border-radius:4px 4px 0 0;transition:height 0.4s ease"></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:5px;flex:1;min-width:0">
+          <div style="font-size:10.5px;font-weight:700;color:${p.label};min-height:16px;line-height:1;letter-spacing:-0.3px;font-family:'Plus Jakarta Sans',Inter,sans-serif">${hasVal ? fmtC(monthly[m]) : ''}</div>
+          <div style="width:100%;height:${barH}px;display:flex;align-items:flex-end;position:relative">
+            <!-- track -->
+            <div style="position:absolute;inset:0;background:rgba(255,255,255,0.04);border-radius:6px 6px 0 0"></div>
+            <!-- fill -->
+            <div style="width:100%;height:${h}px;border-radius:${h>=barH?'6px':'4px 4px 0 0'};position:relative;overflow:hidden;transition:height 0.5s cubic-bezier(.4,0,.2,1)">
+              <div style="position:absolute;inset:0;background:linear-gradient(180deg,${p.gFrom} 0%,${p.gTo} 100%);opacity:${hasVal?'1':'0'}"></div>
+              ${hasVal ? `<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,0.18) 0%,transparent 60%)"></div>` : ''}
+            </div>
           </div>
-          <div style="font-size:11px;color:var(--fg3);font-weight:500">${monthNames[m]}</div>
+          <div style="font-size:10.5px;color:var(--fg3);font-weight:600;letter-spacing:0.2px">${monthNames[m]}</div>
         </div>`;
     }).join('');
 
     return `
-      <div style="padding:20px 16px 16px;border-right:1px solid var(--border);${qi===3?'border-right:none':''}">
-        <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:16px">
-          <span style="font-size:13px;font-weight:800;color:${qColors[qi]};font-family:'Plus Jakarta Sans','Inter',sans-serif">${qNames[qi]}</span>
-          <span style="font-size:13px;font-weight:700;color:var(--fg);font-family:'Plus Jakarta Sans','Inter',sans-serif">${fmtC(qTotal)}</span>
+      <div style="padding:18px 14px 14px;border-right:1px solid var(--border);background:${qi===quarters.findIndex((_,i)=>quarters[i].some(m=>monthly[m]>0&&qMons===quarters[i]))?p.bg:'transparent'};${qi===3?'border-right:none':''}">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <div style="display:flex;align-items:center;gap:7px">
+            <div style="width:8px;height:8px;border-radius:50%;background:${p.color};box-shadow:0 0 6px ${p.color}88"></div>
+            <span style="font-size:12px;font-weight:800;color:${p.color};font-family:'Plus Jakarta Sans','Inter',sans-serif;letter-spacing:0.3px">${qNames[qi]}</span>
+          </div>
+          <span style="font-size:12.5px;font-weight:700;color:${qTotal>0?'var(--fg)':'var(--fg3)'};font-family:'Plus Jakarta Sans','Inter',sans-serif">${fmtC(qTotal)}</span>
         </div>
-        <div style="display:flex;gap:8px;align-items:flex-end">${bars}</div>
+        <div style="display:flex;gap:6px;align-items:flex-end">${bars}</div>
       </div>`;
   }).join('');
 }
