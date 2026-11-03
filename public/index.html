@@ -2931,10 +2931,11 @@ textarea { min-height: 80px; resize: vertical; }
         </div>
         <div style="padding:20px">
           <div id="an-revenue-chart" style="position:relative;overflow:hidden">
-            <svg id="revenue-bar-svg" width="100%" height="100"></svg>
-            <div style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:11px;color:var(--fg3)">
-              <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--green)"></span> Achieved
-              <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--border2);margin-left:12px"></span> Target
+            <svg id="revenue-bar-svg" width="100%" height="160"></svg>
+            <div class="rpt-bar-legend" style="display:flex;align-items:center;gap:4px;margin-top:6px;font-size:11px;color:var(--fg3);font-weight:500">
+              <span style="display:inline-flex;align-items:center;gap:5px"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#10b981"></span> Won</span>
+              <span style="display:inline-flex;align-items:center;gap:5px;margin-left:14px"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#ef4444"></span> Lost</span>
+              <span style="display:inline-flex;align-items:center;gap:5px;margin-left:14px"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#f59e0b"></span> Open</span>
             </div>
           </div>
         </div>
@@ -5586,25 +5587,56 @@ function renderReports() {
   clientTable('an-client-lost',     lostEntries,    fmtC,  '#ef4444', 'No lost deals yet');
   clientTable('an-client-closures', closureEntries, v => v + (v===1?' deal':' deals'), '#6366f1', 'No closed deals yet');
 
-  // Revenue Target bar chart
+  // Revenue Target bar chart — 3 bars per month: Won (green), Lost (red), Open (amber)
   const el_bar = document.getElementById('revenue-bar-svg');
   if (el_bar) {
-    const target = 500000;
-    const revenueMonths = [sm1,sm2,sm3].map(mo=>monthSum(DB.deals.filter(d=>isWon(d)),'wonAt','expectedRevenue',mo));
+    const wonMonths  = [sm1,sm2,sm3].map(mo=>monthSum(DB.deals.filter(d=>isWon(d)), 'wonAt',    'expectedRevenue', mo));
+    const lostMonths = [sm1,sm2,sm3].map(mo=>monthSum(DB.deals.filter(d=>isLost(d)),'lostAt',   'expectedRevenue', mo));
+    const openMonths = [sm1,sm2,sm3].map(mo=>monthSum(DB.deals.filter(d=>!isWon(d)&&!isLost(d)),'createdAt','expectedRevenue', mo));
     const labels = [mLabel(sm1),mLabel(sm2),mLabel(sm3)];
-    const W2=el_bar.parentElement?.offsetWidth||380, H2=120, pad=40;
-    const bw2=36, gap2=(W2-pad*2)/3;
-    const maxBar = Math.max(...revenueMonths, target/3, 1);
-    el_bar.setAttribute('viewBox',`0 0 ${W2} ${H2}`);
-    el_bar.setAttribute('width',W2); el_bar.setAttribute('height',H2);
-    el_bar.innerHTML = revenueMonths.map((v,i)=>{
-      const bh=v/maxBar*(H2-40), x=pad+i*gap2+gap2/2-bw2/2, y=H2-25-bh;
+
+    const W2 = el_bar.parentElement?.offsetWidth || 520;
+    const H2 = 160, pad = 44, baseline = H2 - 30;
+    const groupW = (W2 - pad*2) / 3;
+    const bw = 18, gap = 3; // 3 bars × 18px + 2 gaps × 3px = 60px per group
+    const groupBarW = bw*3 + gap*2;
+
+    const allVals = [...wonMonths, ...lostMonths, ...openMonths];
+    const maxBar = Math.max(...allVals, 1);
+
+    el_bar.setAttribute('viewBox', `0 0 ${W2} ${H2}`);
+    el_bar.setAttribute('width', W2);
+    el_bar.setAttribute('height', H2);
+
+    const bars = [sm1,sm2,sm3].map((mo, i) => {
+      const gx = pad + i*groupW + groupW/2 - groupBarW/2;
+      const won  = wonMonths[i],  lost = lostMonths[i],  open = openMonths[i];
+      const bhW  = won/maxBar*(baseline-20),  bhL = lost/maxBar*(baseline-20),  bhO = open/maxBar*(baseline-20);
+      const x0 = gx, x1 = gx+bw+gap, x2 = gx+(bw+gap)*2;
       return `<g>
-        <rect x="${x}" y="${y}" width="${bw2}" height="${bh}" rx="4" fill="var(--accent)" opacity="0.85"/>
-        <text x="${x+bw2/2}" y="${H2-8}" text-anchor="middle" font-size="10" fill="var(--fg3)">${labels[i].slice(0,3)}</text>
-        <text x="${x+bw2/2}" y="${y-4}" text-anchor="middle" font-size="9" fill="var(--fg)">${fmtC(v)}</text>
+        <!-- Won bar -->
+        ${won>0?`<rect x="${x0}" y="${baseline-bhW}" width="${bw}" height="${bhW}" rx="3" fill="#10b981" opacity="0.9"/>
+        <text x="${x0+bw/2}" y="${baseline-bhW-4}" text-anchor="middle" font-size="8" fill="#10b981" font-weight="600">${fmtC(won)}</text>`:''}
+        <!-- Lost bar -->
+        ${lost>0?`<rect x="${x1}" y="${baseline-bhL}" width="${bw}" height="${bhL}" rx="3" fill="#ef4444" opacity="0.9"/>
+        <text x="${x1+bw/2}" y="${baseline-bhL-4}" text-anchor="middle" font-size="8" fill="#ef4444" font-weight="600">${fmtC(lost)}</text>`:''}
+        <!-- Open bar -->
+        ${open>0?`<rect x="${x2}" y="${baseline-bhO}" width="${bw}" height="${bhO}" rx="3" fill="#f59e0b" opacity="0.9"/>
+        <text x="${x2+bw/2}" y="${baseline-bhO-4}" text-anchor="middle" font-size="8" fill="#f59e0b" font-weight="600">${fmtC(open)}</text>`:''}
+        <!-- Month label -->
+        <text x="${gx+groupBarW/2}" y="${H2-10}" text-anchor="middle" font-size="10" fill="var(--fg3)">${labels[i].slice(0,3)} ${labels[i].slice(-2)}</text>
       </g>`;
-    }).join('') + `<line x1="${pad}" y1="${H2-25}" x2="${W2-pad}" y2="${H2-25}" stroke="var(--border)" stroke-width="1"/>`;
+    }).join('');
+
+    el_bar.innerHTML = bars +
+      `<line x1="${pad}" y1="${baseline}" x2="${W2-pad}" y2="${baseline}" stroke="var(--border)" stroke-width="1"/>`;
+
+    // update legend in HTML
+    const legEl = el_bar.closest('.card')?.querySelector('.rpt-bar-legend');
+    if (legEl) legEl.innerHTML = `
+      <span style="display:inline-flex;align-items:center;gap:5px"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#10b981"></span> Won</span>
+      <span style="display:inline-flex;align-items:center;gap:5px;margin-left:14px"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#ef4444"></span> Lost</span>
+      <span style="display:inline-flex;align-items:center;gap:5px;margin-left:14px"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#f59e0b"></span> Open</span>`;
   }
 
 }
