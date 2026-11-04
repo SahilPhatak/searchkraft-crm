@@ -1227,6 +1227,10 @@ textarea { min-height: 80px; resize: vertical; }
 .lf-full { grid-column: 1 / -1; display: grid; grid-template-columns: 200px 1fr; gap: 12px; }
 .lf-full label { text-align: right; font-size: 12px; font-weight: 500; color: var(--fg2); padding: 8px 10px 0 0; }
 .lf-addr-box .lf-grid { grid-template-columns: 200px 1fr 200px 1fr; }
+/* Checkbox fields: label on left, checkbox inline with it */
+.lf-checkbox { display: contents; }
+.lf-checkbox label { text-align: right; font-size: 12px; font-weight: 500; color: var(--fg2); padding: 8px 10px 0 0; align-self: start; }
+.lf-checkbox input[type="checkbox"] { margin-top: 7px; width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; justify-self: start; }
 @media (max-width: 760px) {
   .lead-form-body { padding: 16px; }
   .lf-grid { grid-template-columns: 1fr 1fr !important; gap: 12px 8px; }
@@ -1973,7 +1977,7 @@ textarea { min-height: 80px; resize: vertical; }
           <button class="crm-view-btn active-view-btn" title="List view" style="cursor:default">☰</button>
         </div>
         <div style="flex:1"></div>
-        <div class="search-bar" style="max-width:200px"><input type="text" placeholder="Search accounts…" oninput="renderTable('companies',this.value)"></div>
+        <div class="search-bar" style="max-width:200px"><input type="text" placeholder="Search accounts…" oninput="debounce('companies',()=>searchFromDB('companies',this.value))"></div>
         <button class="btn btn-primary btn-sm" onclick="openModal('company')">+ Create Account</button>
       </div>
       <!-- Body: filter sidebar + table -->
@@ -2059,7 +2063,7 @@ textarea { min-height: 80px; resize: vertical; }
           <div class="table-wrap" style="border-radius:0;border-left:none;border-right:none;border-top:none;flex:1">
             <table>
               <thead><tr>
-                <th style="width:36px"><input type="checkbox" style="accent-color:var(--accent)"></th>
+                <th style="width:36px"><input type="checkbox" style="accent-color:var(--accent)" onchange="selectAll('companies-body',this)"></th>
                 <th>Account Name</th><th>Industry</th><th>City</th><th>Status</th><th>BD Owner</th><th>Actions</th>
               </tr></thead>
               <tbody id="companies-body"></tbody>
@@ -2109,7 +2113,7 @@ textarea { min-height: 80px; resize: vertical; }
           <button class="crm-view-btn active-view-btn" title="List view" style="cursor:default">☰</button>
         </div>
         <div style="flex:1"></div>
-        <div class="search-bar" style="max-width:200px"><input type="text" placeholder="Search contacts…" oninput="renderTable('contacts',this.value)"></div>
+        <div class="search-bar" style="max-width:200px"><input type="text" placeholder="Search contacts…" oninput="debounce('contacts',()=>searchFromDB('contacts',this.value))"></div>
         <button class="btn btn-primary btn-sm" onclick="openModal('contact')">+ Create Contact</button>
       </div>
       <div style="display:flex;gap:0;flex:1;overflow:hidden">
@@ -2215,7 +2219,7 @@ textarea { min-height: 80px; resize: vertical; }
           <div class="table-wrap" style="border-radius:0;border-left:none;border-right:none;border-top:none;flex:1">
             <table>
               <thead><tr>
-                <th style="width:36px"><input type="checkbox" style="accent-color:var(--accent)"></th>
+                <th style="width:36px"><input type="checkbox" style="accent-color:var(--accent)" onchange="selectAll('contacts-body',this)"></th>
                 <th>Name</th><th>Title</th><th>Company</th><th>Email</th><th>Phone</th><th>Actions</th>
               </tr></thead>
               <tbody id="contacts-body"></tbody>
@@ -2271,7 +2275,7 @@ textarea { min-height: 80px; resize: vertical; }
           <button id="leads-btn-grid" class="crm-view-btn" onclick="switchLeadTab('board',this)" title="Pipeline board">⊞</button>
         </div>
         <div style="flex:1"></div>
-        <div class="search-bar" style="max-width:200px"><input type="text" placeholder="Search leads…" oninput="renderTable('leads',this.value)"></div>
+        <div class="search-bar" style="max-width:200px"><input type="text" placeholder="Search leads…" oninput="debounce('leads',()=>searchFromDB('leads',this.value))"></div>
         <button class="btn btn-primary btn-sm" onclick="openModal('lead')">+ Create Lead</button>
       </div>
       <div style="display:flex;gap:0;flex:1;overflow:hidden">
@@ -2429,7 +2433,7 @@ textarea { min-height: 80px; resize: vertical; }
             <div class="table-wrap" style="border-radius:0;border-left:none;border-right:none;border-top:none">
               <table>
                 <thead><tr>
-                  <th style="width:36px"><input type="checkbox" style="accent-color:var(--accent)"></th>
+                  <th style="width:36px"><input type="checkbox" style="accent-color:var(--accent)" onchange="selectAll('leads-body',this)"></th>
                   <th>Lead Name</th><th>Title</th><th>Company</th><th>Lead Status</th><th>Email</th><th>Phone</th><th>Owner</th><th>Actions</th>
                 </tr></thead>
                 <tbody id="leads-body"></tbody>
@@ -3744,6 +3748,8 @@ async function load() {
     deliveryPOC:      r.deliveryPOC      || r.delivery_poc,
     numPositions:     r.numPositions     || r.num_positions,
     commercialsSigned:r.commercialsSigned?? r.commercials_signed,
+    followupStatus:   r.followupStatus   || r.followup_status,
+    followupNotes:    r.followupNotes    || r.followup_notes,
     sourceSD:         r.sourceSD         || r.source_sd,
     addrLine1:        r.addrLine1        || r.addr_line1,
     wonAt:            r.wonAt            || r.won_at,
@@ -4918,6 +4924,38 @@ function renderCalendarGrid() {
 
 // ---- GENERIC TABLE RENDERERS ----
 function getCompanyName(id) { return DB.companies.find(c=>c.id===id)?.name||''; }
+
+// Debounce helper for search
+let _searchTimers = {};
+function debounce(key, fn, ms=350) {
+  clearTimeout(_searchTimers[key]);
+  _searchTimers[key] = setTimeout(fn, ms);
+}
+
+// Backend search: queries Supabase directly with ilike filters
+async function searchFromDB(type, q) {
+  const Q = (q||'').trim();
+  if (type === 'leads') {
+    let query = DB_CLIENT.from('leads').select('*').neq('stage','Won').order('created_at',{ascending:false}).limit(200);
+    if (Q) query = query.or(`first_name.ilike.%${Q}%,last_name.ilike.%${Q}%,email.ilike.%${Q}%,company.ilike.%${Q}%,client_name.ilike.%${Q}%`);
+    const { data } = await query;
+    if (data) { DB.leads = data.map(norm); renderTableRows('leads'); }
+  } else if (type === 'contacts') {
+    let query = DB_CLIENT.from('contacts').select('*').order('created_at',{ascending:false}).limit(200);
+    if (Q) query = query.or(`name.ilike.%${Q}%,email.ilike.%${Q}%,company.ilike.%${Q}%`);
+    const { data } = await query;
+    if (data) { DB.contacts = data.map(norm); renderTableRows('contacts'); }
+  } else if (type === 'companies') {
+    let query = DB_CLIENT.from('companies').select('*').order('name',{ascending:true}).limit(200);
+    if (Q) query = query.or(`name.ilike.%${Q}%,industry.ilike.%${Q}%,city.ilike.%${Q}%`);
+    const { data } = await query;
+    if (data) { DB.companies = data.map(norm); renderTableRows('companies'); }
+  } else {
+    renderTable(type, q);
+  }
+}
+
+function renderTableRows(type) { renderTable(type, ''); }
 
 function renderTable(type, q='') {
   const Q = (q||'').toLowerCase();
@@ -6971,23 +7009,43 @@ function filterViewsDD(inp, ddId) {
 document.addEventListener('click', function() {
   document.querySelectorAll('.views-dropdown').forEach(d => d.style.display = 'none');
 });
+function selectAll(tbodyId, masterCb) {
+  const tbody = document.getElementById(tbodyId);
+  if (!tbody) return;
+  tbody.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = masterCb.checked);
+}
+
 function addDescEntry() {
   const input = document.getElementById('f-desc-input');
   const hidden = document.getElementById('f-description');
-  const log = document.getElementById('desc-log');
-  if (!input || !hidden || !log) return;
+  if (!input || !hidden) return;
   const text = input.value.trim();
   if (!text) return;
   const now = new Date();
   const dateStr = now.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
   const timeStr = now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true});
   const entry = `[${dateStr} ${timeStr}] ${text}`;
-  const existing = hidden.value;
+  const existing = window._descVal || hidden.value || '';
   const updated = existing ? existing + '\n' + entry : entry;
+  window._descVal = updated;
   hidden.value = updated;
-  log.textContent = updated;
-  log.scrollTop = log.scrollHeight;
   input.value = '';
+  // re-render via inline script's renderLog if available
+  const log = document.getElementById('desc-log');
+  if (log && window._descRender) window._descRender(updated);
+  else if (log) {
+    const entries = updated.split('\n');
+    log.innerHTML = entries.map((e,i)=>{
+      const m = e.match(/^(\[.*?\])\s*(.*)/);
+      const ts = m ? '<span style="font-size:10px;color:var(--fg3);margin-right:8px;white-space:nowrap">'+m[1]+'</span>' : '';
+      const txt = (m ? m[2] : e).replace(/</g,'&lt;');
+      return '<div style="display:flex;align-items:flex-start;padding:8px 12px;border-bottom:1px solid var(--border);gap:8px">'+ts+'<span style="flex:1;font-size:12px;color:var(--fg);line-height:1.5">'+txt+'</span>'
+        +'<button type="button" onclick="editDescEntry('+i+')" title="Edit" style="border:none;background:none;cursor:pointer;padding:0 4px;color:var(--fg3);font-size:12px;flex-shrink:0">✏️</button>'
+        +'<button type="button" onclick="deleteDescEntry('+i+')" title="Delete" style="border:none;background:none;cursor:pointer;padding:0 4px;color:#ef4444;font-size:12px;flex-shrink:0">🗑</button>'
+        +'</div>';
+    }).join('');
+    log.scrollTop = log.scrollHeight;
+  }
 }
 
 function calcExpectedRevenue() {
@@ -7310,19 +7368,26 @@ const MODAL_FORMS = {
         <div class="lf-field"><label>Rating</label><select id="f-rating"><option value="">-None-</option>${['Hot','Warm','Cold'].map(s=>`<option ${r.rating===s?'selected':''}>${s}</option>`).join('')}</select></div>
         <div class="lf-field"><label>Secondary Email</label><input id="f-email2" type="email" value="${r.email2||''}"></div>
         <div class="lf-field"><label>Date of Handover</label><input id="f-handoverDate" type="date" value="${r.handoverDate||''}"></div>
-        <div class="lf-field"><label>Follow-up Date</label><input id="f-followupDate" type="date" value="${r.followupDate||''}"></div>
         <div class="lf-field"><label>Lane / Domain</label><input id="f-lane" type="text" value="${r.lane||''}"></div>
         <div class="lf-field"><label>Source – Sales & Delivery</label><input id="f-sourceSD" type="text" value="${r.sourceSD||''}"></div>
         <div class="lf-field"><label>Month</label><input id="f-month" type="text" placeholder="e.g. Oct 2026" value="${r.month||''}"></div>
-        <div class="lf-field" style="display:flex;align-items:center;gap:8px"><label style="margin:0;min-width:0">Email Opt Out</label><input type="checkbox" id="f-emailOptOut" ${r.emailOptOut?'checked':''} style="accent-color:var(--accent);width:16px;height:16px;margin:0;cursor:pointer;flex-shrink:0"></div>
-        <div class="lf-field" style="display:flex;align-items:center;gap:8px"><label style="margin:0;min-width:0">Handover Done</label><input type="checkbox" id="f-handoverDone" ${r.handoverDone?'checked':''} style="accent-color:var(--accent);width:16px;height:16px;margin:0;cursor:pointer;flex-shrink:0"></div>
+        <div class="lf-checkbox"><label>Email Opt Out</label><input type="checkbox" id="f-emailOptOut" ${r.emailOptOut?'checked':''}></div>
+        <div class="lf-checkbox"><label>Handover Done</label><input type="checkbox" id="f-handoverDone" ${r.handoverDone?'checked':''}></div>
         <div class="lf-field"><label>Client Name</label><input id="f-clientName" type="text" value="${r.clientName||''}"></div>
         <div class="lf-field"><label>Compensation (Lower Side)</label><input id="f-compensation" type="text" value="${r.compensation||''}"></div>
         <div class="lf-field"><label>Client Type – New/Farming/Retention/Renew</label><input id="f-clientType" type="text" value="${r.clientType||''}"></div>
         <div class="lf-field"><label>Delivery POC</label>${deliveryField('deliveryPOC', r.deliveryPOC)}</div>
         <div class="lf-field"><label>Agreement</label><input id="f-agreement" type="text" value="${r.agreement||''}"></div>
         <div class="lf-field"><label>No. of Positions</label><input id="f-numPositions" type="number" value="${r.numPositions||''}"></div>
-        <div class="lf-field" style="display:flex;align-items:center;gap:8px"><label style="margin:0;min-width:0">Commercials Signed</label><input type="checkbox" id="f-commercialsSigned" ${r.commercialsSigned?'checked':''} style="accent-color:var(--accent);width:16px;height:16px;margin:0;cursor:pointer;flex-shrink:0"></div>
+        <div class="lf-checkbox"><label>Commercials Signed</label><input type="checkbox" id="f-commercialsSigned" ${r.commercialsSigned?'checked':''}></div>
+      </div>
+
+      <!-- Follow Up Section -->
+      <div class="lf-section-title" style="margin-top:28px">Follow Up</div>
+      <div class="lf-grid">
+        <div class="lf-field"><label>Follow-up Date</label><input id="f-followupDate2" type="date" value="${r.followupDate||''}"></div>
+        <div class="lf-field"><label>Follow-up Status</label><select id="f-followupStatus"><option value="">-None-</option>${['Pending','Done','Rescheduled','No Response'].map(s=>`<option ${r.followupStatus===s?'selected':''}>${s}</option>`).join('')}</select></div>
+        <div class="lf-field lf-full"><label>Follow-up Notes</label><textarea id="f-followupNotes" rows="3" placeholder="Notes about next follow up…">${r.followupNotes||''}</textarea></div>
       </div>
 
       <!-- Description Information -->
@@ -7331,15 +7396,58 @@ const MODAL_FORMS = {
         <div class="lf-field lf-full">
           <label>Activity Log</label>
           <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--surface)">
-            <div id="desc-log" style="max-height:220px;overflow-y:auto;padding:10px 12px;font-size:12px;color:var(--fg2);line-height:1.6;border-bottom:1px solid var(--border);white-space:pre-wrap">${(r.description||'').replace(/</g,'&lt;')}</div>
+            <div id="desc-log" style="max-height:260px;overflow-y:auto;padding:0;border-bottom:1px solid var(--border)"></div>
             <div style="display:flex;gap:8px;padding:8px 10px;background:var(--surface2);align-items:center">
-              <input id="f-desc-input" type="text" placeholder="Add a note…" style="flex:1;border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:12px;background:var(--surface);color:var(--fg)" onkeydown="if(event.key==='Enter'){event.preventDefault();addDescEntry();}">
+              <input id="f-desc-input" type="text" placeholder="Add a note and press Enter or click Add…" style="flex:1;border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:12px;background:var(--surface);color:var(--fg)" onkeydown="if(event.key==='Enter'){event.preventDefault();addDescEntry();}">
               <button type="button" onclick="addDescEntry()" style="padding:6px 14px;border-radius:6px;border:none;background:var(--accent);color:#fff;font-size:12px;font-weight:600;cursor:pointer">Add</button>
             </div>
           </div>
           <input type="hidden" id="f-description" value="${(r.description||'').replace(/"/g,'&quot;')}">
         </div>
-      </div>`,
+      </div>
+      <script>
+        (function(){
+          const hidden = document.getElementById('f-description');
+          const log = document.getElementById('desc-log');
+          function renderLog(val){
+            const entries = val ? val.split('\\n') : [];
+            log.innerHTML = entries.length ? entries.map((e,i)=>{
+              const m = e.match(/^(\\[.*?\\])\\s*(.*)/);
+              const ts = m ? '<span style="font-size:10px;color:var(--fg3);margin-right:8px;white-space:nowrap">'+m[1]+'</span>' : '';
+              const txt = m ? m[2] : e;
+              return '<div style="display:flex;align-items:flex-start;padding:8px 12px;border-bottom:1px solid var(--border);gap:8px">'
+                +ts
+                +'<span id="desc-txt-'+i+'" style="flex:1;font-size:12px;color:var(--fg);line-height:1.5">'+txt.replace(/</g,'&lt;')+'</span>'
+                +'<button type="button" onclick="editDescEntry('+i+')" title="Edit" style="border:none;background:none;cursor:pointer;padding:0 4px;color:var(--fg3);font-size:12px;flex-shrink:0">✏️</button>'
+                +'<button type="button" onclick="deleteDescEntry('+i+')" title="Delete" style="border:none;background:none;cursor:pointer;padding:0 4px;color:#ef4444;font-size:12px;flex-shrink:0">🗑</button>'
+                +'</div>';
+            }).join('') : '<div style="padding:16px 12px;font-size:12px;color:var(--fg3);text-align:center">No notes yet. Add one below.</div>';
+          }
+          renderLog(hidden ? hidden.value : '');
+          window._descVal = hidden ? hidden.value : '';
+          window.editDescEntry = function(i){
+            const entries = window._descVal.split('\\n');
+            const e = entries[i]||'';
+            const m = e.match(/^(\\[.*?\\])\\s*(.*)/);
+            const txt = m ? m[2] : e;
+            const inp = prompt('Edit note:', txt);
+            if(inp===null) return;
+            const ts = m ? m[1] : '';
+            entries[i] = ts ? ts+' '+inp : inp;
+            window._descVal = entries.join('\\n');
+            if(hidden) hidden.value = window._descVal;
+            renderLog(window._descVal);
+          };
+          window.deleteDescEntry = function(i){
+            if(!confirm('Delete this note?')) return;
+            const entries = window._descVal.split('\\n');
+            entries.splice(i,1);
+            window._descVal = entries.join('\\n');
+            if(hidden) hidden.value = window._descVal;
+            renderLog(window._descVal);
+          };
+        })();
+      </script>`,
     save: (id) => {
       const cb = (fid) => document.getElementById('f-'+fid)?.checked || false;
       const r = {
@@ -7351,7 +7459,8 @@ const MODAL_FORMS = {
         source:v('source'), industry:v('industry'), rating:v('rating'),
         numEmployees:Number(v('numEmployees')||0), annualRevenue:Number(v('annualRevenue')||0),
         value:Number(v('value')||0), lane:v('lane'), sourceSD:v('sourceSD'),
-        handoverDate:v('handoverDate'), followupDate:v('followupDate'), month:v('month'),
+        handoverDate:v('handoverDate'), followupDate:v('followupDate2')||v('followupDate'), month:v('month'),
+        followupStatus:v('followupStatus'), followupNotes:v('followupNotes'),
         clientType:v('clientType'), numPositions:Number(v('numPositions')||0),
         compensation:v('compensation'), deliveryPOC:v('deliveryPOC'),
         agreement:v('agreement'),
@@ -8467,6 +8576,7 @@ const CAMEL_TO_SNAKE = {
   clientName:'client_name', clientType:'client_type', deliveryPOC:'delivery_poc',
   numPositions:'num_positions', commercialsSigned:'commercials_signed',
   sourceSD:'source_sd', wonAt:'won_at', lostAt:'lost_at', lostReason:'lost_reason',
+  followupStatus:'followup_status', followupNotes:'followup_notes',
   candidateName:'candidate_name', contactName:'contact_name', nextStep:'next_step',
   dealType:'deal_type',
   completedAt:'completed_at', expectedRevenue:'expected_revenue', relatedTo:'related_to',
