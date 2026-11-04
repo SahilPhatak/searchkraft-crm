@@ -7017,7 +7017,7 @@ function _renderDescLog(val) {
     const m = e.match(/^(\[.*?\])\s*(.*)/);
     const ts = m ? `<span style="font-size:10px;color:var(--fg3);margin-right:8px;white-space:nowrap;flex-shrink:0">${m[1]}</span>` : '';
     const txt = (m ? m[2] : e).replace(/&/g,'&amp;').replace(/</g,'&lt;');
-    return `<div style="display:flex;align-items:flex-start;padding:8px 12px;border-bottom:1px solid var(--border);gap:6px">${ts}<span style="flex:1;font-size:12px;color:var(--fg);line-height:1.5">${txt}</span><button type="button" onclick="editDescEntry(${i})" title="Edit" style="border:none;background:none;cursor:pointer;padding:2px 4px;color:var(--fg3);font-size:11px;flex-shrink:0">✏️</button><button type="button" onclick="deleteDescEntry(${i})" title="Delete" style="border:none;background:none;cursor:pointer;padding:2px 4px;color:#ef4444;font-size:11px;flex-shrink:0">🗑</button></div>`;
+    return `<div style="display:flex;align-items:center;padding:10px 12px;border-bottom:1px solid var(--border);gap:8px">${ts}<span style="flex:1;font-size:13px;color:var(--fg);line-height:1.5">${txt}</span><button type="button" onclick="editDescEntry(${i})" title="Edit" style="border:none;background:var(--surface2);border-radius:6px;cursor:pointer;padding:5px 10px;color:var(--accent);font-size:15px;flex-shrink:0;line-height:1">✏️</button><button type="button" onclick="deleteDescEntry(${i})" title="Delete" style="border:none;background:#fef2f2;border-radius:6px;cursor:pointer;padding:5px 10px;color:#ef4444;font-size:15px;flex-shrink:0;line-height:1">🗑</button></div>`;
   }).join('') : '<div style="padding:14px 12px;font-size:12px;color:var(--fg3);text-align:center">No notes yet. Add one below.</div>';
   log.scrollTop = log.scrollHeight;
 }
