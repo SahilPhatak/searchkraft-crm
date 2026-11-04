@@ -7009,6 +7009,51 @@ function filterViewsDD(inp, ddId) {
 document.addEventListener('click', function() {
   document.querySelectorAll('.views-dropdown').forEach(d => d.style.display = 'none');
 });
+function _renderDescLog(val) {
+  const log = document.getElementById('desc-log');
+  if (!log) return;
+  const entries = val ? val.split('\n').filter(Boolean) : [];
+  log.innerHTML = entries.length ? entries.map((e,i) => {
+    const m = e.match(/^(\[.*?\])\s*(.*)/);
+    const ts = m ? `<span style="font-size:10px;color:var(--fg3);margin-right:8px;white-space:nowrap;flex-shrink:0">${m[1]}</span>` : '';
+    const txt = (m ? m[2] : e).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+    return `<div style="display:flex;align-items:flex-start;padding:8px 12px;border-bottom:1px solid var(--border);gap:6px">${ts}<span style="flex:1;font-size:12px;color:var(--fg);line-height:1.5">${txt}</span><button type="button" onclick="editDescEntry(${i})" title="Edit" style="border:none;background:none;cursor:pointer;padding:2px 4px;color:var(--fg3);font-size:11px;flex-shrink:0">✏️</button><button type="button" onclick="deleteDescEntry(${i})" title="Delete" style="border:none;background:none;cursor:pointer;padding:2px 4px;color:#ef4444;font-size:11px;flex-shrink:0">🗑</button></div>`;
+  }).join('') : '<div style="padding:14px 12px;font-size:12px;color:var(--fg3);text-align:center">No notes yet. Add one below.</div>';
+  log.scrollTop = log.scrollHeight;
+}
+
+function initDescLog() {
+  const hidden = document.getElementById('f-description');
+  if (!hidden) return;
+  window._descVal = hidden.value || '';
+  _renderDescLog(window._descVal);
+}
+
+function editDescEntry(i) {
+  const entries = (window._descVal || '').split('\n').filter(Boolean);
+  const e = entries[i] || '';
+  const m = e.match(/^(\[.*?\])\s*(.*)/);
+  const txt = m ? m[2] : e;
+  const inp = prompt('Edit note:', txt);
+  if (inp === null) return;
+  const ts = m ? m[1] : '';
+  entries[i] = ts ? ts + ' ' + inp : inp;
+  window._descVal = entries.join('\n');
+  const hidden = document.getElementById('f-description');
+  if (hidden) hidden.value = window._descVal;
+  _renderDescLog(window._descVal);
+}
+
+function deleteDescEntry(i) {
+  if (!confirm('Delete this note?')) return;
+  const entries = (window._descVal || '').split('\n').filter(Boolean);
+  entries.splice(i, 1);
+  window._descVal = entries.join('\n');
+  const hidden = document.getElementById('f-description');
+  if (hidden) hidden.value = window._descVal;
+  _renderDescLog(window._descVal);
+}
+
 function selectAll(tbodyId, masterCb) {
   const tbody = document.getElementById(tbodyId);
   if (!tbody) return;
@@ -7026,26 +7071,11 @@ function addDescEntry() {
   const timeStr = now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true});
   const entry = `[${dateStr} ${timeStr}] ${text}`;
   const existing = window._descVal || hidden.value || '';
-  const updated = existing ? existing + '\n' + entry : entry;
+  const updated = (existing ? existing + '\n' : '') + entry;
   window._descVal = updated;
   hidden.value = updated;
   input.value = '';
-  // re-render via inline script's renderLog if available
-  const log = document.getElementById('desc-log');
-  if (log && window._descRender) window._descRender(updated);
-  else if (log) {
-    const entries = updated.split('\n');
-    log.innerHTML = entries.map((e,i)=>{
-      const m = e.match(/^(\[.*?\])\s*(.*)/);
-      const ts = m ? '<span style="font-size:10px;color:var(--fg3);margin-right:8px;white-space:nowrap">'+m[1]+'</span>' : '';
-      const txt = (m ? m[2] : e).replace(/</g,'&lt;');
-      return '<div style="display:flex;align-items:flex-start;padding:8px 12px;border-bottom:1px solid var(--border);gap:8px">'+ts+'<span style="flex:1;font-size:12px;color:var(--fg);line-height:1.5">'+txt+'</span>'
-        +'<button type="button" onclick="editDescEntry('+i+')" title="Edit" style="border:none;background:none;cursor:pointer;padding:0 4px;color:var(--fg3);font-size:12px;flex-shrink:0">✏️</button>'
-        +'<button type="button" onclick="deleteDescEntry('+i+')" title="Delete" style="border:none;background:none;cursor:pointer;padding:0 4px;color:#ef4444;font-size:12px;flex-shrink:0">🗑</button>'
-        +'</div>';
-    }).join('');
-    log.scrollTop = log.scrollHeight;
-  }
+  _renderDescLog(updated);
 }
 
 function calcExpectedRevenue() {
@@ -7404,50 +7434,7 @@ const MODAL_FORMS = {
           </div>
           <input type="hidden" id="f-description" value="${(r.description||'').replace(/"/g,'&quot;')}">
         </div>
-      </div>
-      <script>
-        (function(){
-          const hidden = document.getElementById('f-description');
-          const log = document.getElementById('desc-log');
-          function renderLog(val){
-            const entries = val ? val.split('\\n') : [];
-            log.innerHTML = entries.length ? entries.map((e,i)=>{
-              const m = e.match(/^(\\[.*?\\])\\s*(.*)/);
-              const ts = m ? '<span style="font-size:10px;color:var(--fg3);margin-right:8px;white-space:nowrap">'+m[1]+'</span>' : '';
-              const txt = m ? m[2] : e;
-              return '<div style="display:flex;align-items:flex-start;padding:8px 12px;border-bottom:1px solid var(--border);gap:8px">'
-                +ts
-                +'<span id="desc-txt-'+i+'" style="flex:1;font-size:12px;color:var(--fg);line-height:1.5">'+txt.replace(/</g,'&lt;')+'</span>'
-                +'<button type="button" onclick="editDescEntry('+i+')" title="Edit" style="border:none;background:none;cursor:pointer;padding:0 4px;color:var(--fg3);font-size:12px;flex-shrink:0">✏️</button>'
-                +'<button type="button" onclick="deleteDescEntry('+i+')" title="Delete" style="border:none;background:none;cursor:pointer;padding:0 4px;color:#ef4444;font-size:12px;flex-shrink:0">🗑</button>'
-                +'</div>';
-            }).join('') : '<div style="padding:16px 12px;font-size:12px;color:var(--fg3);text-align:center">No notes yet. Add one below.</div>';
-          }
-          renderLog(hidden ? hidden.value : '');
-          window._descVal = hidden ? hidden.value : '';
-          window.editDescEntry = function(i){
-            const entries = window._descVal.split('\\n');
-            const e = entries[i]||'';
-            const m = e.match(/^(\\[.*?\\])\\s*(.*)/);
-            const txt = m ? m[2] : e;
-            const inp = prompt('Edit note:', txt);
-            if(inp===null) return;
-            const ts = m ? m[1] : '';
-            entries[i] = ts ? ts+' '+inp : inp;
-            window._descVal = entries.join('\\n');
-            if(hidden) hidden.value = window._descVal;
-            renderLog(window._descVal);
-          };
-          window.deleteDescEntry = function(i){
-            if(!confirm('Delete this note?')) return;
-            const entries = window._descVal.split('\\n');
-            entries.splice(i,1);
-            window._descVal = entries.join('\\n');
-            if(hidden) hidden.value = window._descVal;
-            renderLog(window._descVal);
-          };
-        })();
-      </script>`,
+      </div>`,
     save: (id) => {
       const cb = (fid) => document.getElementById('f-'+fid)?.checked || false;
       const r = {
@@ -8442,6 +8429,7 @@ function openModal(type, id, defaults) {
         ${cfg.fields(rec||{}, id)}
       </div>`;
     overlay.style.display = 'flex';
+    if (type === 'lead') setTimeout(initDescLog, 0);
     // Update topbar title
     const ttl = cfg.fpModule ? cfg.fpModule.charAt(0).toUpperCase() + cfg.fpModule.slice(1) : cfg.title(id);
     document.getElementById('topbar-title').textContent = ttl;
@@ -8451,6 +8439,7 @@ function openModal(type, id, defaults) {
   document.getElementById('modal-title').textContent = cfg.title(id);
   document.getElementById('modal-body').innerHTML = cfg.fields(rec||{}, id);
   document.getElementById('modal-overlay').style.display = 'flex';
+  if (type === 'lead') setTimeout(initDescLog, 0);
 }
 
 function closeModal() {
