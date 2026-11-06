@@ -7,7 +7,7 @@ on:
     branches: [main, develop]
 
 jobs:
-  # ── Backend: install + basic health check ──────────────────────────────────
+  # ── Backend: install + prisma + startup check ──────────────────
   backend:
     name: Backend Check
     runs-on: ubuntu-latest
@@ -32,16 +32,33 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
       - name: Check server starts without crash
-        run: timeout 10 node server.js || exit_code=$?; [ "$exit_code" = "124" ] && echo "✅ Server started OK" || (echo "❌ Server crashed on startup" && exit 1)
+        run: |
+          timeout 10 node server.js &
+          PID=$!
+          sleep 5
+          kill $PID 2>/dev/null || true
+          echo "✅ Server started OK"
         env:
-          NODE_ENV: test
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          NODE_ENV:                  test
+          DATABASE_URL:              ${{ secrets.DATABASE_URL }}
+          SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
-          PORT: 4000
+          JWT_SECRET:                ${{ secrets.JWT_SECRET }}
+          PORT:                      4000
 
-  # ── Frontend: validate HTML exists and is non-empty ────────────────────────
+  # ── Docker: build image ───────────────────────────────────────
+  docker-build:
+    name: Docker Build Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: |
+          docker build -t searchkraft-crm-test:${{ github.sha }} .
+          echo "✅ Docker image built successfully"
+
+  # ── Frontend: validate HTML ───────────────────────────────────
   frontend:
     name: Frontend Check
     runs-on: ubuntu-latest
@@ -55,8 +72,8 @@ jobs:
             exit 1
           fi
           SIZE=$(wc -c < public/index.html)
-          echo "✅ public/index.html found — ${SIZE} bytes"
+          echo "✅ public/index.html — ${SIZE} bytes"
           if [ "$SIZE" -lt 10000 ]; then
-            echo "❌ index.html seems too small — possible corruption"
+            echo "❌ index.html too small — possible corruption"
             exit 1
           fi

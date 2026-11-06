@@ -1,0 +1,50 @@
+version: '3.9'
+
+services:
+  # ── Backend API ───────────────────────────────────────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: searchkraft-backend
+    restart: unless-stopped
+    ports:
+      - "10000:10000"
+    environment:
+      NODE_ENV:                  production
+      PORT:                      10000
+      DATABASE_URL:              ${DATABASE_URL}
+      SUPABASE_URL:              ${SUPABASE_URL}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      JWT_SECRET:                ${JWT_SECRET}
+      FRONTEND_URL:              ${FRONTEND_URL}
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:10000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - crm-network
+
+  # ── Frontend (nginx serving static files) ─────────────────────────
+  frontend:
+    image: nginx:alpine
+    container_name: searchkraft-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./public:/usr/share/nginx/html:ro
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - crm-network
+
+networks:
+  crm-network:
+    driver: bridge

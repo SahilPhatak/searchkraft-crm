@@ -1,14 +1,18 @@
-name: CD — Deploy to Production (AWS)
+name: CD — Deploy to AWS
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
 
+env:
+  AWS_REGION:     ${{ secrets.AWS_REGION }}
+  ECR_REPOSITORY: searchkraft-crm-backend
+
 jobs:
-  # ── 1. Pre-deploy CI checks ───────────────────────────────────────────────
-  ci-check:
-    name: Pre-deploy Checks
+  # ── 1. CI checks ─────────────────────────────────────────────────
+  ci:
+    name: CI Checks
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -29,18 +33,18 @@ jobs:
 
       - name: Validate frontend
         run: |
-          [ -f "public/index.html" ] && echo "✅ Frontend OK" || (echo "❌ index.html missing" && exit 1)
+          [ -f "public/index.html" ] || (echo "❌ index.html missing" && exit 1)
           SIZE=$(wc -c < public/index.html)
-          echo "index.html size: ${SIZE} bytes"
-          [ "$SIZE" -gt 10000 ] || (echo "❌ Too small — corruption?" && exit 1)
+          [ "$SIZE" -gt 10000 ] || (echo "❌ index.html too small" && exit 1)
+          echo "✅ Frontend OK — ${SIZE} bytes"
 
-  # ── 2. Build & push Docker image to ECR ──────────────────────────────────
-  build-backend:
-    name: Build Backend Docker Image
+  # ── 2. Build & push Docker image to ECR ──────────────────────────
+  build-and-push:
+    name: Build & Push Docker Image
     runs-on: ubuntu-latest
-    needs: ci-check
+    needs: ci
     outputs:
-      image-tag: ${{ steps.meta.outputs.version }}
+      image: ${{ steps.build.outputs.image }}
     steps:
       - uses: actions/checkout@v4
 
@@ -55,71 +59,76 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build, tag and push image
-        id: meta
+      - name: Build, tag and push image to ECR
+        id: build
         env:
-          ECR_REGISTRY:   ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: searchkraft-crm-backend
-          IMAGE_TAG:      ${{ github.sha }}
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG:    ${{ github.sha }}
         run: |
+          # Build image
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          # Also tag as latest
-          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
-                     $ECR_REGISTRY/$ECR_REPOSITORY:latest
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-          echo "version=$IMAGE_TAG" >> $GITHUB_OUTPUT
-          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
 
-  # ── 3. Deploy backend to EC2 via SSH ──────────────────────────────────────
+          # Push both tags
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+          echo "✅ Image pushed: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+
+  # ── 3. Deploy backend to EC2 ──────────────────────────────────────
   deploy-backend:
     name: Deploy Backend → EC2
     runs-on: ubuntu-latest
-    needs: build-backend
+    needs: build-and-push
     steps:
-      - name: Deploy via SSH
+      - name: SSH into EC2 & deploy
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host:        ${{ secrets.EC2_HOST }}
-          username:    ec2-user
-          key:         ${{ secrets.EC2_SSH_KEY }}
-          timeout:     120s
+          host:     ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key:      ${{ secrets.EC2_SSH_KEY }}
+          timeout:  120s
           script: |
-            # Login to ECR
+            set -e
+
+            echo "🔐 Logging into ECR..."
             aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | \
               docker login --username AWS --password-stdin \
               ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
 
-            # Pull latest image
-            docker pull ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/searchkraft-crm-backend:latest
+            echo "📦 Pulling latest image..."
+            docker pull ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:latest
 
-            # Stop & remove old container (ignore error if not running)
-            docker stop searchkraft-crm || true
-            docker rm   searchkraft-crm || true
+            echo "🛑 Stopping old container..."
+            docker stop searchkraft-backend 2>/dev/null || true
+            docker rm   searchkraft-backend 2>/dev/null || true
 
-            # Start new container
+            echo "🚀 Starting new container..."
             docker run -d \
-              --name searchkraft-crm \
+              --name searchkraft-backend \
               --restart unless-stopped \
               -p 10000:10000 \
               -e NODE_ENV=production \
+              -e PORT=10000 \
               -e DATABASE_URL="${{ secrets.DATABASE_URL }}" \
               -e SUPABASE_URL="${{ secrets.SUPABASE_URL }}" \
               -e SUPABASE_SERVICE_ROLE_KEY="${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
               -e JWT_SECRET="${{ secrets.JWT_SECRET }}" \
-              -e PORT=10000 \
-              ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/searchkraft-crm-backend:latest
+              -e FRONTEND_URL="${{ secrets.FRONTEND_URL }}" \
+              ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:latest
 
-            # Prune old images to save disk space
+            echo "🧹 Cleaning up old images..."
             docker image prune -f
 
-            echo "✅ Backend deployed on EC2"
+            echo "✅ Backend deployed!"
+            docker ps | grep searchkraft-backend
 
-  # ── 4. Deploy frontend to S3 + CloudFront ────────────────────────────────
+  # ── 4. Deploy frontend to S3 + invalidate CloudFront ─────────────
   deploy-frontend:
-    name: Deploy Frontend → S3/CloudFront
+    name: Deploy Frontend → S3 + CloudFront
     runs-on: ubuntu-latest
-    needs: ci-check
+    needs: ci
     steps:
       - uses: actions/checkout@v4
 
@@ -130,52 +139,58 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region:            ${{ secrets.AWS_REGION }}
 
-      - name: Sync frontend to S3
+      - name: Sync to S3
         run: |
+          # Sync all files with long cache (1 year)
           aws s3 sync public/ s3://${{ secrets.S3_BUCKET_NAME }}/ \
             --delete \
-            --cache-control "public,max-age=31536000" \
+            --cache-control "public,max-age=31536000,immutable" \
             --exclude "index.html"
-          # index.html must NOT be cached (always serve latest)
+
+          # index.html — no cache (always latest)
           aws s3 cp public/index.html s3://${{ secrets.S3_BUCKET_NAME }}/index.html \
-            --cache-control "no-cache,no-store,must-revalidate"
-          echo "✅ Frontend synced to S3"
+            --cache-control "no-cache,no-store,must-revalidate" \
+            --content-type "text/html"
+
+          echo "✅ Synced to S3"
 
       - name: Invalidate CloudFront cache
         run: |
-          aws cloudfront create-invalidation \
+          INVALIDATION_ID=$(aws cloudfront create-invalidation \
             --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} \
-            --paths "/*"
-          echo "✅ CloudFront cache invalidated"
+            --paths "/*" \
+            --query 'Invalidation.Id' \
+            --output text)
+          echo "✅ CloudFront invalidation started: $INVALIDATION_ID"
 
-  # ── 5. Post-deploy health check ───────────────────────────────────────────
+  # ── 5. Post-deploy health check ───────────────────────────────────
   health-check:
-    name: Post-deploy Health Check
+    name: Health Check
     runs-on: ubuntu-latest
     needs: [deploy-backend, deploy-frontend]
     steps:
-      - name: Wait for backend to warm up
-        run: sleep 20
+      - name: Wait for services to warm up
+        run: sleep 30
 
-      - name: Check backend health
+      - name: Check backend
         run: |
-          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
-            "${{ secrets.BACKEND_URL }}/health" \
-            --max-time 30 || echo "000")
-          echo "Backend /health → HTTP $HTTP_CODE"
-          [ "$HTTP_CODE" = "200" ] && echo "✅ Backend healthy" || echo "⚠️ Backend returned $HTTP_CODE"
+          HTTP=$(curl -sf -o /dev/null -w "%{http_code}" \
+            "${{ secrets.BACKEND_URL }}/health" --max-time 30 || echo "000")
+          echo "Backend /health → $HTTP"
+          [ "$HTTP" = "200" ] && echo "✅ Backend healthy" || echo "⚠️ Backend returned $HTTP"
 
-      - name: Check frontend health
+      - name: Check frontend
         run: |
-          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
-            "${{ secrets.FRONTEND_URL }}" \
-            --max-time 30 || echo "000")
-          echo "Frontend → HTTP $HTTP_CODE"
-          [ "$HTTP_CODE" = "200" ] && echo "✅ Frontend healthy" || echo "⚠️ Frontend returned $HTTP_CODE"
+          HTTP=$(curl -sf -o /dev/null -w "%{http_code}" \
+            "${{ secrets.FRONTEND_URL }}" --max-time 30 || echo "000")
+          echo "Frontend → $HTTP"
+          [ "$HTTP" = "200" ] && echo "✅ Frontend healthy" || echo "⚠️ Frontend returned $HTTP"
 
-      - name: Deploy summary
+      - name: Summary
         run: |
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo "🚀 Deployment complete!"
-          echo "Frontend: ${{ secrets.FRONTEND_URL }}"
-          echo "Backend:  ${{ secrets.BACKEND_URL }}"
-          echo "Commit:   ${{ github.sha }}"
+          echo "Frontend : ${{ secrets.FRONTEND_URL }}"
+          echo "Backend  : ${{ secrets.BACKEND_URL }}"
+          echo "Commit   : ${{ github.sha }}"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

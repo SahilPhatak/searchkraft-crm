@@ -1,7 +1,32 @@
-node_modules
+# Git
 .git
+.gitignore
+
+# CI/CD
 .github
+
+# Frontend (not in Docker image — served from S3)
 public
+
+# Database files
 supabase
+
+# Docs
 *.md
-.env*
+AWS_SETUP.md
+
+# Local env files (never bake into image)
+.env
+.env.*
+!.env.example
+
+# Dev dependencies artifacts
+node_modules
+
+# Docker files themselves
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Nginx config
+nginx
