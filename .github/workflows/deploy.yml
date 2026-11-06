@@ -1,18 +1,15 @@
-name: CD — Deploy to Production
+name: CD — Deploy to Production (AWS)
 
 on:
   push:
-    branches: [main]          # Only deploy when code merges to main
-  workflow_dispatch:          # Also allow manual trigger from GitHub UI
+    branches: [main]
+  workflow_dispatch:
 
 jobs:
-  # ── 1. Run CI checks first — don't deploy broken code ─────────────────────
+  # ── 1. Pre-deploy CI checks ───────────────────────────────────────────────
   ci-check:
     name: Pre-deploy Checks
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
     steps:
       - uses: actions/checkout@v4
 
@@ -23,6 +20,7 @@ jobs:
           cache-dependency-path: backend/package-lock.json
 
       - name: Install & generate Prisma
+        working-directory: backend
         run: |
           npm ci
           npx prisma generate
@@ -30,96 +28,154 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
       - name: Validate frontend
-        working-directory: .
         run: |
           [ -f "public/index.html" ] && echo "✅ Frontend OK" || (echo "❌ index.html missing" && exit 1)
+          SIZE=$(wc -c < public/index.html)
+          echo "index.html size: ${SIZE} bytes"
+          [ "$SIZE" -gt 10000 ] || (echo "❌ Too small — corruption?" && exit 1)
 
-  # ── 2. Deploy backend to Render ───────────────────────────────────────────
-  deploy-backend:
-    name: Deploy Backend → Render
+  # ── 2. Build & push Docker image to ECR ──────────────────────────────────
+  build-backend:
+    name: Build Backend Docker Image
     runs-on: ubuntu-latest
-    needs: ci-check           # Only runs if CI passed
-    steps:
-      - name: Trigger Render deploy
-        run: |
-          curl -f -X POST \
-            "https://api.render.com/v1/services/${{ secrets.RENDER_SERVICE_ID }}/deploys" \
-            -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
-            -H "Content-Type: application/json" \
-            -d '{"clearCache": false}'
-          echo "✅ Render deploy triggered"
-
-      - name: Wait for Render deploy to complete
-        run: |
-          echo "⏳ Waiting 60s for Render to build and deploy..."
-          sleep 60
-          # Poll Render API to check deploy status
-          STATUS=$(curl -s \
-            "https://api.render.com/v1/services/${{ secrets.RENDER_SERVICE_ID }}/deploys?limit=1" \
-            -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
-            | python3 -c "import sys,json; d=json.load(sys.stdin); print(d[0]['deploy']['status'])" 2>/dev/null || echo "unknown")
-          echo "Deploy status: $STATUS"
-          if [ "$STATUS" = "live" ] || [ "$STATUS" = "unknown" ]; then
-            echo "✅ Backend deployed"
-          else
-            echo "⚠️ Deploy status: $STATUS — check Render dashboard"
-          fi
-
-  # ── 3. Deploy frontend to Vercel ──────────────────────────────────────────
-  deploy-frontend:
-    name: Deploy Frontend → Vercel
-    runs-on: ubuntu-latest
-    needs: ci-check           # Only runs if CI passed
+    needs: ci-check
+    outputs:
+      image-tag: ${{ steps.meta.outputs.version }}
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          node-version: '20'
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region:            ${{ secrets.AWS_REGION }}
 
-      - name: Install Vercel CLI
-        run: npm install -g vercel@latest
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Deploy to Vercel Production
-        run: vercel --prod --yes --token=${{ secrets.VERCEL_TOKEN }}
+      - name: Build, tag and push image
+        id: meta
         env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          ECR_REGISTRY:   ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: searchkraft-crm-backend
+          IMAGE_TAG:      ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          # Also tag as latest
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
+                     $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          echo "version=$IMAGE_TAG" >> $GITHUB_OUTPUT
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
-  # ── 4. Post-deploy health check ───────────────────────────────────────────
+  # ── 3. Deploy backend to EC2 via SSH ──────────────────────────────────────
+  deploy-backend:
+    name: Deploy Backend → EC2
+    runs-on: ubuntu-latest
+    needs: build-backend
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host:        ${{ secrets.EC2_HOST }}
+          username:    ec2-user
+          key:         ${{ secrets.EC2_SSH_KEY }}
+          timeout:     120s
+          script: |
+            # Login to ECR
+            aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | \
+              docker login --username AWS --password-stdin \
+              ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+
+            # Pull latest image
+            docker pull ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/searchkraft-crm-backend:latest
+
+            # Stop & remove old container (ignore error if not running)
+            docker stop searchkraft-crm || true
+            docker rm   searchkraft-crm || true
+
+            # Start new container
+            docker run -d \
+              --name searchkraft-crm \
+              --restart unless-stopped \
+              -p 10000:10000 \
+              -e NODE_ENV=production \
+              -e DATABASE_URL="${{ secrets.DATABASE_URL }}" \
+              -e SUPABASE_URL="${{ secrets.SUPABASE_URL }}" \
+              -e SUPABASE_SERVICE_ROLE_KEY="${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+              -e JWT_SECRET="${{ secrets.JWT_SECRET }}" \
+              -e PORT=10000 \
+              ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/searchkraft-crm-backend:latest
+
+            # Prune old images to save disk space
+            docker image prune -f
+
+            echo "✅ Backend deployed on EC2"
+
+  # ── 4. Deploy frontend to S3 + CloudFront ────────────────────────────────
+  deploy-frontend:
+    name: Deploy Frontend → S3/CloudFront
+    runs-on: ubuntu-latest
+    needs: ci-check
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region:            ${{ secrets.AWS_REGION }}
+
+      - name: Sync frontend to S3
+        run: |
+          aws s3 sync public/ s3://${{ secrets.S3_BUCKET_NAME }}/ \
+            --delete \
+            --cache-control "public,max-age=31536000" \
+            --exclude "index.html"
+          # index.html must NOT be cached (always serve latest)
+          aws s3 cp public/index.html s3://${{ secrets.S3_BUCKET_NAME }}/index.html \
+            --cache-control "no-cache,no-store,must-revalidate"
+          echo "✅ Frontend synced to S3"
+
+      - name: Invalidate CloudFront cache
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} \
+            --paths "/*"
+          echo "✅ CloudFront cache invalidated"
+
+  # ── 5. Post-deploy health check ───────────────────────────────────────────
   health-check:
     name: Post-deploy Health Check
     runs-on: ubuntu-latest
     needs: [deploy-backend, deploy-frontend]
     steps:
-      - name: Check backend is responding
+      - name: Wait for backend to warm up
+        run: sleep 20
+
+      - name: Check backend health
         run: |
-          echo "⏳ Checking backend health..."
-          sleep 15
           HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
             "${{ secrets.BACKEND_URL }}/health" \
             --max-time 30 || echo "000")
-          echo "Backend responded with: $HTTP_CODE"
-          if [ "$HTTP_CODE" = "200" ]; then
-            echo "✅ Backend is healthy"
-          else
-            echo "⚠️ Backend health check returned $HTTP_CODE — check Render logs"
-          fi
+          echo "Backend /health → HTTP $HTTP_CODE"
+          [ "$HTTP_CODE" = "200" ] && echo "✅ Backend healthy" || echo "⚠️ Backend returned $HTTP_CODE"
 
-      - name: Check frontend is responding
+      - name: Check frontend health
         run: |
           HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
             "${{ secrets.FRONTEND_URL }}" \
             --max-time 30 || echo "000")
-          echo "Frontend responded with: $HTTP_CODE"
-          if [ "$HTTP_CODE" = "200" ]; then
-            echo "✅ Frontend is healthy"
-          else
-            echo "⚠️ Frontend health check returned $HTTP_CODE"
-          fi
+          echo "Frontend → HTTP $HTTP_CODE"
+          [ "$HTTP_CODE" = "200" ] && echo "✅ Frontend healthy" || echo "⚠️ Frontend returned $HTTP_CODE"
 
-      - name: Notify deploy success
+      - name: Deploy summary
         run: |
           echo "🚀 Deployment complete!"
           echo "Frontend: ${{ secrets.FRONTEND_URL }}"
           echo "Backend:  ${{ secrets.BACKEND_URL }}"
+          echo "Commit:   ${{ github.sha }}"
