@@ -1928,8 +1928,8 @@ textarea { min-height: 80px; resize: vertical; }
               <button class="cal-tab-btn cal-tab-active" data-view="month" onclick="switchMainCalView('month',this)" style="padding:6px 14px;font-size:12px;font-weight:500;background:var(--accent);border:none;cursor:pointer;color:#fff">Month</button>
             </div>
             <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
-              <button onclick="calNav(-1)" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:5px 10px;cursor:pointer;color:var(--fg2);font-size:14px">‹</button>
-              <button onclick="calNav(1)" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:5px 10px;cursor:pointer;color:var(--fg2);font-size:14px">›</button>
+              <button onclick="calNavView(-1)" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:5px 10px;cursor:pointer;color:var(--fg2);font-size:14px">‹</button>
+              <button onclick="calNavView(1)" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:5px 10px;cursor:pointer;color:var(--fg2);font-size:14px">›</button>
               <button onclick="openModal('activity')" class="btn btn-primary btn-sm">+ Create</button>
             </div>
           </div>
@@ -4881,24 +4881,48 @@ function switchCalView(view, btn) {
   btn.classList.add('cal-view-active');
 }
 
+let calView = 'month'; // 'day' | 'week' | 'month'
+let calWeekStart = null; // Monday of current week for week view
+let calDayDate = null;   // date string for day view
+
 function switchMainCalView(view, btn) {
   document.querySelectorAll('.cal-tab-btn').forEach(b=>{
     b.style.background='var(--surface2)'; b.style.color='var(--fg2)';
   });
   btn.style.background='var(--accent)'; btn.style.color='#fff';
+  calView = view;
+  if (view === 'week') {
+    // Set week to contain today or current calMonth
+    const ref = new Date(calYear, calMonth, new Date().getDate());
+    const dow = (ref.getDay()+6)%7; // Monday=0
+    calWeekStart = new Date(ref); calWeekStart.setDate(ref.getDate()-dow);
+  }
+  if (view === 'day') {
+    calDayDate = today();
+  }
+  renderCalendarGrid();
+}
+
+function calNavView(dir) {
+  if (calView === 'month') { calNav(dir); return; }
+  if (calView === 'week') {
+    calWeekStart = calWeekStart || (() => { const d=new Date(); d.setDate(d.getDate()-((d.getDay()+6)%7)); return d; })();
+    calWeekStart = new Date(calWeekStart); calWeekStart.setDate(calWeekStart.getDate() + dir*7);
+    renderCalendarGrid(); return;
+  }
+  if (calView === 'day') {
+    const d = new Date(calDayDate); d.setDate(d.getDate()+dir);
+    calDayDate = d.toISOString().slice(0,10);
+    renderCalendarGrid(); return;
+  }
 }
 
 function renderCalendarGrid() {
   const grid = document.getElementById('cal-grid');
   if (!grid) return;
   const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const DAYS_SHORT = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
   const ml = document.getElementById('cal-main-label');
-  if (ml) ml.textContent = MONTHS[calMonth] + '  ' + calYear;
-
-  const firstDay = new Date(calYear, calMonth, 1).getDay();
-  const offset = (firstDay + 6) % 7; // Monday-first
-  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
-  const prevDays = new Date(calYear, calMonth, 0).getDate();
   const todayStr = today();
 
   // Build event lookup by date
@@ -4907,7 +4931,7 @@ function renderCalendarGrid() {
     if (!a.date) return;
     const d = a.date.slice(0,10);
     if (!events[d]) events[d]=[];
-    events[d].push({label:a.summary, cls:a.type==='Meeting'?'cal-event-meeting':'cal-event-call'});
+    events[d].push({label:a.summary||a.subject||'Activity', cls:a.type==='Meeting'?'cal-event-meeting':'cal-event-call'});
   });
   DB.tasks.filter(t=>t.status==='Pending').forEach(t=>{
     if (!t.due) return;
@@ -4915,36 +4939,98 @@ function renderCalendarGrid() {
     if (!events[d]) events[d]=[];
     events[d].push({label:t.title, cls:'cal-event-task'});
   });
-  // Google Calendar events
   gcalEvents.forEach(e=>{
     if (!events[e.date]) events[e.date]=[];
     events[e.date].push({label:(e.time?e.time+' ':'')+e.label, cls:'cal-event-gcal', link:e.link});
   });
 
-  let cells = '';
-  // Prev month overflow
-  for (let i=offset-1;i>=0;i--) {
-    cells += `<div class="cal-cell other-month"><span class="cal-day-num" style="color:var(--fg3)">${prevDays-i}</span></div>`;
+  function eventHtml(dayEvents, max=3) {
+    return dayEvents.slice(0,max).map(e=>e.link
+      ? `<a href="${e.link}" target="_blank" style="text-decoration:none"><div class="cal-event ${e.cls}">${e.label}</div></a>`
+      : `<div class="cal-event ${e.cls}">${e.label}</div>`
+    ).join('') + (dayEvents.length>max ? `<div style="font-size:10px;color:var(--fg3)">+${dayEvents.length-max} more</div>` : '');
   }
-  // Current month
-  for (let d=1;d<=daysInMonth;d++) {
-    const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const isT = dateStr===todayStr;
-    const dayEvents = events[dateStr]||[];
-    const isSat = (offset+d-1)%7===5, isSun=(offset+d-1)%7===6;
-    cells += `<div class="cal-cell${isT?' is-today':''}" onclick="calDayClick('${dateStr}')" style="cursor:pointer">
-      <span class="cal-day-num" style="${isSat||isSun?'color:var(--red)':''}">${d}</span>
-      ${dayEvents.slice(0,3).map(e=>e.link?`<a href="${e.link}" target="_blank" style="text-decoration:none"><div class="cal-event ${e.cls}">${e.label}</div></a>`:`<div class="cal-event ${e.cls}">${e.label}</div>`).join('')}
-      ${dayEvents.length>3?`<div style="font-size:10px;color:var(--fg3)">+${dayEvents.length-3} more</div>`:''}
-    </div>`;
+
+  // ── MONTH VIEW ──
+  if (!calView || calView === 'month') {
+    if (ml) ml.textContent = MONTHS[calMonth] + '  ' + calYear;
+    grid.style.gridTemplateColumns = 'repeat(7,1fr)';
+    grid.style.gridAutoRows = '110px';
+    const firstDay = new Date(calYear, calMonth, 1).getDay();
+    const offset = (firstDay + 6) % 7;
+    const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+    const prevDays = new Date(calYear, calMonth, 0).getDate();
+    let cells = '';
+    for (let i=offset-1;i>=0;i--)
+      cells += `<div class="cal-cell other-month"><span class="cal-day-num" style="color:var(--fg3)">${prevDays-i}</span></div>`;
+    for (let d=1;d<=daysInMonth;d++) {
+      const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const isT = dateStr===todayStr;
+      const dayEvents = events[dateStr]||[];
+      const col = (offset+d-1)%7;
+      const isSat = col===5, isSun=col===6;
+      cells += `<div class="cal-cell${isT?' is-today':''}" onclick="calDayClick('${dateStr}')" style="cursor:pointer">
+        <span class="cal-day-num" style="${isSat||isSun?'color:var(--red)':''}">${d}</span>
+        ${eventHtml(dayEvents)}
+      </div>`;
+    }
+    const total = offset + daysInMonth;
+    const rem = total%7===0?0:7-(total%7);
+    for (let d=1;d<=rem;d++)
+      cells += `<div class="cal-cell other-month"><span class="cal-day-num" style="color:var(--fg3)">${d}</span></div>`;
+    grid.innerHTML = cells;
+    return;
   }
-  // Next month overflow
-  const total = offset + daysInMonth;
-  const rem = total%7===0?0:7-(total%7);
-  for (let d=1;d<=rem;d++) {
-    cells += `<div class="cal-cell other-month"><span class="cal-day-num" style="color:var(--fg3)">${d}</span></div>`;
+
+  // ── WEEK VIEW ──
+  if (calView === 'week') {
+    if (!calWeekStart) {
+      const ref = new Date(); const dow = (ref.getDay()+6)%7;
+      calWeekStart = new Date(ref); calWeekStart.setDate(ref.getDate()-dow);
+    }
+    const weekDates = Array.from({length:7}, (_,i) => {
+      const d = new Date(calWeekStart); d.setDate(d.getDate()+i); return d;
+    });
+    const startLabel = weekDates[0].getDate() + ' ' + MONTHS[weekDates[0].getMonth()];
+    const endLabel = weekDates[6].getDate() + ' ' + MONTHS[weekDates[6].getMonth()] + ' ' + weekDates[6].getFullYear();
+    if (ml) ml.textContent = startLabel + ' – ' + endLabel;
+    grid.style.gridTemplateColumns = 'repeat(7,1fr)';
+    grid.style.gridAutoRows = 'auto';
+    let cells = weekDates.map((d,i) => {
+      const dateStr = d.toISOString().slice(0,10);
+      const isT = dateStr === todayStr;
+      const dayEvents = events[dateStr]||[];
+      const isSat = i===5, isSun = i===6;
+      return `<div class="cal-cell${isT?' is-today':''}" onclick="calDayClick('${dateStr}')" style="cursor:pointer;min-height:120px">
+        <div style="font-size:11px;font-weight:600;color:${isSat||isSun?'var(--red)':'var(--fg2)'};margin-bottom:4px">${DAYS_SHORT[i]} ${d.getDate()}</div>
+        ${eventHtml(dayEvents, 10)}
+      </div>`;
+    }).join('');
+    grid.innerHTML = cells;
+    return;
   }
-  grid.innerHTML = cells;
+
+  // ── DAY VIEW ──
+  if (calView === 'day') {
+    if (!calDayDate) calDayDate = todayStr;
+    const d = new Date(calDayDate);
+    const dow = (d.getDay()+6)%7;
+    if (ml) ml.textContent = DAYS_SHORT[dow] + ', ' + d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear();
+    const dayEvents = events[calDayDate]||[];
+    grid.style.gridTemplateColumns = '1fr';
+    grid.style.gridAutoRows = 'auto';
+    if (dayEvents.length === 0) {
+      grid.innerHTML = `<div style="padding:40px;text-align:center;color:var(--fg3)">No events for this day.<br><br><button onclick="openModal('activity',null,{date:'${calDayDate}'})" class="btn btn-primary btn-sm">+ Add Activity</button></div>`;
+    } else {
+      grid.innerHTML = `<div style="padding:16px;display:flex;flex-direction:column;gap:8px">` +
+        dayEvents.map(e => e.link
+          ? `<a href="${e.link}" target="_blank" style="text-decoration:none"><div class="cal-event ${e.cls}" style="font-size:13px;padding:10px 12px;border-radius:6px">${e.label}</div></a>`
+          : `<div class="cal-event ${e.cls}" style="font-size:13px;padding:10px 12px;border-radius:6px">${e.label}</div>`
+        ).join('') +
+        `<div style="margin-top:8px"><button onclick="openModal('activity',null,{date:'${calDayDate}'})" class="btn btn-primary btn-sm">+ Add Activity</button></div></div>`;
+    }
+    return;
+  }
 }
 
 // =====================================================
