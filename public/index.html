@@ -4956,28 +4956,45 @@ let gcalAccessToken = null;
 let gcalUserEmail = null;
 let gcalEvents = []; // cached Google Calendar events
 
-function gcalLoadState() {
+async function gcalLoadState() {
+  // Load from Supabase profile (persists across sessions)
   try {
-    const saved = localStorage.getItem('gcal_token');
-    if (saved) {
-      const obj = JSON.parse(saved);
-      if (obj.token && obj.expiry && Date.now() < obj.expiry) {
-        gcalAccessToken = obj.token;
-        gcalUserEmail = obj.email || '';
+    const { data: { user } } = await DB_CLIENT.auth.getUser();
+    if (!user) return;
+    const { data } = await DB_CLIENT.from('profiles').select('gcal_token,gcal_email,gcal_token_expiry').eq('id', user.id).single();
+    if (data && data.gcal_token && data.gcal_token_expiry) {
+      if (new Date(data.gcal_token_expiry) > new Date()) {
+        gcalAccessToken = data.gcal_token;
+        gcalUserEmail = data.gcal_email || '';
         gcalUpdateUI(true);
         gcalFetchEvents();
       } else {
-        localStorage.removeItem('gcal_token');
+        // Token expired — clear it
+        await gcalClearStoredToken(user.id);
       }
     }
-  } catch(e) {}
+  } catch(e) { console.error('gcalLoadState error', e); }
 }
 
-function gcalSaveState(token, email, expiresIn) {
+async function gcalSaveState(token, email, expiresIn) {
   try {
-    localStorage.setItem('gcal_token', JSON.stringify({
-      token, email, expiry: Date.now() + (expiresIn * 1000)
-    }));
+    const { data: { user } } = await DB_CLIENT.auth.getUser();
+    if (!user) return;
+    const expiry = new Date(Date.now() + (expiresIn * 1000)).toISOString();
+    await DB_CLIENT.from('profiles').update({
+      gcal_token: token,
+      gcal_email: email,
+      gcal_token_expiry: expiry
+    }).eq('id', user.id);
+  } catch(e) { console.error('gcalSaveState error', e); }
+}
+
+async function gcalClearStoredToken(userId) {
+  try {
+    const id = userId || (await DB_CLIENT.auth.getUser()).data?.user?.id;
+    if (id) await DB_CLIENT.from('profiles').update({
+      gcal_token: null, gcal_email: null, gcal_token_expiry: null
+    }).eq('id', id);
   } catch(e) {}
 }
 
@@ -5015,7 +5032,7 @@ function connectGoogleCalendar() {
         const u = await r.json();
         gcalUserEmail = u.email || '';
       } catch(e) { gcalUserEmail = ''; }
-      gcalSaveState(gcalAccessToken, gcalUserEmail, response.expires_in || 3600);
+      await gcalSaveState(gcalAccessToken, gcalUserEmail, response.expires_in || 3600);
       gcalUpdateUI(true);
       showToast('Google Calendar connected!', 'success');
       await gcalFetchEvents();
@@ -5025,11 +5042,11 @@ function connectGoogleCalendar() {
   client.requestAccessToken();
 }
 
-function disconnectGoogleCalendar() {
+async function disconnectGoogleCalendar() {
   gcalAccessToken = null;
   gcalUserEmail = null;
   gcalEvents = [];
-  try { localStorage.removeItem('gcal_token'); } catch(e) {}
+  await gcalClearStoredToken();
   gcalUpdateUI(false);
   renderCalendarGrid();
   showToast('Google Calendar disconnected.', 'info');
@@ -9202,6 +9219,10 @@ async function doSignOut() {
   stopRealtimeSync();
   DB.leads = []; DB.contacts = []; DB.companies = []; DB.deals = [];
   DB.tasks = []; DB.activities = []; DB.users = []; DB.audit = [];
+  // Clear Google Calendar in-memory state (token stays in Supabase for next login)
+  gcalAccessToken = null;
+  gcalUserEmail = null;
+  gcalEvents = [];
   LOGGED_IN_USER = null;
   await DB_CLIENT.auth.signOut();
   showLoginPage();
