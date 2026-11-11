@@ -1136,6 +1136,7 @@ textarea { min-height: 80px; resize: vertical; }
 .cal-event-meeting { background: #DBEAFE; color: #1E40AF; }
 .cal-event-call { background: #D1FAE5; color: #065F46; }
 .cal-event-gcal { background: #FCE8F3; color: #9D174D; border-left: 2px solid #EC4899; }
+.cal-event { font-size:11px; padding:2px 5px; border-radius:3px; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; display:block; }
 .cal-view-active { background: var(--accent-bg) !important; color: var(--accent) !important; font-weight: 600; }
 
 /* ---- QUICK ADD PANEL ---- */
@@ -5047,12 +5048,12 @@ async function gcalFetchEvents() {
     const data = await r.json();
     gcalEvents = (data.items || []).map(ev => ({
       id: ev.id,
-      label: ev.summary || '(No title)',
+      label: ev.summary && ev.summary.trim() ? ev.summary.trim() : '(No title)',
       date: (ev.start?.date || ev.start?.dateTime || '').slice(0, 10),
       time: ev.start?.dateTime ? ev.start.dateTime.slice(11, 16) : '',
       link: ev.htmlLink || '',
       isGcal: true
-    })).filter(e => e.date);
+    })).filter(e => e.date && e.date.length === 10);
   } catch(e) {
     console.error('gcalFetchEvents error', e);
   }
