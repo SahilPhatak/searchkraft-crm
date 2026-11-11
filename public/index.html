@@ -7737,7 +7737,7 @@ const MODAL_FORMS = {
       </div>
       <div class="form-group"><label>Owner</label><select id="f-owner">${TEAM_MEMBERS.map(m=>`<option>${m}</option>`).join('')}</select></div>`,
     save: async (id) => {
-      const r = { type:v('type'), date:v('date'), summary:v('summary'), contact:v('contact'), company:v('company'), owner:v('owner') };
+      const r = { type:v('type'), date:v('date'), summary:v('summary'), subject:v('summary'), contact:v('contact'), company:v('company'), owner:v('owner') };
       if (!r.summary) return alert('Summary required');
       upsert('activities', id, r);
       // Auto-create Google Calendar event for new Meetings
