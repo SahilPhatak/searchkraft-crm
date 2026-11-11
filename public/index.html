@@ -4935,7 +4935,9 @@ function renderCalendarGrid() {
     if (!a.date) return;
     const d = a.date.slice(0,10);
     if (!events[d]) events[d]=[];
-    events[d].push({label:a.summary||a.subject||'Activity', cls:a.type==='Meeting'?'cal-event-meeting':'cal-event-call'});
+    const timeLabel = a.time ? a.time.slice(0,5)+' ' : '';
+    const cls = a.type==='Meeting'?'cal-event-meeting':a.type==='Task'?'cal-event-task':'cal-event-call';
+    events[d].push({label:timeLabel+(a.summary||a.subject||'Activity'), cls});
   });
   DB.tasks.filter(t=>t.status==='Pending').forEach(t=>{
     if (!t.due) return;
@@ -7855,21 +7857,25 @@ const MODAL_FORMS = {
         <div class="form-group"><label>Type</label><select id="f-type"><option>Call</option><option>Email</option><option>Meeting</option><option>LinkedIn</option></select></div>
         <div class="form-group"><label>Date</label><input id="f-date" type="date" value="${r.date||today()}"></div>
       </div>
-      <div class="form-group"><label>Summary *</label><textarea id="f-summary"></textarea></div>
       <div class="form-row">
-        <div class="form-group"><label>Contact</label><input id="f-contact" type="text"></div>
-        <div class="form-group"><label>Company</label><input id="f-company" type="text"></div>
+        <div class="form-group"><label>Time</label><input id="f-time" type="time" value="${r.time||''}"></div>
+        <div class="form-group"></div>
+      </div>
+      <div class="form-group"><label>Summary *</label><textarea id="f-summary">${r.summary||''}</textarea></div>
+      <div class="form-row">
+        <div class="form-group"><label>Contact</label><input id="f-contact" type="text" value="${r.contact||''}"></div>
+        <div class="form-group"><label>Company</label><input id="f-company" type="text" value="${r.company||''}"></div>
       </div>
       <div class="form-group"><label>Owner</label><select id="f-owner">${TEAM_MEMBERS.map(m=>`<option>${m}</option>`).join('')}</select></div>`,
     save: async (id) => {
-      const r = { type:v('type'), date:v('date'), summary:v('summary'), subject:v('summary'), contact:v('contact'), company:v('company'), owner:v('owner') };
+      const r = { type:v('type'), date:v('date'), time:v('time')||null, summary:v('summary'), subject:v('summary'), contact:v('contact'), company:v('company'), owner:v('owner') };
       if (!r.summary) return alert('Summary required');
       upsert('activities', id, r);
-      // Auto-create Google Calendar event for new Meetings
-      if (!id && r.type === 'Meeting' && gcalAccessToken) {
-        const desc = [r.contact && 'Contact: ' + r.contact, r.company && 'Company: ' + r.company].filter(Boolean).join('\n');
-        await gcalCreateEvent(r.summary, r.date, '', desc);
-        showToast('Meeting added to Google Calendar 📅', 'success');
+      // Auto-create Google Calendar event for all new activities
+      if (!id && gcalAccessToken) {
+        const desc = [r.contact && 'Contact: ' + r.contact, r.company && 'Company: ' + r.company, 'Type: ' + r.type].filter(Boolean).join('\n');
+        await gcalCreateEvent(r.summary, r.date, r.time||'', desc);
+        showToast('Activity added to Google Calendar 📅', 'success');
       }
     }
   },
