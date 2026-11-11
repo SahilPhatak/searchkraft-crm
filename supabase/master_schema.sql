@@ -56,6 +56,7 @@ create table if not exists public.leads (
   followup_notes      text,
   lane                text,
   source_sd           text,
+  lead_type           text,
   month               text,
   handover_done       boolean default false,
   client_name         text,

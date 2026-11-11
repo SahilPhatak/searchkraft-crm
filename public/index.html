@@ -840,6 +840,7 @@ tr:last-child td { border-bottom: none; }
 tr:hover td { background: var(--surface2); }
 td .primary { color: var(--fg); font-weight: 500; }
 td .mono { font-family: 'Roboto Mono', 'IBM Plex Mono', monospace; font-size: 11px; color: var(--fg3); }
+td { font-family: 'Inter', system-ui, sans-serif !important; }
 
 /* ---- BADGES ---- */
 .badge {
@@ -1357,13 +1358,6 @@ textarea { min-height: 80px; resize: vertical; }
             Manager's Home
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" id="vopt-manager-check" style="margin-left:auto;display:none"><polyline points="20 6 9 17 4 12"/></svg>
           </div>
-          <div style="border-top:1px solid var(--border);margin:4px 0"></div>
-          <div style="display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;font-size:13px;color:var(--accent);font-weight:500"
-            onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-            Customize Home Page
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-left:auto"><polyline points="9 18 15 12 9 6"/></svg>
-          </div>
         </div>
       </div>
     </div>
@@ -1471,9 +1465,14 @@ textarea { min-height: 80px; resize: vertical; }
         </div>
       </div>
       <!-- Grid / apps -->
-      <button class="tb-btn" title="Apps">
+      <button class="tb-btn" title="Apps" onclick="toggleAppsPanel(event)" id="apps-panel-btn">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
       </button>
+      <!-- Apps quick-launch panel (populated by buildAppsPanel()) -->
+      <div id="apps-panel" style="display:none;position:absolute;top:54px;right:12px;width:300px;background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,0.18);z-index:500;padding:16px">
+        <div style="font-size:13px;font-weight:700;color:var(--fg);margin-bottom:12px">Quick Navigation</div>
+        <div id="apps-panel-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px"></div>
+      </div>
     </div>
   </div>
   <div class="content" id="content-area">
@@ -3751,6 +3750,7 @@ async function load() {
     followupStatus:   r.followupStatus   || r.followup_status,
     followupNotes:    r.followupNotes    || r.followup_notes,
     sourceSD:         r.sourceSD         || r.source_sd,
+    leadType:         r.leadType         || r.lead_type,
     addrLine1:        r.addrLine1        || r.addr_line1,
     wonAt:            r.wonAt            || r.won_at,
     lostAt:           r.lostAt           || r.lost_at,
@@ -4239,7 +4239,11 @@ function renderDashboard() {
   updateClock();
   window._welcomeClockInterval = setInterval(updateClock, 1000);
 
-  // ---- KPI TILES ----
+  // ---- KPI TILES — role-based visibility ----
+  const isDeliveryDept = LOGGED_IN_USER && (LOGGED_IN_USER.dept||'').toLowerCase() === 'delivery';
+  const leadsKpiCard = document.querySelector('.dash-kpi-card[onclick*="leads"]');
+  if (leadsKpiCard) leadsKpiCard.style.display = isDeliveryDept ? 'none' : '';
+
   const now = new Date();
   const thisYear = now.getFullYear();
   const thisMonth = now.getMonth();
@@ -4936,7 +4940,7 @@ function debounce(key, fn, ms=350) {
 async function searchFromDB(type, q) {
   const Q = (q||'').trim();
   if (type === 'leads') {
-    let query = DB_CLIENT.from('leads').select('*').neq('stage','Won').order('created_at',{ascending:false}).limit(200);
+    let query = DB_CLIENT.from('leads').select('*').order('created_at',{ascending:false}).limit(200);
     if (Q) query = query.or(`first_name.ilike.%${Q}%,last_name.ilike.%${Q}%,email.ilike.%${Q}%,company.ilike.%${Q}%,client_name.ilike.%${Q}%`);
     const { data } = await query;
     if (data) { DB.leads = data.map(norm); renderTableRows('leads'); }
@@ -4944,7 +4948,7 @@ async function searchFromDB(type, q) {
     let query = DB_CLIENT.from('contacts').select('*').order('created_at',{ascending:false}).limit(200);
     if (Q) query = query.or(`name.ilike.%${Q}%,email.ilike.%${Q}%,company.ilike.%${Q}%`);
     const { data } = await query;
-    if (data) { DB.contacts = data.map(norm); renderTableRows('contacts'); }
+    if (data) { DB.contacts = data.map(norm).filter(r=>!r.stage||!LEAD_STAGES.includes(r.stage)); renderTableRows('contacts'); }
   } else if (type === 'companies') {
     let query = DB_CLIENT.from('companies').select('*').order('name',{ascending:true}).limit(200);
     if (Q) query = query.or(`name.ilike.%${Q}%,industry.ilike.%${Q}%,city.ilike.%${Q}%`);
@@ -4978,14 +4982,18 @@ function renderTable(type, q='') {
   }
 
   else if (type==='contacts') {
-    const rows = DB.contacts.filter(r=>!Q||r.name.toLowerCase().includes(Q)||r.email?.toLowerCase().includes(Q));
+    // Only show proper contacts (not lead records accidentally mixed in)
+    const rows = DB.contacts.filter(r=>
+      (!r.stage || !LEAD_STAGES.includes(r.stage)) &&
+      (!Q||(r.name||'').toLowerCase().includes(Q)||(r.email||'').toLowerCase().includes(Q))
+    );
     const ctcount = document.getElementById('contacts-count'); if(ctcount) ctcount.textContent=rows.length;
     const ctpi = document.getElementById('contacts-page-info'); if(ctpi) ctpi.textContent=rows.length?`1 to ${Math.min(25,rows.length)}`:'0';
     document.getElementById('contacts-body').innerHTML = rows.length ? rows.map(r=>`<tr>
       <td><input type="checkbox" style="accent-color:var(--accent)"></td>
       <td class="name-cell" onclick="openModal('contact','${r.id}')">${r.name}</td>
       <td>${r.title||'—'}</td><td>${r.company||getCompanyName(r.companyId)||'—'}</td>
-      <td class="mono">${r.email||'—'}</td><td class="mono">${r.phone||'—'}</td>
+      <td style="font-family:'Inter',system-ui,sans-serif;color:var(--fg2)">${r.email||'—'}</td><td style="font-family:'Inter',system-ui,sans-serif;color:var(--fg2)">${r.phone||'—'}</td>
       <td style="white-space:nowrap">
         ${canDo('contacts','edit')?`<button class="btn btn-ghost btn-sm" title="Edit" onclick="openModal('contact','${r.id}')" style="padding:4px 7px">${ICON_EDIT}</button>`:''}
         ${canDo('contacts','delete')?`<button class="btn btn-ghost btn-sm" title="Delete" onclick="deleteCRMRecord('contacts','${r.id}')" style="padding:4px 7px;color:#ef4444">${ICON_TRASH}</button>`:''}
@@ -4994,7 +5002,7 @@ function renderTable(type, q='') {
   }
 
   else if (type==='leads') {
-    const rows = DB.leads.filter(r=>r.stage!=='Won'&&(!Q||(r.title||r.name||'').toLowerCase().includes(Q)||getCompanyName(r.companyId).toLowerCase().includes(Q)||(r.company||r.companyName||'').toLowerCase().includes(Q)));
+    const rows = DB.leads.filter(r=>(!Q||(r.title||r.name||'').toLowerCase().includes(Q)||getCompanyName(r.companyId).toLowerCase().includes(Q)||(r.company||r.companyName||'').toLowerCase().includes(Q)));
     const lcount = document.getElementById('leads-count'); if(lcount) lcount.textContent=rows.length;
     const lpi = document.getElementById('leads-page-info'); if(lpi) lpi.textContent=rows.length?`1 to ${Math.min(25,rows.length)}`:'0';
     const stageColor = s=>({New:'#6366f1',Contacted:'#0ea5e9','Pre Qualified':'#f59e0b',Qualified:'#10b981','Not Qualified':'#ef4444','Junk Lead':'#9ca3af','Proposal Sent':'#8b5cf6',Negotiation:'#f97316','Follow Up':'#06b6d4',Won:'#22c55e',Lost:'#ef4444','Lost Lead':'#9ca3af'}[s]||'#9ca3af');
@@ -5066,7 +5074,7 @@ function renderTable(type, q='') {
 // ---- LEAD BOARD ----
 let _dragLeadId = null;
 function renderLeadsBoard() {
-  const stages = LEAD_STAGES.filter(s=>s!=='Won');
+  const stages = LEAD_STAGES;
   const board = document.getElementById('leads-board');
   board.innerHTML = stages.map(s=>{
     const cards = DB.leads.filter(l=>l.stage===s);
@@ -7390,26 +7398,19 @@ const MODAL_FORMS = {
         <div class="lf-field"><label>Email *</label><input id="f-email" type="email" required value="${r.email||''}" style="border-color:${r.email?'':'var(--red)'}"></div>
         <div class="lf-field"><label>Phone *</label><input id="f-phone" type="tel" required value="${r.phone||''}" oninput="this.value=this.value.replace(/[^0-9+\\-() ]/g,'')" style="border-color:${r.phone?'':'var(--red)'}"></div>
         <div class="lf-field"><label>Website</label><input id="f-website" type="text" value="${r.website||''}"></div>
-        <div class="lf-field"><label>Lead Source</label><select id="f-source"><option value="">-None-</option>${['Cold Call','Email','Existing Client','Partner','Public Relations','Direct Mail','Conference','Trade Show','Web Site','Internal Seminar','Employees','Google AdWords','Word of Mouth','Other'].map(s=>`<option ${r.source===s?'selected':''}>${s}</option>`).join('')}</select></div>
+        <div class="lf-field"><label>Lead Source</label><select id="f-source"><option value="">-None-</option>${['Cold Call','Email','Existing Client','Partner','Public Relations','Direct Mail','Conference','Trade Show','Web Site','Internal Seminar','Employees','Google AdWords','LinkedIn','Marketing','Word of Mouth','Other'].map(s=>`<option ${r.source===s?'selected':''}>${s}</option>`).join('')}</select></div>
         <div class="lf-field"><label>Lead Status</label><select id="f-stage"><option value="">-None-</option>${LEAD_STAGES.map(s=>`<option ${r.stage===s?'selected':''}>${s}</option>`).join('')}</select></div>
+        <div class="lf-field"><label>Lead Type</label><select id="f-leadType"><option value="">-None-</option>${['Inbound','Outbound'].map(s=>`<option ${r.leadType===s?'selected':''}>${s}</option>`).join('')}</select></div>
+        <div class="lf-field"><label>Lead Category</label><select id="f-rating"><option value="">-None-</option>${['Hot','Warm','Cold'].map(s=>`<option ${r.rating===s?'selected':''}>${s}</option>`).join('')}</select></div>
         <div class="lf-field"><label>Industry</label><select id="f-industry"><option value="">-None-</option>${['IT Services','Banking & Finance','E-Commerce','Mobility Tech','Healthcare','Manufacturing','Retail','Media','Education','Real Estate','Other'].map(s=>`<option ${r.industry===s?'selected':''}>${s}</option>`).join('')}</select></div>
         <div class="lf-field"><label>No. of Employees</label><input id="f-numEmployees" type="number" value="${r.numEmployees||''}"></div>
-        <div class="lf-field"><label>Annual Revenue (₹)</label><div style="display:flex;gap:6px;align-items:center"><span style="font-size:13px;color:var(--fg3);white-space:nowrap">Rs.</span><input id="f-annualRevenue" type="number" value="${r.annualRevenue||''}"></div></div>
-        <div class="lf-field"><label>Rating</label><select id="f-rating"><option value="">-None-</option>${['Hot','Warm','Cold'].map(s=>`<option ${r.rating===s?'selected':''}>${s}</option>`).join('')}</select></div>
         <div class="lf-field"><label>Secondary Email</label><input id="f-email2" type="email" value="${r.email2||''}"></div>
         <div class="lf-field"><label>Date of Handover</label><input id="f-handoverDate" type="date" value="${r.handoverDate||''}"></div>
         <div class="lf-field"><label>Lane / Domain</label><input id="f-lane" type="text" value="${r.lane||''}"></div>
-        <div class="lf-field"><label>Source – Sales & Delivery</label><input id="f-sourceSD" type="text" value="${r.sourceSD||''}"></div>
-        <div class="lf-field"><label>Month</label><input id="f-month" type="text" placeholder="e.g. Oct 2026" value="${r.month||''}"></div>
+        <div class="lf-field"><label>Source – Sales / Delivery</label><select id="f-sourceSD"><option value="">-None-</option>${['Sales','Delivery'].map(s=>`<option ${r.sourceSD===s?'selected':''}>${s}</option>`).join('')}</select></div>
         <div class="lf-checkbox"><label>Email Opt Out</label><input type="checkbox" id="f-emailOptOut" ${r.emailOptOut?'checked':''}></div>
         <div class="lf-checkbox"><label>Handover Done</label><input type="checkbox" id="f-handoverDone" ${r.handoverDone?'checked':''}></div>
-        <div class="lf-field"><label>Client Name</label><input id="f-clientName" type="text" value="${r.clientName||''}"></div>
-        <div class="lf-field"><label>Compensation (Lower Side)</label><input id="f-compensation" type="text" value="${r.compensation||''}"></div>
-        <div class="lf-field"><label>Client Type – New/Farming/Retention/Renew</label><input id="f-clientType" type="text" value="${r.clientType||''}"></div>
-        <div class="lf-field"><label>Delivery POC</label>${deliveryField('deliveryPOC', r.deliveryPOC)}</div>
-        <div class="lf-field"><label>Agreement</label><input id="f-agreement" type="text" value="${r.agreement||''}"></div>
-        <div class="lf-field"><label>No. of Positions</label><input id="f-numPositions" type="number" value="${r.numPositions||''}"></div>
-        <div class="lf-checkbox"><label>Commercials Signed</label><input type="checkbox" id="f-commercialsSigned" ${r.commercialsSigned?'checked':''}></div>
+        <div class="lf-field"><label>Client Type</label><select id="f-clientType"><option value="">-None-</option>${['New','Farming','Retention','Renew'].map(s=>`<option ${r.clientType===s?'selected':''}>${s}</option>`).join('')}</select></div>
       </div>
 
       <!-- Follow Up Section -->
@@ -7440,21 +7441,20 @@ const MODAL_FORMS = {
       const r = {
         owner:v('owner'), stage:v('stage'), salutation:v('salutation'),
         firstName:v('firstName'), lastName:v('lastName'), title:v('title'),
-        companyName:v('companyName'), clientName:v('clientName'),
+        companyName:v('companyName'),
         email:v('email'), email2:v('email2'), phone:v('phone'),
         website:v('website'),
         source:v('source'), industry:v('industry'), rating:v('rating'),
-        numEmployees:Number(v('numEmployees')||0), annualRevenue:Number(v('annualRevenue')||0),
+        leadType:v('leadType'),
+        numEmployees:Number(v('numEmployees')||0),
         value:Number(v('value')||0), lane:v('lane'), sourceSD:v('sourceSD'),
-        handoverDate:v('handoverDate'), followupDate:v('followupDate2')||v('followupDate'), month:v('month'),
+        handoverDate:v('handoverDate'), followupDate:v('followupDate2')||v('followupDate'),
         followupStatus:v('followupStatus'), followupNotes:v('followupNotes'),
-        clientType:v('clientType'), numPositions:Number(v('numPositions')||0),
-        compensation:v('compensation'), deliveryPOC:v('deliveryPOC'),
-        agreement:v('agreement'),
+        clientType:v('clientType'),
         country:v('country'), addrLine1:v('addrLine1'), street:v('street'),
         city:v('city'), state:v('state'), zip:v('zip'), lat:v('lat'), lng:v('lng'),
         description:v('description'),
-        commercialsSigned:cb('commercialsSigned'), handoverDone:cb('handoverDone'), emailOptOut:cb('emailOptOut')
+        handoverDone:cb('handoverDone'), emailOptOut:cb('emailOptOut')
       };
       r.name = [r.salutation, r.firstName, r.lastName].filter(Boolean).join(' ') || r.clientName;
       if (!r.lastName && !r.clientName) return alert('Last Name or Client Name required');
@@ -7746,6 +7746,9 @@ function toggleMobileNav() {
 // ── Create Panel ───────────────────────────────────────────
 function toggleCreatePanel(e) {
   e.stopPropagation();
+  // Don't open create panel while a full-page form is active
+  const fp = document.getElementById('lead-form-overlay');
+  if (fp && fp.style.display !== 'none') return;
   const p = document.getElementById('create-panel');
   const isOpen = p.style.display !== 'none';
   p.style.display = isOpen ? 'none' : 'block';
@@ -7757,6 +7760,43 @@ function toggleCreatePanel(e) {
     const up = document.getElementById('user-panel');
     if (up) up.style.display = 'none';
   }
+}
+function buildAppsPanel() {
+  const grid = document.getElementById('apps-panel-grid');
+  if (!grid || grid.children.length) return; // already built
+  const apps = [
+    {icon:'📊',label:'Dashboard',page:'dashboard'},
+    {icon:'🎯',label:'Leads',page:'leads'},
+    {icon:'👥',label:'Contacts',page:'contacts'},
+    {icon:'🏢',label:'Accounts',page:'companies'},
+    {icon:'💼',label:'Deals',page:'deals'},
+    {icon:'✅',label:'Tasks',page:'tasks'},
+    {icon:'📅',label:'Calendar',page:'calendar'},
+    {icon:'📣',label:'Campaigns',page:'campaigns'},
+    {icon:'⚙️',label:'Settings',page:'personal-settings'},
+  ];
+  grid.innerHTML = apps.map(a => {
+    const action = a.page === 'personal-settings' ? 'openPersonalSettings()' : `navigateTo('${a.page}')`;
+    return `<div onclick="closeAppsPanel();${action}" style="display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px 6px;border-radius:10px;cursor:pointer;background:var(--bg);border:1px solid var(--border)" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='var(--bg)'">
+      <span style="font-size:20px">${a.icon}</span>
+      <span style="font-size:11px;font-weight:500;color:var(--fg2);text-align:center">${a.label}</span>
+    </div>`;
+  }).join('');
+}
+function toggleAppsPanel(e) {
+  e.stopPropagation();
+  const p = document.getElementById('apps-panel');
+  if (!p) return;
+  const isOpen = p.style.display !== 'none';
+  closeCreatePanel();
+  const up = document.getElementById('user-panel');
+  if (up) up.style.display = 'none';
+  if (!isOpen) buildAppsPanel();
+  p.style.display = isOpen ? 'none' : 'block';
+}
+function closeAppsPanel() {
+  const p = document.getElementById('apps-panel');
+  if (p) p.style.display = 'none';
 }
 function closeCreatePanel() {
   const p = document.getElementById('create-panel');
@@ -8343,6 +8383,16 @@ document.addEventListener('click', function(e) {
   if (panel && !panel.contains(e.target) && avatar && !avatar.contains(e.target)) {
     panel.style.display = 'none';
   }
+  const appsPanel = document.getElementById('apps-panel');
+  const appsBtn = document.getElementById('apps-panel-btn');
+  if (appsPanel && !appsPanel.contains(e.target) && appsBtn && !appsBtn.contains(e.target)) {
+    appsPanel.style.display = 'none';
+  }
+  const createPanel = document.getElementById('create-panel');
+  const createBtn = document.getElementById('create-panel-btn');
+  if (createPanel && !createPanel.contains(e.target) && createBtn && !createBtn.contains(e.target)) {
+    createPanel.style.display = 'none';
+  }
 });
 function setMode(mode) {
   // Apply theme to <html>
@@ -8541,8 +8591,9 @@ const SUPA_COLS = {
   leads: ['id','name','email','phone','company','title','source','stage','rating','value','notes',
     'owner','owner_id','created_at','updated_at','salutation','first_name','last_name','email2',
     'website','skype','twitter','industry','num_employees','annual_revenue','email_opt_out',
-    'handover_date','followup_date','lane','source_sd','month','handover_done','client_name',
+    'handover_date','followup_date','lane','source_sd','lead_type','month','handover_done','client_name',
     'compensation','client_type','delivery_poc','agreement','num_positions','commercials_signed',
+    'followup_status','followup_notes',
     'country','addr_line1','street','city','state','zip','lat','lng','description'],
   contacts: ['id','name','email','phone','title','dept','company','company_id','owner','owner_id','created_at','updated_at'],
   companies: ['id','name','industry','website','phone','employees','revenue','address','city','state','country','status','bd_owner','owner_id','created_at','updated_at'],
@@ -8564,7 +8615,7 @@ const CAMEL_TO_SNAKE = {
   emailOptOut:'email_opt_out', addrLine1:'addr_line1', handoverDone:'handover_done',
   clientName:'client_name', clientType:'client_type', deliveryPOC:'delivery_poc',
   numPositions:'num_positions', commercialsSigned:'commercials_signed',
-  sourceSD:'source_sd', wonAt:'won_at', lostAt:'lost_at', lostReason:'lost_reason',
+  sourceSD:'source_sd', leadType:'lead_type', wonAt:'won_at', lostAt:'lost_at', lostReason:'lost_reason',
   followupStatus:'followup_status', followupNotes:'followup_notes',
   candidateName:'candidate_name', contactName:'contact_name', nextStep:'next_step',
   dealType:'deal_type',
