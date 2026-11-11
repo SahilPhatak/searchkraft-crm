@@ -4876,8 +4876,35 @@ function calJumpTo(day) {
 }
 
 function calDayClick(dateStr) {
-  // Open activity creation modal pre-filled with clicked date
-  openModal('activity', null, { date: dateStr });
+  // Show activities for this day with edit options, or create new
+  const dayActivities = DB.activities.filter(a => a.date && a.date.slice(0,10) === dateStr);
+  const dayTasks = DB.tasks.filter(t => t.due && t.due.slice(0,10) === dateStr);
+  if (dayActivities.length === 0 && dayTasks.length === 0) {
+    openModal('activity', null, { date: dateStr });
+    return;
+  }
+  // Build a quick popup showing items with edit buttons
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const d = new Date(dateStr); const label = d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear();
+  let html = `<div style="font-weight:600;margin-bottom:12px">${label}</div>`;
+  dayActivities.forEach(a => {
+    const time = a.time ? `<span style="color:var(--fg3);font-size:11px">${a.time.slice(0,5)} · </span>` : '';
+    html += `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div>${time}<span style="font-size:13px">${a.summary||a.subject||'Activity'}</span><span style="font-size:11px;color:var(--fg3);margin-left:6px">${a.type||''}</span></div>
+      <button class="btn btn-sm" onclick="closeModal();openModal('activity','${a.id}')" style="padding:4px 10px;font-size:12px">Edit</button>
+    </div>`;
+  });
+  dayTasks.forEach(t => {
+    html += `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div><span style="font-size:13px">${t.title||'Task'}</span><span style="font-size:11px;color:var(--fg3);margin-left:6px">Task</span></div>
+      <button class="btn btn-sm" onclick="closeModal();openModal('task','${t.id}')" style="padding:4px 10px;font-size:12px">Edit</button>
+    </div>`;
+  });
+  html += `<button class="btn btn-primary" style="margin-top:14px;width:100%" onclick="closeModal();openModal('activity',null,{date:'${dateStr}'})">+ Log New Activity</button>`;
+  document.getElementById('modal-title').textContent = 'Activities';
+  document.getElementById('modal-body').innerHTML = html;
+  document.getElementById('modal-save').style.display = 'none';
+  document.getElementById('modal-overlay').style.display = 'flex';
 }
 
 function switchCalView(view, btn) {
@@ -8791,6 +8818,7 @@ function openModal(type, id, defaults) {
 
   document.getElementById('modal-title').textContent = cfg.title(id);
   document.getElementById('modal-body').innerHTML = cfg.fields(rec||{}, id);
+  document.getElementById('modal-save').style.display = '';
   document.getElementById('modal-overlay').style.display = 'flex';
   if (type === 'lead') setTimeout(initDescLog, 0);
 }
