@@ -4989,15 +4989,17 @@ function renderCalendarGrid() {
   if (!calView || calView === 'month') {
     if (dowHeader) dowHeader.style.display = 'grid';
     if (ml) ml.textContent = MONTHS[calMonth] + '  ' + calYear;
-    grid.style.gridTemplateColumns = 'repeat(7,1fr)';
-    // Fill available height: subtract header rows (~120px) and divide by number of weeks
-    const rows = Math.ceil((offset + daysInMonth) / 7);
-    const availH = Math.max(120, Math.floor((window.innerHeight - 220) / rows));
-    grid.style.gridAutoRows = availH + 'px';
     const firstDay = new Date(calYear, calMonth, 1).getDay();
     const offset = (firstDay + 6) % 7;
     const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
     const prevDays = new Date(calYear, calMonth, 0).getDate();
+    const numRows = Math.ceil((offset + daysInMonth) / 7);
+    // Fill screen: header ~200px, dow header ~32px
+    const rowH = Math.max(100, Math.floor((window.innerHeight - 232) / numRows));
+    grid.style.gridTemplateColumns = 'repeat(7,1fr)';
+    grid.style.gridAutoRows = rowH + 'px';
+    // How many events fit: each event is ~20px, day number is 20px, padding 10px
+    const maxEvt = Math.max(1, Math.floor((rowH - 30) / 20));
     let cells = '';
     for (let i=offset-1;i>=0;i--)
       cells += `<div class="cal-cell other-month"><span class="cal-day-num" style="color:var(--fg3)">${prevDays-i}</span></div>`;
@@ -5009,7 +5011,7 @@ function renderCalendarGrid() {
       const isSat = col===5, isSun=col===6;
       cells += `<div class="cal-cell${isT?' is-today':''}" onclick="calDayClick('${dateStr}')" style="cursor:pointer">
         <span class="cal-day-num" style="${isSat||isSun?'color:var(--red)':''}">${d}</span>
-        ${eventHtml(dayEvents, dateStr)}
+        ${eventHtml(dayEvents, dateStr, maxEvt)}
       </div>`;
     }
     const total = offset + daysInMonth;
