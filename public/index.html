@@ -3970,7 +3970,7 @@ function renderPage(pg) {
   }
   if (pg==='dashboard') renderDashboard();
   else if (pg==='my-day') renderWorkqueue();
-  else if (pg==='calendar') { gcalLoadState(); renderCalendar(); }
+  else if (pg==='calendar') { renderCalendar(); gcalLoadState(); }
   else if (pg==='companies') { markSectionSeen('companies'); renderTable('companies',''); }
   else if (pg==='contacts')  { markSectionSeen('contacts');  renderTable('contacts',''); }
   else if (pg==='leads')     { markSectionSeen('leads');     renderLeadsBoard(); renderTable('leads',''); }
@@ -5207,6 +5207,7 @@ async function gcalFetchEvents() {
       link: ev.htmlLink || '',
       isGcal: true
     })).filter(e => e.date && e.date.length === 10);
+    renderCalendarGrid(); // Re-render immediately after gcal events load
   } catch(e) {
     console.error('gcalFetchEvents error', e);
   }
