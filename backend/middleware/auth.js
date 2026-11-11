@@ -12,11 +12,10 @@ async function authenticate(req, res, next) {
 
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await prisma.user.findUnique({ where: { id: payload.userId } });
-    if (!user || !user.isActive) {
-      return res.status(401).json({ error: 'User not found or inactive' });
+    const user = await prisma.profile.findUnique({ where: { id: payload.userId } });
+    if (!user) {
+      return res.status(401).json({ error: 'User not found' });
     }
-    // role comes from DB as-is (e.g. 'ADMIN', 'MANAGER', 'USER')
     req.user = { id: user.id, role: user.role, email: user.email, name: user.name };
     next();
   } catch (err) {

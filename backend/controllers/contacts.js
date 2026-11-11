@@ -7,9 +7,9 @@ async function getContacts(req, res) {
 
   if (company) where.company = { contains: company, mode: 'insensitive' };
   if (search) where.OR = [
-    { firstName: { contains: search, mode: 'insensitive' } },
-    { lastName:  { contains: search, mode: 'insensitive' } },
-    { email:     { contains: search, mode: 'insensitive' } },
+    { name:  { contains: search, mode: 'insensitive' } },
+    { email: { contains: search, mode: 'insensitive' } },
+    { phone: { contains: search, mode: 'insensitive' } },
   ];
 
   const [contacts, total] = await Promise.all([

@@ -1,4 +1,5 @@
 // npx prisma db seed
+// Seeds initial team members into Supabase auth + profiles table
 const { PrismaClient } = require('@prisma/client');
 const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
@@ -10,44 +11,41 @@ const supabase = createClient(
 );
 
 const TEAM = [
-  { name: 'Vikram Singh',   email: 'vikram@searchkraft.in',   role: 'ADMIN',   title: 'Director' },
-  { name: 'Samyadeep Das',  email: 'samyadeep@searchkraft.in', role: 'MANAGER', title: 'Team Lead' },
-  { name: 'Sahil Phatak',   email: 'sahil@searchkraft.in',    role: 'USER',    title: 'Recruiter' },
-  { name: 'Urmila Sharma',  email: 'urmila@searchkraft.in',   role: 'USER',    title: 'Recruiter' },
+  { name: 'Vikram Singh',    email: 'vikram@searchkraft.in',    role: 'Admin',       title: 'Director' },
+  { name: 'Samyadeep Das',   email: 'samyadeep@searchkraft.in', role: 'Manager',     title: 'Team Lead' },
+  { name: 'Sahil Phatak',    email: 'sahil@searchkraft.in',     role: 'User',        title: 'Recruiter' },
+  { name: 'Urmila Sharma',   email: 'urmila@searchkraft.in',    role: 'User',        title: 'Recruiter' },
 ];
 
 async function main() {
-  console.log('Seeding users…');
-  for (let i = 0; i < TEAM.length; i++) {
-    const m = TEAM[i];
-    // Create auth user (idempotent — Supabase won't duplicate)
+  console.log('Seeding team members in Supabase…');
+
+  for (const m of TEAM) {
+    // Create Supabase Auth user (profile row is auto-created by DB trigger)
     const { data, error } = await supabase.auth.admin.createUser({
       email: m.email,
       password: 'Change@123',
       email_confirm: true,
-      user_metadata: { name: m.name },
+      user_metadata: { name: m.name, role: m.role },
     });
 
-    const uid = `SK-${String(i + 1).padStart(4, '0')}`;
+    if (error && !error.message.includes('already been registered')) {
+      console.error(`  ❌ ${m.name}: ${error.message}`);
+      continue;
+    }
 
-    await prisma.user.upsert({
-      where: { email: m.email },
-      update: {},
-      create: {
-        supabaseId: data?.user?.id || `placeholder-${i}`,
-        uid,
-        email: m.email,
-        name:  m.name,
-        firstName: m.name.split(' ')[0],
-        lastName:  m.name.split(' ')[1] || '',
-        role:  m.role,
-        title: m.title,
-        isActive: true,
-      },
-    });
+    // Update the profile row (the trigger creates it, we enrich it)
+    if (data?.user?.id) {
+      await prisma.profile.upsert({
+        where: { id: data.user.id },
+        update: { name: m.name, role: m.role, title: m.title, status: 'active' },
+        create: { id: data.user.id, name: m.name, email: m.email, role: m.role, title: m.title, status: 'active' },
+      });
+    }
 
-    console.log(`  ✅ ${m.name} (${uid})`);
+    console.log(`  ✅ ${m.name} (${m.role})`);
   }
+
   console.log('Done!');
 }
 

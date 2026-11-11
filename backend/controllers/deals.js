@@ -9,16 +9,12 @@ async function getDeals(req, res) {
   if (stage) where.stage = stage;
   if (owner) where.ownerId = owner;
   if (search) where.OR = [
-    { title:   { contains: search, mode: 'insensitive' } },
+    { name:    { contains: search, mode: 'insensitive' } },
     { company: { contains: search, mode: 'insensitive' } },
   ];
 
   const [deals, total] = await Promise.all([
-    prisma.deal.findMany({
-      where, skip, take: parseInt(limit),
-      orderBy: { createdAt: 'desc' },
-      include: { owner: { select: { id: true, name: true } } },
-    }),
+    prisma.deal.findMany({ where, skip, take: parseInt(limit), orderBy: { createdAt: 'desc' } }),
     prisma.deal.count({ where }),
   ]);
 
@@ -27,10 +23,7 @@ async function getDeals(req, res) {
 
 // GET /api/deals/:id
 async function getDeal(req, res) {
-  const deal = await prisma.deal.findUnique({
-    where: { id: req.params.id },
-    include: { owner: { select: { id: true, name: true } }, tasks: true, activities: true },
-  });
+  const deal = await prisma.deal.findUnique({ where: { id: req.params.id } });
   if (!deal) return res.status(404).json({ error: 'Deal not found' });
   res.json(deal);
 }
@@ -38,7 +31,7 @@ async function getDeal(req, res) {
 // POST /api/deals
 async function createDeal(req, res) {
   const deal = await prisma.deal.create({
-    data: { ...req.body, ownerId: req.body.ownerId || req.user.id },
+    data: req.body,
   });
   res.status(201).json(deal);
 }

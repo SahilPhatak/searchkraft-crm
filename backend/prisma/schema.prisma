@@ -8,224 +8,203 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-enum Role {
-  SUPER_ADMIN
-  ADMIN
-  MANAGER
-  USER
-  RESTRICTED
+// ── Profiles (auth users) ────────────────────────────────────
+model Profile {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String
+  email     String
+  role      String   @default("User")
+  title     String?
+  dept      String?
+  phone     String?
+  avatar    String?
+  color     String?  @default("#1a56db")
+  status    String?  @default("active")
+  online    Boolean? @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @map("updated_at")
+
+  @@map("profiles")
 }
 
-enum LeadStage {
-  NEW
-  CONTACTED
-  QUALIFIED
-  PROPOSAL_SENT
-  NEGOTIATION
-  WON
-  LOST
-}
-
-enum DealStage {
-  PROSPECTING
-  QUALIFICATION
-  PROPOSAL
-  NEGOTIATION
-  CLOSED_WON
-  CLOSED_LOST
-}
-
-model User {
-  id          String   @id @default(cuid())
-  uid         String   @unique // SK-0001, SK-0002...
-  email       String   @unique
-  name        String
-  firstName   String
-  lastName    String
-  phone       String?
-  title       String?
-  department  String?
-  role        Role     @default(USER)
-  avatarUrl   String?
-  isActive    Boolean  @default(true)
-  lastLoginAt DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  leads       Lead[]
-  contacts    Contact[]
-  deals       Deal[]
-  accounts    Account[]
-  tasks       Task[]    @relation("TaskOwner")
-  activities  Activity[]
-  auditLogs   AuditLog[]
-
-  @@map("users")
-}
-
+// ── Leads ─────────────────────────────────────────────────────
 model Lead {
-  id          String     @id @default(cuid())
-  firstName   String
-  lastName    String
-  email       String?
-  phone       String?
-  company     String?
-  title       String?
-  source      String?
-  stage       LeadStage  @default(NEW)
-  rating      Int?       // 1–5
-  amount      Decimal?
-  notes       String?
-  owner       User       @relation(fields: [ownerId], references: [id])
-  ownerId     String
-  convertedAt DateTime?
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-
-  tasks       Task[]
-  activities  Activity[]
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name              String
+  email             String?
+  phone             String?
+  company           String?
+  title             String?
+  source            String?
+  stage             String?   @default("New")
+  rating            Int?
+  value             Decimal?
+  notes             String?
+  owner             String?
+  ownerId           String?   @map("owner_id") @db.Uuid
+  // Extended
+  salutation        String?
+  firstName         String?   @map("first_name")
+  lastName          String?   @map("last_name")
+  email2            String?
+  website           String?
+  skype             String?
+  twitter           String?
+  industry          String?
+  numEmployees      Int?      @map("num_employees")
+  annualRevenue     Decimal?  @map("annual_revenue")
+  emailOptOut       Boolean?  @default(false) @map("email_opt_out")
+  handoverDate      DateTime? @map("handover_date") @db.Date
+  followupDate      DateTime? @map("followup_date") @db.Date
+  followupStatus    String?   @map("followup_status")
+  followupNotes     String?   @map("followup_notes")
+  lane              String?
+  sourceSD          String?   @map("source_sd")
+  leadType          String?   @map("lead_type")
+  month             String?
+  handoverDone      Boolean?  @default(false) @map("handover_done")
+  clientName        String?   @map("client_name")
+  compensation      String?
+  clientType        String?   @map("client_type")
+  deliveryPOC       String?   @map("delivery_poc")
+  agreement         String?
+  numPositions      Int?      @map("num_positions")
+  commercialsSigned Boolean?  @default(false) @map("commercials_signed")
+  country           String?
+  addrLine1         String?   @map("addr_line1")
+  street            String?
+  city              String?
+  state             String?
+  zip               String?
+  description       String?
+  wonAt             DateTime? @map("won_at")
+  lostAt            DateTime? @map("lost_at")
+  lostReason        String?   @map("lost_reason")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @default(now()) @map("updated_at")
 
   @@map("leads")
 }
 
+// ── Contacts ──────────────────────────────────────────────────
 model Contact {
-  id          String    @id @default(cuid())
-  firstName   String
-  lastName    String
-  email       String?
-  phone       String?
-  title       String?
-  department  String?
-  account     Account?  @relation(fields: [accountId], references: [id])
-  accountId   String?
-  owner       User      @relation(fields: [ownerId], references: [id])
-  ownerId     String
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  deals       Deal[]
-  tasks       Task[]
-  activities  Activity[]
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String
+  email     String?
+  phone     String?
+  title     String?
+  dept      String?
+  company   String?
+  companyId String?  @map("company_id") @db.Uuid
+  owner     String?
+  ownerId   String?  @map("owner_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @map("updated_at")
 
   @@map("contacts")
 }
 
-model Account {
-  id          String    @id @default(cuid())
-  name        String
-  industry    String?
-  website     String?
-  phone       String?
-  employees   Int?
-  revenue     Decimal?
-  address     String?
-  city        String?
-  state       String?
-  country     String    @default("India")
-  owner       User      @relation(fields: [ownerId], references: [id])
-  ownerId     String
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+// ── Companies (Accounts) ──────────────────────────────────────
+model Company {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String
+  industry  String?
+  website   String?
+  phone     String?
+  employees Int?
+  revenue   Decimal?
+  address   String?
+  city      String?
+  state     String?
+  country   String?  @default("India")
+  status    String?  @default("Active")
+  bdOwner   String?  @map("bd_owner")
+  ownerId   String?  @map("owner_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @map("updated_at")
 
-  contacts    Contact[]
-  deals       Deal[]
-
-  @@map("accounts")
+  @@map("companies")
 }
 
+// ── Deals ─────────────────────────────────────────────────────
 model Deal {
-  id          String     @id @default(cuid())
-  name        String
-  stage       DealStage  @default(PROSPECTING)
-  amount      Decimal?
-  currency    String     @default("INR")
-  closeDate   DateTime?
-  probability Int?       // 0–100
-  source      String?
-  notes       String?
-  contact     Contact?   @relation(fields: [contactId], references: [id])
-  contactId   String?
-  account     Account?   @relation(fields: [accountId], references: [id])
-  accountId   String?
-  owner       User       @relation(fields: [ownerId], references: [id])
-  ownerId     String
-  wonAt       DateTime?
-  lostAt      DateTime?
-  lostReason  String?
-
-  // Recruitment details
-  recruiterName   String?
-  sourcer         String?
-  creditSharing   Int?
-  candidateMgmt   String?
-  clientSpoc      String?
-
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-
-  tasks       Task[]
-  activities  Activity[]
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name            String
+  stage           String?   @default("Prospecting")
+  value           Decimal?
+  amount          Decimal?  @default(0)
+  expectedRevenue Decimal?  @default(0) @map("expected_revenue")
+  currency        String?   @default("INR")
+  closeDate       DateTime? @map("close_date") @db.Date
+  probability     Int?
+  source          String?
+  notes           String?
+  contact         String?
+  contactId       String?   @map("contact_id") @db.Uuid
+  company         String?
+  companyId       String?   @map("company_id") @db.Uuid
+  owner           String?
+  ownerId         String?   @map("owner_id") @db.Uuid
+  wonAt           DateTime? @map("won_at")
+  lostAt          DateTime? @map("lost_at")
+  lostReason      String?   @map("lost_reason")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @default(now()) @map("updated_at")
 
   @@map("deals")
 }
 
+// ── Tasks ─────────────────────────────────────────────────────
 model Task {
-  id          String    @id @default(cuid())
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   title       String
+  type        String?
   description String?
-  dueDate     DateTime?
-  status      String    @default("PENDING") // PENDING, IN_PROGRESS, DONE
-  priority    String    @default("NORMAL")  // LOW, NORMAL, HIGH, URGENT
-  owner       User      @relation("TaskOwner", fields: [ownerId], references: [id])
-  ownerId     String
-  lead        Lead?     @relation(fields: [leadId], references: [id])
-  leadId      String?
-  contact     Contact?  @relation(fields: [contactId], references: [id])
-  contactId   String?
-  deal        Deal?     @relation(fields: [dealId], references: [id])
-  dealId      String?
-  completedAt DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  dueDate     DateTime? @map("due_date") @db.Date
+  status      String?   @default("Pending")
+  priority    String?   @default("Normal")
+  relatedTo   String?   @map("related_to")
+  owner       String?
+  ownerId     String?   @map("owner_id") @db.Uuid
+  leadId      String?   @map("lead_id") @db.Uuid
+  contactId   String?   @map("contact_id") @db.Uuid
+  dealId      String?   @map("deal_id") @db.Uuid
+  completedAt DateTime? @map("completed_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @default(now()) @map("updated_at")
 
   @@map("tasks")
 }
 
+// ── Activities ────────────────────────────────────────────────
 model Activity {
-  id          String    @id @default(cuid())
-  type        String    // CALL, MEETING, EMAIL, NOTE
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  type        String
   subject     String
   description String?
-  date        DateTime
-  duration    Int?      // minutes
+  date        DateTime  @default(now())
+  duration    Int?
   outcome     String?
-  owner       User      @relation(fields: [ownerId], references: [id])
-  ownerId     String
-  lead        Lead?     @relation(fields: [leadId], references: [id])
-  leadId      String?
-  contact     Contact?  @relation(fields: [contactId], references: [id])
-  contactId   String?
-  deal        Deal?     @relation(fields: [dealId], references: [id])
-  dealId      String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  owner       String?
+  ownerId     String?   @map("owner_id") @db.Uuid
+  leadId      String?   @map("lead_id") @db.Uuid
+  contactId   String?   @map("contact_id") @db.Uuid
+  dealId      String?   @map("deal_id") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at")
 
   @@map("activities")
 }
 
+// ── Audit Logs ────────────────────────────────────────────────
 model AuditLog {
-  id         String   @id @default(cuid())
-  action     String   // CREATE, UPDATE, DELETE, LOGIN, LOGOUT
-  module     String   // leads, contacts, deals, accounts, users, setup
-  recordId   String?
-  recordName String?
-  oldValue   Json?
-  newValue   Json?
-  ip         String?
-  userAgent  String?
-  user       User     @relation(fields: [userId], references: [id])
-  userId     String
-  createdAt  DateTime @default(now())
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  action     String
+  module     String
+  recordId   String?  @map("record_id") @db.Uuid
+  recordName String?  @map("record_name")
+  userName   String?  @map("user_name")
+  userId     String?  @map("user_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at")
 
   @@map("audit_logs")
 }

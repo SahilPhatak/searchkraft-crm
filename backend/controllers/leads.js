@@ -9,6 +9,7 @@ async function getLeads(req, res) {
   if (stage)  where.stage  = stage;
   if (owner)  where.ownerId = owner;
   if (search) where.OR = [
+    { name:      { contains: search, mode: 'insensitive' } },
     { firstName: { contains: search, mode: 'insensitive' } },
     { lastName:  { contains: search, mode: 'insensitive' } },
     { email:     { contains: search, mode: 'insensitive' } },
@@ -16,11 +17,7 @@ async function getLeads(req, res) {
   ];
 
   const [leads, total] = await Promise.all([
-    prisma.lead.findMany({
-      where, skip, take: parseInt(limit),
-      orderBy: { createdAt: 'desc' },
-      include: { owner: { select: { id: true, name: true } } },
-    }),
+    prisma.lead.findMany({ where, skip, take: parseInt(limit), orderBy: { createdAt: 'desc' } }),
     prisma.lead.count({ where }),
   ]);
 
@@ -29,10 +26,7 @@ async function getLeads(req, res) {
 
 // GET /api/leads/:id
 async function getLead(req, res) {
-  const lead = await prisma.lead.findUnique({
-    where: { id: req.params.id },
-    include: { owner: { select: { id: true, name: true } }, tasks: true, activities: true },
-  });
+  const lead = await prisma.lead.findUnique({ where: { id: req.params.id } });
   if (!lead) return res.status(404).json({ error: 'Lead not found' });
   res.json(lead);
 }

@@ -18,7 +18,7 @@ async function getCompanies(req, res) {
 async function getCompany(req, res) {
   const company = await prisma.company.findUnique({
     where: { id: req.params.id },
-    include: { contacts: true, deals: true },
+    // No relations defined in schema — contacts/deals linked via companyId
   });
   if (!company) return res.status(404).json({ error: 'Company not found' });
   res.json(company);

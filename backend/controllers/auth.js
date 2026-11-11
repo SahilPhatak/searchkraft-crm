@@ -15,42 +15,39 @@ async function login(req, res) {
     return res.status(401).json({ error: 'Invalid email or password' });
   }
 
-  // Look up user in our DB
-  const user = await prisma.user.findUnique({ where: { email } });
-  if (!user || !user.isActive) {
-    return res.status(401).json({ error: 'Account not found or inactive' });
+  // Look up profile in Supabase profiles table
+  const profile = await prisma.profile.findFirst({ where: { email } });
+  if (!profile) {
+    return res.status(401).json({ error: 'Profile not found — please contact your administrator' });
   }
 
   // Issue our own JWT
   const token = jwt.sign(
-    { userId: user.id },
+    { userId: profile.id },
     process.env.JWT_SECRET,
     { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
   );
 
-  await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
-
   res.json({
     token,
     user: {
-      id:         user.id,
-      uid:        user.uid,
-      name:       user.name,
-      email:      user.email,
-      role:       user.role,
-      title:      user.title,
-      department: user.department,
+      id:    profile.id,
+      name:  profile.name,
+      email: profile.email,
+      role:  profile.role,
+      title: profile.title,
+      dept:  profile.dept,
     },
   });
 }
 
 // GET /api/auth/me
 async function me(req, res) {
-  const user = await prisma.user.findUnique({
+  const profile = await prisma.profile.findUnique({
     where: { id: req.user.id },
-    select: { id: true, uid: true, name: true, email: true, role: true, title: true, department: true, avatarUrl: true },
+    select: { id: true, name: true, email: true, role: true, title: true, dept: true, avatar: true, phone: true },
   });
-  res.json(user);
+  res.json(profile);
 }
 
 // POST /api/auth/logout

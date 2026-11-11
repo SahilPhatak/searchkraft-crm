@@ -77,7 +77,7 @@ async function getLeaderboard(req, res) {
 
   // Attach names
   const userIds = rows.map(r => r.ownerId);
-  const users   = await prisma.user.findMany({ where: { id: { in: userIds } }, select: { id: true, name: true } });
+  const users   = await prisma.profile.findMany({ where: { id: { in: userIds } }, select: { id: true, name: true } });
   const userMap = Object.fromEntries(users.map(u => [u.id, u.name]));
 
   res.json(rows.map(r => ({
