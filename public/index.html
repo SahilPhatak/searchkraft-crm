@@ -1135,12 +1135,11 @@ textarea { min-height: 80px; resize: vertical; }
   display: inline-flex; align-items: center; justify-content: center;
 }
 .cal-day-num { font-size: 12px; font-weight: 600; color: var(--fg2); margin-bottom: 4px; display: inline-block; }
-.cal-event { font-size: 11px; padding: 2px 6px; border-radius: 3px; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; width: 100%; box-sizing: border-box; }
-.cal-event-task { background: #FEF3C7; color: #92400E; }
-.cal-event-meeting { background: #DBEAFE; color: #1E40AF; }
-.cal-event-call { background: #D1FAE5; color: #065F46; }
-.cal-event-gcal { background: #FCE8F3; color: #9D174D; border-left: 2px solid #EC4899; }
-.cal-event { font-size:11px; padding:2px 5px; border-radius:3px; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; display:block; }
+.cal-event { font-size:12px; padding:3px 7px; border-radius:4px; margin-bottom:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:block; width:100%; box-sizing:border-box; font-weight:500; line-height:1.4; border-left:3px solid transparent; }
+.cal-event-task { background:#FEF3C7; color:#92400E; border-left-color:#F59E0B; }
+.cal-event-meeting { background:#DBEAFE; color:#1E40AF; border-left-color:#3B82F6; }
+.cal-event-call { background:#D1FAE5; color:#065F46; border-left-color:#10B981; }
+.cal-event-gcal { background:#FCE8F3; color:#9D174D; border-left-color:#EC4899; }
 .cal-view-active { background: var(--accent-bg) !important; color: var(--accent) !important; font-weight: 600; }
 
 /* ---- QUICK ADD PANEL ---- */
@@ -4962,9 +4961,10 @@ function renderCalendarGrid() {
     if (!a.date) return;
     const d = a.date.slice(0,10);
     if (!events[d]) events[d]=[];
-    const timeLabel = a.time ? a.time.slice(0,5)+' ' : '';
+    const timeLabel = a.time ? a.time.slice(0,5)+' · ' : '';
+    const contactLabel = a.contact ? ' — '+a.contact : '';
     const cls = a.type==='Meeting'?'cal-event-meeting':a.type==='Task'?'cal-event-task':'cal-event-call';
-    events[d].push({label:timeLabel+(a.summary||a.subject||'Activity'), cls});
+    events[d].push({label:timeLabel+(a.summary||a.subject||'Activity')+contactLabel, cls});
   });
   DB.tasks.filter(t=>t.status==='Pending').forEach(t=>{
     if (!t.due) return;
@@ -4974,7 +4974,7 @@ function renderCalendarGrid() {
   });
   gcalEvents.forEach(e=>{
     if (!events[e.date]) events[e.date]=[];
-    events[e.date].push({label:(e.time?e.time+' ':'')+e.label, cls:'cal-event-gcal', link:e.link});
+    events[e.date].push({label:(e.time?e.time+' · ':'')+e.label, cls:'cal-event-gcal', link:e.link});
   });
 
   function eventHtml(dayEvents, max=3) {
@@ -4991,7 +4991,7 @@ function renderCalendarGrid() {
     if (dowHeader) dowHeader.style.display = 'grid';
     if (ml) ml.textContent = MONTHS[calMonth] + '  ' + calYear;
     grid.style.gridTemplateColumns = 'repeat(7,1fr)';
-    grid.style.gridAutoRows = '110px';
+    grid.style.gridAutoRows = '130px';
     const firstDay = new Date(calYear, calMonth, 1).getDay();
     const offset = (firstDay + 6) % 7;
     const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
@@ -8950,7 +8950,7 @@ const SUPA_COLS = {
   companies: ['id','name','industry','website','phone','employees','revenue','address','city','state','country','status','bd_owner','owner_id','created_at','updated_at'],
   deals: ['id','name','stage','amount','value','expected_revenue','currency','close_date','probability','source','notes','contact','contact_id','company','company_id','owner','owner_id','won_at','lost_at','lost_reason','candidate_name','contact_name','next_step','campaign','deal_type','created_at','updated_at'],
   tasks: ['id','title','type','description','due_date','status','priority','owner','owner_id','lead_id','contact_id','deal_id','related_to','completed_at','created_at','updated_at'],
-  activities: ['id','type','subject','summary','description','date','time','duration','outcome','owner','owner_id','contact','company','lead_id','contact_id','deal_id','created_at','updated_at'],
+  activities: ['id','type','subject','summary','description','date','time','duration','outcome','owner','owner_id','contact','lead_id','contact_id','deal_id','created_at','updated_at'],
   documents: ['id','name','client_id','client_name','category','stage','status','file_type','file_size','file_url','uploaded_by','owner_id','description','reference_number','start_date','expiry_date','created_at','updated_at'],
   profiles: ['id','name','email','role','title','dept','phone','avatar','color','status','online','created_at','updated_at'],
 };
