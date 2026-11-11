@@ -120,4 +120,4 @@ select
   count(*) filter (where stage = 'Lost')          as "Lost",
   count(*)                                         as "Total"
 from public.leads
-where id like 'c10000%';
+where id::text like 'c10000%';

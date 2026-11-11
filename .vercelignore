@@ -1,1 +1,8 @@
 backend/
+frontend/
+nginx/
+supabase/
+*.md
+docker-compose.yml
+Dockerfile
+render.yaml
