@@ -1,5 +1,6 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <script>
 // Fallback if jsdelivr fails to load supabase
 if (!window.supabase) {
@@ -1134,6 +1135,7 @@ textarea { min-height: 80px; resize: vertical; }
 .cal-event-task { background: #FEF3C7; color: #92400E; }
 .cal-event-meeting { background: #DBEAFE; color: #1E40AF; }
 .cal-event-call { background: #D1FAE5; color: #065F46; }
+.cal-event-gcal { background: #FCE8F3; color: #9D174D; border-left: 2px solid #EC4899; }
 .cal-view-active { background: var(--accent-bg) !important; color: var(--accent) !important; font-weight: 600; }
 
 /* ---- QUICK ADD PANEL ---- */
@@ -1900,6 +1902,19 @@ textarea { min-height: 80px; resize: vertical; }
           <div style="font-size:12px;font-weight:700;color:var(--fg);margin-bottom:8px">My Calendar</div>
           <button class="wq-nav-item cal-view-btn cal-view-active" data-calview="month" onclick="switchCalView('month',this)">📅 My Calendar</button>
           <button class="wq-nav-item cal-view-btn" data-calview="all" onclick="switchCalView('all',this)">👥 All Users</button>
+          <div style="border-top:1px solid var(--border);margin:14px 0 12px"></div>
+          <div style="font-size:12px;font-weight:700;color:var(--fg);margin-bottom:8px">Google Calendar</div>
+          <div id="gcal-connect-btn">
+            <button onclick="connectGoogleCalendar()" style="width:100%;display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;cursor:pointer;font-size:12px;font-weight:500;color:var(--fg2)">
+              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" style="width:16px;height:16px"> Connect Google Calendar
+            </button>
+          </div>
+          <div id="gcal-connected-info" style="display:none">
+            <div style="display:flex;align-items:center;gap:6px;padding:6px 10px;background:#e8f5e9;border:1px solid #a5d6a7;border-radius:7px;font-size:11px;color:#2e7d32;margin-bottom:6px">
+              <span>✅</span><span id="gcal-email-label" style="flex:1;overflow:hidden;text-overflow:ellipsis">Connected</span>
+            </div>
+            <button onclick="disconnectGoogleCalendar()" style="width:100%;padding:5px 10px;background:none;border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:11px;color:var(--fg3)">Disconnect</button>
+          </div>
         </div>
         <!-- Right: Big calendar -->
         <div style="flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden">
@@ -3951,7 +3966,7 @@ function renderPage(pg) {
   }
   if (pg==='dashboard') renderDashboard();
   else if (pg==='my-day') renderWorkqueue();
-  else if (pg==='calendar') renderCalendar();
+  else if (pg==='calendar') { gcalLoadState(); renderCalendar(); }
   else if (pg==='companies') { markSectionSeen('companies'); renderTable('companies',''); }
   else if (pg==='contacts')  { markSectionSeen('contacts');  renderTable('contacts',''); }
   else if (pg==='leads')     { markSectionSeen('leads');     renderLeadsBoard(); renderTable('leads',''); }
@@ -4899,6 +4914,11 @@ function renderCalendarGrid() {
     if (!events[d]) events[d]=[];
     events[d].push({label:t.title, cls:'cal-event-task'});
   });
+  // Google Calendar events
+  gcalEvents.forEach(e=>{
+    if (!events[e.date]) events[e.date]=[];
+    events[e.date].push({label:(e.time?e.time+' ':'')+e.label, cls:'cal-event-gcal', link:e.link});
+  });
 
   let cells = '';
   // Prev month overflow
@@ -4913,7 +4933,7 @@ function renderCalendarGrid() {
     const isSat = (offset+d-1)%7===5, isSun=(offset+d-1)%7===6;
     cells += `<div class="cal-cell${isT?' is-today':''}" onclick="calDayClick('${dateStr}')" style="cursor:pointer">
       <span class="cal-day-num" style="${isSat||isSun?'color:var(--red)':''}">${d}</span>
-      ${dayEvents.slice(0,3).map(e=>`<div class="cal-event ${e.cls}">${e.label}</div>`).join('')}
+      ${dayEvents.slice(0,3).map(e=>e.link?`<a href="${e.link}" target="_blank" style="text-decoration:none"><div class="cal-event ${e.cls}">${e.label}</div></a>`:`<div class="cal-event ${e.cls}">${e.label}</div>`).join('')}
       ${dayEvents.length>3?`<div style="font-size:10px;color:var(--fg3)">+${dayEvents.length-3} more</div>`:''}
     </div>`;
   }
@@ -4925,6 +4945,152 @@ function renderCalendarGrid() {
   }
   grid.innerHTML = cells;
 }
+
+// =====================================================
+// GOOGLE CALENDAR INTEGRATION
+// =====================================================
+const GCAL_CLIENT_ID = '533185779681-6ddtpbhsvmmsnut7kqkqf17qkjo7spsv.apps.googleusercontent.com';
+const GCAL_SCOPES = 'https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/userinfo.email';
+let gcalAccessToken = null;
+let gcalUserEmail = null;
+let gcalEvents = []; // cached Google Calendar events
+
+function gcalLoadState() {
+  try {
+    const saved = localStorage.getItem('gcal_token');
+    if (saved) {
+      const obj = JSON.parse(saved);
+      if (obj.token && obj.expiry && Date.now() < obj.expiry) {
+        gcalAccessToken = obj.token;
+        gcalUserEmail = obj.email || '';
+        gcalUpdateUI(true);
+        gcalFetchEvents();
+      } else {
+        localStorage.removeItem('gcal_token');
+      }
+    }
+  } catch(e) {}
+}
+
+function gcalSaveState(token, email, expiresIn) {
+  try {
+    localStorage.setItem('gcal_token', JSON.stringify({
+      token, email, expiry: Date.now() + (expiresIn * 1000)
+    }));
+  } catch(e) {}
+}
+
+function gcalUpdateUI(connected) {
+  const btn = document.getElementById('gcal-connect-btn');
+  const info = document.getElementById('gcal-connected-info');
+  const lbl = document.getElementById('gcal-email-label');
+  if (!btn || !info) return;
+  if (connected) {
+    btn.style.display = 'none';
+    info.style.display = 'block';
+    if (lbl) lbl.textContent = gcalUserEmail || 'Connected';
+  } else {
+    btn.style.display = 'block';
+    info.style.display = 'none';
+  }
+}
+
+function connectGoogleCalendar() {
+  if (!window.google || !window.google.accounts) {
+    showToast('Google script not loaded yet, please try again.', 'error');
+    return;
+  }
+  const client = google.accounts.oauth2.initTokenClient({
+    client_id: GCAL_CLIENT_ID,
+    scope: GCAL_SCOPES,
+    callback: async (response) => {
+      if (response.error) { showToast('Google auth failed: ' + response.error, 'error'); return; }
+      gcalAccessToken = response.access_token;
+      // Fetch user email
+      try {
+        const r = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+          headers: { Authorization: 'Bearer ' + gcalAccessToken }
+        });
+        const u = await r.json();
+        gcalUserEmail = u.email || '';
+      } catch(e) { gcalUserEmail = ''; }
+      gcalSaveState(gcalAccessToken, gcalUserEmail, response.expires_in || 3600);
+      gcalUpdateUI(true);
+      showToast('Google Calendar connected!', 'success');
+      await gcalFetchEvents();
+      renderCalendarGrid();
+    }
+  });
+  client.requestAccessToken();
+}
+
+function disconnectGoogleCalendar() {
+  gcalAccessToken = null;
+  gcalUserEmail = null;
+  gcalEvents = [];
+  try { localStorage.removeItem('gcal_token'); } catch(e) {}
+  gcalUpdateUI(false);
+  renderCalendarGrid();
+  showToast('Google Calendar disconnected.', 'info');
+}
+
+async function gcalFetchEvents() {
+  if (!gcalAccessToken) return;
+  try {
+    // Fetch events for ±3 months
+    const now = new Date();
+    const tMin = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
+    const tMax = new Date(now.getFullYear(), now.getMonth() + 3, 1).toISOString();
+    const url = `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${encodeURIComponent(tMin)}&timeMax=${encodeURIComponent(tMax)}&singleEvents=true&orderBy=startTime&maxResults=250`;
+    const r = await fetch(url, { headers: { Authorization: 'Bearer ' + gcalAccessToken } });
+    if (r.status === 401) { disconnectGoogleCalendar(); return; }
+    const data = await r.json();
+    gcalEvents = (data.items || []).map(ev => ({
+      id: ev.id,
+      label: ev.summary || '(No title)',
+      date: (ev.start?.date || ev.start?.dateTime || '').slice(0, 10),
+      time: ev.start?.dateTime ? ev.start.dateTime.slice(11, 16) : '',
+      link: ev.htmlLink || '',
+      isGcal: true
+    })).filter(e => e.date);
+  } catch(e) {
+    console.error('gcalFetchEvents error', e);
+  }
+}
+
+async function gcalCreateEvent(summary, dateStr, timeStr, description) {
+  if (!gcalAccessToken) return null;
+  try {
+    const startDT = timeStr ? `${dateStr}T${timeStr}:00` : dateStr;
+    const isAllDay = !timeStr;
+    const body = isAllDay ? {
+      summary, description,
+      start: { date: dateStr },
+      end: { date: dateStr }
+    } : {
+      summary, description,
+      start: { dateTime: startDT, timeZone: 'Asia/Kolkata' },
+      end: { dateTime: new Date(new Date(startDT).getTime() + 60*60*1000).toISOString().replace('Z',''), timeZone: 'Asia/Kolkata' }
+    };
+    const r = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + gcalAccessToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const ev = await r.json();
+    // Refresh events cache
+    await gcalFetchEvents();
+    renderCalendarGrid();
+    return ev;
+  } catch(e) {
+    console.error('gcalCreateEvent error', e);
+    return null;
+  }
+}
+
+// =====================================================
+// END GOOGLE CALENDAR INTEGRATION
+// =====================================================
 
 // ---- GENERIC TABLE RENDERERS ----
 function getCompanyName(id) { return DB.companies.find(c=>c.id===id)?.name||''; }
@@ -7570,10 +7736,16 @@ const MODAL_FORMS = {
         <div class="form-group"><label>Company</label><input id="f-company" type="text"></div>
       </div>
       <div class="form-group"><label>Owner</label><select id="f-owner">${TEAM_MEMBERS.map(m=>`<option>${m}</option>`).join('')}</select></div>`,
-    save: (id) => {
+    save: async (id) => {
       const r = { type:v('type'), date:v('date'), summary:v('summary'), contact:v('contact'), company:v('company'), owner:v('owner') };
       if (!r.summary) return alert('Summary required');
       upsert('activities', id, r);
+      // Auto-create Google Calendar event for new Meetings
+      if (!id && r.type === 'Meeting' && gcalAccessToken) {
+        const desc = [r.contact && 'Contact: ' + r.contact, r.company && 'Company: ' + r.company].filter(Boolean).join('\n');
+        await gcalCreateEvent(r.summary, r.date, '', desc);
+        showToast('Meeting added to Google Calendar 📅', 'success');
+      }
     }
   },
   invoice: {
