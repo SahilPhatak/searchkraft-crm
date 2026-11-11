@@ -7878,31 +7878,36 @@ const MODAL_FORMS = {
     }
   },
   activity: {
-    title: () => 'Log Activity',
-    fields: (r={}) => `
+    title: (id) => id ? 'Edit Activity' : 'Log Activity',
+    fields: (r={}) => {
+      const types = ['Call','Email','Meeting','LinkedIn'];
+      const typeOpts = types.map(t=>`<option ${r.type===t?'selected':''}>${t}</option>`).join('');
+      const ownerOpts = TEAM_MEMBERS.map(m=>`<option ${r.owner===m?'selected':''}>${m}</option>`).join('');
+      return `
       <div class="form-row">
-        <div class="form-group"><label>Type</label><select id="f-type"><option>Call</option><option>Email</option><option>Meeting</option><option>LinkedIn</option></select></div>
+        <div class="form-group"><label>Type</label><select id="f-type">${typeOpts}</select></div>
         <div class="form-group"><label>Date</label><input id="f-date" type="date" value="${r.date||today()}"></div>
       </div>
       <div class="form-row">
         <div class="form-group"><label>Time</label><input id="f-time" type="time" value="${r.time||''}"></div>
         <div class="form-group"></div>
       </div>
-      <div class="form-group"><label>Summary *</label><textarea id="f-summary">${r.summary||''}</textarea></div>
+      <div class="form-group"><label>Summary *</label><textarea id="f-summary">${r.summary||r.subject||''}</textarea></div>
       <div class="form-row">
         <div class="form-group"><label>Contact</label><input id="f-contact" type="text" value="${r.contact||''}"></div>
         <div class="form-group"><label>Company</label><input id="f-company" type="text" value="${r.company||''}"></div>
       </div>
-      <div class="form-group"><label>Owner</label><select id="f-owner">${TEAM_MEMBERS.map(m=>`<option>${m}</option>`).join('')}</select></div>`,
+      <div class="form-group"><label>Owner</label><select id="f-owner">${ownerOpts}</select></div>`;
+    },
     save: async (id) => {
       const r = { type:v('type'), date:v('date'), time:v('time')||null, summary:v('summary'), subject:v('summary'), contact:v('contact'), company:v('company'), owner:v('owner') };
       if (!r.summary) return alert('Summary required');
       upsert('activities', id, r);
-      // Auto-create Google Calendar event for all new activities
-      if (!id && gcalAccessToken) {
+      // Sync to Google Calendar for both new and edited activities
+      if (gcalAccessToken) {
         const desc = [r.contact && 'Contact: ' + r.contact, r.company && 'Company: ' + r.company, 'Type: ' + r.type].filter(Boolean).join('\n');
         await gcalCreateEvent(r.summary, r.date, r.time||'', desc);
-        showToast('Activity added to Google Calendar 📅', 'success');
+        showToast('Activity synced to Google Calendar 📅', 'success');
       }
     }
   },
