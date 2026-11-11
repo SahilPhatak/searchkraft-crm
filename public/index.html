@@ -1116,9 +1116,8 @@ textarea { min-height: 80px; resize: vertical; }
 .cal-cell {
   border-right: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
-  padding: 6px 8px;
+  padding: 6px 6px 4px;
   cursor: pointer;
-  min-height: 110px;
   background: var(--surface);
   vertical-align: top;
   transition: background 0.1s;
@@ -1134,8 +1133,8 @@ textarea { min-height: 80px; resize: vertical; }
   border-radius: 50%; width: 22px; height: 22px;
   display: inline-flex; align-items: center; justify-content: center;
 }
-.cal-day-num { font-size: 12px; font-weight: 600; color: var(--fg2); margin-bottom: 4px; display: inline-block; }
-.cal-event { font-size:12px; padding:3px 7px; border-radius:4px; margin-bottom:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:block; width:100%; box-sizing:border-box; font-weight:500; line-height:1.4; border-left:3px solid transparent; }
+.cal-day-num { font-size: 12px; font-weight: 600; color: var(--fg2); margin-bottom: 3px; display: inline-block; }
+.cal-event { font-size:11px; padding:2px 6px; border-radius:3px; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:block; width:100%; box-sizing:border-box; font-weight:500; line-height:1.5; border-left:3px solid transparent; }
 .cal-event-task { background:#FEF3C7; color:#92400E; border-left-color:#F59E0B; }
 .cal-event-meeting { background:#DBEAFE; color:#1E40AF; border-left-color:#3B82F6; }
 .cal-event-call { background:#D1FAE5; color:#065F46; border-left-color:#10B981; }
@@ -4961,10 +4960,10 @@ function renderCalendarGrid() {
     if (!a.date) return;
     const d = a.date.slice(0,10);
     if (!events[d]) events[d]=[];
-    const timeLabel = a.time ? a.time.slice(0,5)+' · ' : '';
-    const contactLabel = a.contact ? ' — '+a.contact : '';
+    const timeLabel = a.time ? a.time.slice(0,5)+' ' : '';
+    const title = (a.summary||a.subject||'Activity');
     const cls = a.type==='Meeting'?'cal-event-meeting':a.type==='Task'?'cal-event-task':'cal-event-call';
-    events[d].push({label:timeLabel+(a.summary||a.subject||'Activity')+contactLabel, cls});
+    events[d].push({label:timeLabel+title, cls});
   });
   DB.tasks.filter(t=>t.status==='Pending').forEach(t=>{
     if (!t.due) return;
@@ -4977,11 +4976,11 @@ function renderCalendarGrid() {
     events[e.date].push({label:(e.time?e.time+' · ':'')+e.label, cls:'cal-event-gcal', link:e.link});
   });
 
-  function eventHtml(dayEvents, max=3) {
+  function eventHtml(dayEvents, dateStr, max=4) {
     return dayEvents.slice(0,max).map(e=>e.link
       ? `<a href="${e.link}" target="_blank" style="text-decoration:none"><div class="cal-event ${e.cls}">${e.label}</div></a>`
       : `<div class="cal-event ${e.cls}">${e.label}</div>`
-    ).join('') + (dayEvents.length>max ? `<div style="font-size:10px;color:var(--fg3)">+${dayEvents.length-max} more</div>` : '');
+    ).join('') + (dayEvents.length>max ? `<div onclick="event.stopPropagation();calDayClick('${dateStr}')" style="font-size:10px;color:var(--accent);cursor:pointer;padding:1px 4px">+${dayEvents.length-max} more</div>` : '');
   }
 
   const dowHeader = document.getElementById('cal-dow-header');
@@ -4991,7 +4990,10 @@ function renderCalendarGrid() {
     if (dowHeader) dowHeader.style.display = 'grid';
     if (ml) ml.textContent = MONTHS[calMonth] + '  ' + calYear;
     grid.style.gridTemplateColumns = 'repeat(7,1fr)';
-    grid.style.gridAutoRows = '130px';
+    // Fill available height: subtract header rows (~120px) and divide by number of weeks
+    const rows = Math.ceil((offset + daysInMonth) / 7);
+    const availH = Math.max(120, Math.floor((window.innerHeight - 220) / rows));
+    grid.style.gridAutoRows = availH + 'px';
     const firstDay = new Date(calYear, calMonth, 1).getDay();
     const offset = (firstDay + 6) % 7;
     const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
@@ -5007,7 +5009,7 @@ function renderCalendarGrid() {
       const isSat = col===5, isSun=col===6;
       cells += `<div class="cal-cell${isT?' is-today':''}" onclick="calDayClick('${dateStr}')" style="cursor:pointer">
         <span class="cal-day-num" style="${isSat||isSun?'color:var(--red)':''}">${d}</span>
-        ${eventHtml(dayEvents)}
+        ${eventHtml(dayEvents, dateStr)}
       </div>`;
     }
     const total = offset + daysInMonth;
@@ -5044,7 +5046,7 @@ function renderCalendarGrid() {
       return `<div class="cal-cell${isT?' is-today':''}" onclick="calDayClick('${dateStr}')" style="cursor:pointer">
         <div style="font-size:11px;color:${isSat||isSun?'var(--red)':'var(--fg3)'};font-weight:600;margin-bottom:2px">${DAYS_SHORT[i].toUpperCase()}</div>
         <div style="${dayNumStyle}margin-bottom:6px">${d.getDate()}</div>
-        ${eventHtml(dayEvents, 10)}
+        ${eventHtml(dayEvents, dateStr, 10)}
       </div>`;
     }).join('');
     grid.innerHTML = cells;
