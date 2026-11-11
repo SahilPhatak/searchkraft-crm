@@ -5100,6 +5100,14 @@ function gcalUpdateUI(connected) {
 }
 
 function connectGoogleCalendar() {
+  // If on a preview/deploy URL, redirect to production URL first
+  const PROD_URL = 'https://searchkraft-crm.vercel.app';
+  if (location.hostname !== 'searchkraft-crm.vercel.app' && location.hostname !== 'localhost') {
+    if (confirm('Google Calendar requires the production URL.\n\nRedirect to ' + PROD_URL + ' now?')) {
+      window.location.href = PROD_URL + '/#/calendar';
+    }
+    return;
+  }
   if (!window.google || !window.google.accounts) {
     showToast('Google script not loaded yet, please try again.', 'error');
     return;
