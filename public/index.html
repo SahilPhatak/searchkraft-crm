@@ -5215,8 +5215,13 @@ async function gcalFetchEvents() {
 async function gcalCreateEvent(summary, dateStr, timeStr, description) {
   if (!gcalAccessToken) return null;
   try {
-    const startDT = timeStr ? `${dateStr}T${timeStr}:00` : dateStr;
     const isAllDay = !timeStr;
+    // For timed events, build ISO string with IST offset (+05:30)
+    const startDT = timeStr ? `${dateStr}T${timeStr.slice(0,5)}:00+05:30` : dateStr;
+    const endDT = timeStr ? `${dateStr}T${timeStr.slice(0,5).replace(/(\d+):(\d+)/, (_,h,m)=>{
+      const mins = parseInt(h)*60+parseInt(m)+60;
+      return String(Math.floor(mins/60)%24).padStart(2,'0')+':'+String(mins%60).padStart(2,'0');
+    })}:00+05:30` : dateStr;
     const body = isAllDay ? {
       summary, description,
       start: { date: dateStr },
@@ -5224,7 +5229,7 @@ async function gcalCreateEvent(summary, dateStr, timeStr, description) {
     } : {
       summary, description,
       start: { dateTime: startDT, timeZone: 'Asia/Kolkata' },
-      end: { dateTime: new Date(new Date(startDT).getTime() + 60*60*1000).toISOString().replace('Z',''), timeZone: 'Asia/Kolkata' }
+      end: { dateTime: endDT, timeZone: 'Asia/Kolkata' }
     };
     const r = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
       method: 'POST',
@@ -8945,7 +8950,7 @@ const SUPA_COLS = {
   companies: ['id','name','industry','website','phone','employees','revenue','address','city','state','country','status','bd_owner','owner_id','created_at','updated_at'],
   deals: ['id','name','stage','amount','value','expected_revenue','currency','close_date','probability','source','notes','contact','contact_id','company','company_id','owner','owner_id','won_at','lost_at','lost_reason','candidate_name','contact_name','next_step','campaign','deal_type','created_at','updated_at'],
   tasks: ['id','title','type','description','due_date','status','priority','owner','owner_id','lead_id','contact_id','deal_id','related_to','completed_at','created_at','updated_at'],
-  activities: ['id','type','subject','description','date','duration','outcome','owner','owner_id','lead_id','contact_id','deal_id','created_at'],
+  activities: ['id','type','subject','summary','description','date','time','duration','outcome','owner','owner_id','contact','company','lead_id','contact_id','deal_id','created_at','updated_at'],
   documents: ['id','name','client_id','client_name','category','stage','status','file_type','file_size','file_url','uploaded_by','owner_id','description','reference_number','start_date','expiry_date','created_at','updated_at'],
   profiles: ['id','name','email','role','title','dept','phone','avatar','color','status','online','created_at','updated_at'],
 };
