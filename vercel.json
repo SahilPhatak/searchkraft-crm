@@ -1,7 +1,13 @@
 {
   "version": 2,
-  "buildCommand": "mkdir -p public && cp index.html public/index.html",
-  "outputDirectory": "public",
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
-  "framework": null
+  "builds": [
+    {
+      "src": "frontend/**",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    { "src": "/(.*)", "dest": "/frontend/$1" },
+    { "src": "/", "dest": "/frontend/index.html" }
+  ]
 }
