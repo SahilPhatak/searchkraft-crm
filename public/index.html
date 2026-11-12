@@ -2360,7 +2360,64 @@
           </div>
           <div class="lf-field">
             <label>Role / Position Description <span style="color:#dc2626">*</span></label>
-            <input id="bo-positionDesc" type="text" placeholder="e.g. Senior Backend Engineer">
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <select id="bo-positionDescSelect" onchange="boPositionSelectChange(this)" style="width:100%">
+                <option value="">— Select a Role —</option>
+                <optgroup label="Engineering">
+                  <option>Software Engineer</option>
+                  <option>Senior Software Engineer</option>
+                  <option>Staff Engineer</option>
+                  <option>Principal Engineer</option>
+                  <option>Frontend Engineer</option>
+                  <option>Senior Frontend Engineer</option>
+                  <option>Backend Engineer</option>
+                  <option>Senior Backend Engineer</option>
+                  <option>Full Stack Engineer</option>
+                  <option>Senior Full Stack Engineer</option>
+                  <option>Mobile Engineer (iOS)</option>
+                  <option>Mobile Engineer (Android)</option>
+                  <option>React Native Engineer</option>
+                  <option>Platform Engineer</option>
+                  <option>Infrastructure Engineer</option>
+                  <option>DevOps Engineer</option>
+                  <option>Senior DevOps Engineer</option>
+                  <option>Site Reliability Engineer (SRE)</option>
+                  <option>Cloud Engineer</option>
+                  <option>Solutions Architect</option>
+                  <option>Data Engineer</option>
+                  <option>Senior Data Engineer</option>
+                  <option>ML Engineer</option>
+                  <option>AI/ML Engineer</option>
+                  <option>Data Scientist</option>
+                  <option>Senior Data Scientist</option>
+                  <option>QA Engineer</option>
+                  <option>SDET / Test Automation Engineer</option>
+                  <option>Security Engineer</option>
+                  <option>Embedded Systems Engineer</option>
+                  <option>Firmware Engineer</option>
+                  <option>Blockchain Developer</option>
+                </optgroup>
+                <optgroup label="Leadership">
+                  <option>Tech Lead</option>
+                  <option>Engineering Manager</option>
+                  <option>VP of Engineering</option>
+                  <option>CTO</option>
+                  <option>Head of Engineering</option>
+                  <option>Director of Engineering</option>
+                </optgroup>
+                <optgroup label="Product & Design">
+                  <option>Product Manager</option>
+                  <option>Senior Product Manager</option>
+                  <option>Product Designer</option>
+                  <option>UX Designer</option>
+                  <option>UI/UX Designer</option>
+                </optgroup>
+                <optgroup label="Other">
+                  <option value="__custom__">✏️ Enter manually…</option>
+                </optgroup>
+              </select>
+              <input id="bo-positionDesc" type="text" placeholder="Type custom role name…" style="display:none">
+            </div>
           </div>
           <div class="lf-field">
             <label>Number of Positions</label>
@@ -2390,8 +2447,8 @@
             <input id="bo-startDate" type="date">
           </div>
           <div class="lf-field">
-            <label>Expected Closure Month</label>
-            <input id="bo-closureMonth" type="month" placeholder="YYYY-MM">
+            <label>Expected Closure Date</label>
+            <input id="bo-closureMonth" type="date">
           </div>
         </div>
 
@@ -3517,9 +3574,12 @@ function renderBOTable(rows) {
   tbody.innerHTML = rows.map(r => {
     const st = statusStyle[r.status] || { bg:'#f1f5f9', color:'#475569' };
     const rev = boCalcRevenue(r.fixedCtc, r.pct, r.numPositions);
-    // Ageing: days since start date (or created_at if no start date)
+    // Ageing: days elapsed since start date (or record created_at)
     const ageBase = r.startDate ? new Date(r.startDate) : (r.createdAt ? new Date(r.createdAt) : null);
     const ageDays = ageBase ? Math.floor((Date.now() - ageBase.getTime()) / 86400000) : null;
+    // Days until closure (negative = overdue)
+    const closureDate = r.closureMonth ? new Date(r.closureMonth) : null;
+    const daysToClose = closureDate ? Math.ceil((closureDate.getTime() - Date.now()) / 86400000) : null;
     const ageColor = ageDays === null ? 'var(--fg3)' : ageDays > 60 ? '#dc2626' : ageDays > 30 ? '#d97706' : '#16a34a';
     return `<tr>
       <td style="font-weight:600;color:var(--fg)">${esc(r.clientName||r.client_name||'—')}</td>
@@ -3531,7 +3591,7 @@ function renderBOTable(rows) {
       <td><span class="badge badge-blue">${esc(r.source||'—')}</span></td>
       <td><span class="bo-status-badge" style="background:${st.bg};color:${st.color}">${esc(r.status||'Active')}</span></td>
       <td>${r.startDate ? new Date(r.startDate).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}) : '—'}</td>
-      <td>${r.closureMonth ? r.closureMonth.replace('-',' / ').replace(/(\d{4}) \/ (\d{2})/,(_,y,m)=>new Date(y,m-1).toLocaleDateString('en-IN',{month:'short',year:'numeric'})) : '—'}</td>
+      <td>${r.closureMonth ? new Date(r.closureMonth).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}) : '—'}</td>
       <td style="font-weight:700;color:${ageColor};text-align:center">${ageDays !== null ? ageDays + 'd' : '—'}</td>
       <td>${esc(r.deliveryPoc||'—')}</td>
       <td>${esc(r.salesPoc||'—')}</td>
@@ -3604,6 +3664,19 @@ function searchBO(q) {
   renderBOTable(getFilteredBORows());
 }
 
+function boPositionSelectChange(sel) {
+  const textInput = document.getElementById('bo-positionDesc');
+  if (sel.value === '__custom__') {
+    textInput.style.display = '';
+    textInput.value = '';
+    textInput.focus();
+    sel.value = '__custom__';
+  } else {
+    textInput.style.display = 'none';
+    textInput.value = sel.value;
+  }
+}
+
 function openBOForm(id) {
   _boEditId = id || null;
   const overlay = document.getElementById('bo-form-overlay');
@@ -3621,11 +3694,12 @@ function openBOForm(id) {
       existing.map(n => `<option>${esc(n)}</option>`).join('');
   }
 
-  // Populate team dropdowns
-  const team = getTeamNames();
+  // Populate team dropdowns with full names from profiles
+  const teamUsers = DB.users && DB.users.length ? DB.users : (TEAM_MEMBERS||[]).map(n=>({name:n}));
+  const teamOptions = '<option value="">-None-</option>' + teamUsers.map(u=>`<option value="${esc(u.name)}">${esc(u.name)}</option>`).join('');
   ['bo-deliveryPoc','bo-salesPoc'].forEach(selId => {
     const sel = document.getElementById(selId);
-    if (sel) sel.innerHTML = '<option value="">-None-</option>' + team.map(n=>`<option>${n}</option>`).join('');
+    if (sel) sel.innerHTML = teamOptions;
   });
 
   // Fill form if editing
@@ -3635,7 +3709,21 @@ function openBOForm(id) {
   const setVal = (elId, val) => { const el = document.getElementById(elId); if(el) el.value = val||''; };
   if (r) {
     setVal('bo-clientName', r.clientName);
-    setVal('bo-positionDesc', r.positionDesc);
+    // Position: try to match dropdown option, else show manual input
+    const posSel = document.getElementById('bo-positionDescSelect');
+    const posInp = document.getElementById('bo-positionDesc');
+    if (posSel && posInp) {
+      const opt = [...posSel.options].find(o => o.value === r.positionDesc);
+      if (opt) {
+        posSel.value = r.positionDesc;
+        posInp.style.display = 'none';
+        posInp.value = r.positionDesc;
+      } else {
+        posSel.value = '__custom__';
+        posInp.style.display = '';
+        posInp.value = r.positionDesc || '';
+      }
+    }
     setVal('bo-numPositions', r.numPositions||1);
     setVal('bo-source', r.source);
     setVal('bo-status', r.status||'Active');
@@ -3648,9 +3736,12 @@ function openBOForm(id) {
     setVal('bo-closureMonth', r.closureMonth||'');
     calcBORevenue();
   } else {
-    ['bo-clientName','bo-positionDesc','bo-source','bo-fixedCtc','bo-pct',
+    ['bo-clientName','bo-source','bo-fixedCtc','bo-pct',
      'bo-deliveryPoc','bo-salesPoc','bo-notes',
      'bo-startDate','bo-closureMonth'].forEach(id => setVal(id,''));
+    setVal('bo-positionDescSelect','');
+    const posInpReset = document.getElementById('bo-positionDesc');
+    if (posInpReset) { posInpReset.value=''; posInpReset.style.display='none'; }
     setVal('bo-numPositions', 1);
     setVal('bo-status','Active');
     ['bo-revenuePerPos','bo-totalRevenue'].forEach(id => {
@@ -3669,7 +3760,10 @@ function closeBOForm() {
 
 async function saveBORecord() {
   const clientName  = document.getElementById('bo-clientName')?.value?.trim();
-  const positionDesc = document.getElementById('bo-positionDesc')?.value?.trim();
+  const selVal = document.getElementById('bo-positionDescSelect')?.value;
+  const positionDesc = (selVal && selVal !== '__custom__')
+    ? selVal
+    : (document.getElementById('bo-positionDesc')?.value?.trim() || '');
   if (!clientName)   { showToast('Please select a customer name.', '#dc2626'); return; }
   if (!positionDesc) { showToast('Please enter a position description.', '#dc2626'); return; }
 
