@@ -3257,13 +3257,14 @@ function startRealtimeSync() {
 
   // Map Supabase table name → DB key + page hash(es) to re-render
   const TABLE_MAP = {
-    leads:      { key: 'leads',      pages: ['leads','reports','dashboard'] },
-    contacts:   { key: 'contacts',   pages: ['contacts','reports'] },
-    companies:  { key: 'companies',  pages: ['companies','reports'] },
-    deals:      { key: 'deals',      pages: ['deals','reports','dashboard'] },
-    tasks:      { key: 'tasks',      pages: ['tasks','dashboard'] },
-    activities: { key: 'activities', pages: ['activities','dashboard'] },
-    documents:  { key: 'documents',  pages: ['documents'] },
+    leads:               { key: 'leads',             pages: ['leads','reports','dashboard'], norm: normRecord },
+    contacts:            { key: 'contacts',           pages: ['contacts','reports'],          norm: normRecord },
+    companies:           { key: 'companies',          pages: ['companies','reports'],          norm: normRecord },
+    deals:               { key: 'deals',              pages: ['deals','reports','dashboard'],  norm: normRecord },
+    tasks:               { key: 'tasks',              pages: ['tasks','dashboard'],            norm: normRecord },
+    activities:          { key: 'activities',         pages: ['activities','dashboard'],       norm: normRecord },
+    documents:           { key: 'documents',          pages: ['documents'],                    norm: normRecord },
+    business_onboarded:  { key: 'businessOnboarded',  pages: ['business-onboarded'],          norm: normBORecord },
   };
 
   function handleRealtimePayload(payload) {
@@ -3273,11 +3274,12 @@ function startRealtimeSync() {
       if (!info) return;
       const arr = DB[info.key];
       if (!arr) return;
+      const normFn = info.norm || norm;
       if (payload.eventType === 'INSERT') {
-        const rec = norm(payload.new);
+        const rec = normFn(payload.new);
         if (!arr.find(r => r.id === rec.id)) arr.unshift(rec);
       } else if (payload.eventType === 'UPDATE') {
-        const rec = norm(payload.new);
+        const rec = normFn(payload.new);
         const idx = arr.findIndex(r => r.id === rec.id);
         if (idx >= 0) arr[idx] = rec; else arr.unshift(rec);
       } else if (payload.eventType === 'DELETE') {
@@ -3310,7 +3312,7 @@ function startRealtimeSync() {
 
   // Fallback: poll every 30 seconds in case Supabase Realtime replication is not enabled
   window._pollInterval = setInterval(async () => {
-    try { await load(); refreshCurrentPage(); } catch(e) {}
+    try { await load(); await loadBusinessOnboarded(); refreshCurrentPage(); } catch(e) {}
   }, 30000);
 }
 
