@@ -3384,6 +3384,11 @@ function stopRealtimeSync() {
 // ===== public/js/settings.js =====
 // ---- PERSONAL SETTINGS PAGE ----
 function openPersonalSettings() {
+  // Admins and Super Admins go to Setup page; others get Personal Settings
+  if (isAdminOrAbove()) {
+    navigateTo('setup');
+    return;
+  }
   closeUserPanel();
   // Close any open modals/overlays first
   const overlay = document.getElementById('modal-overlay');
