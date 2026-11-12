@@ -3114,7 +3114,7 @@ function renderPage(pg) {
   else if (pg==='team') renderTable('team','');
   else if (pg==='audit') renderAudit();
   else if (pg==='setup') { const firstTab = document.querySelector('.setup-tab'); if(firstTab) firstTab.click(); }
-  else if (pg==='business-onboarded') renderBusinessOnboarded();
+  else if (pg==='business-onboarded') { markSectionSeen('business-onboarded'); renderBusinessOnboarded(); }
 }
 
 // ---- NAVIGATION + URL HASH ROUTING ----
@@ -3235,13 +3235,14 @@ function countNewRecords(records, section) {
 }
 function updateNavBadges() {
   const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val > 0 ? val : ''; };
-  set('nb-leads',      countNewRecords(DB.leads, 'leads'));
-  set('nb-contacts',   countNewRecords(DB.contacts, 'contacts'));
-  set('nb-companies',  countNewRecords(DB.companies, 'companies'));
-  set('nb-deals',      countNewRecords(DB.deals, 'deals'));
-  set('nb-tasks',      countNewRecords(DB.tasks, 'tasks'));
-  set('nb-activities', countNewRecords(DB.activities, 'activities'));
-  set('nb-documents',  countNewRecords(DB.documents, 'documents'));
+  set('nb-leads',              countNewRecords(DB.leads,             'leads'));
+  set('nb-contacts',           countNewRecords(DB.contacts,          'contacts'));
+  set('nb-companies',          countNewRecords(DB.companies,         'companies'));
+  set('nb-deals',              countNewRecords(DB.deals,             'deals'));
+  set('nb-tasks',              countNewRecords(DB.tasks,             'tasks'));
+  set('nb-activities',         countNewRecords(DB.activities,        'activities'));
+  set('nb-documents',          countNewRecords(DB.documents,         'documents'));
+  set('nb-business-onboarded', countNewRecords(DB.businessOnboarded,'business-onboarded'));
 }
 
 // ── Real-time sync ──────────────────────────────────────────────────────────
