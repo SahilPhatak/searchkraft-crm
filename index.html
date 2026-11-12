@@ -870,13 +870,9 @@
             </table>
           </div>
           <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-top:1px solid var(--border);background:var(--surface);font-size:12px;color:var(--fg2)">
-            <span>Total Records <strong id="companies-count" style="color:var(--fg)">0</strong></span>
-            <div style="display:flex;align-items:center;gap:6px">
-              <button style="background:none;border:1px solid var(--border);border-radius:4px;padding:3px 8px;cursor:pointer;color:var(--fg2);font-size:12px">‹</button>
-              <span id="companies-page-info" style="font-size:12px;color:var(--fg)">1 to 25</span>
-              <button style="background:none;border:1px solid var(--border);border-radius:4px;padding:3px 8px;cursor:pointer;color:var(--fg2);font-size:12px">›</button>
-            </div>
+            <span>Total Records <strong id="companies-count" style="color:var(--fg)">0</strong> &nbsp;|&nbsp; Showing <span id="companies-page-info">—</span></span>
           </div>
+          <div id="companies-pagination"></div>
         </div>
       </div>
     </div>
@@ -1026,13 +1022,9 @@
             </table>
           </div>
           <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-top:1px solid var(--border);background:var(--surface);font-size:12px;color:var(--fg2)">
-            <span>Total Records <strong id="contacts-count" style="color:var(--fg)">0</strong></span>
-            <div style="display:flex;align-items:center;gap:6px">
-              <button style="background:none;border:1px solid var(--border);border-radius:4px;padding:3px 8px;cursor:pointer;color:var(--fg2);font-size:12px">‹</button>
-              <span id="contacts-page-info" style="font-size:12px;color:var(--fg)">1 to 25</span>
-              <button style="background:none;border:1px solid var(--border);border-radius:4px;padding:3px 8px;cursor:pointer;color:var(--fg2);font-size:12px">›</button>
-            </div>
+            <span>Total Records <strong id="contacts-count" style="color:var(--fg)">0</strong> &nbsp;|&nbsp; Showing <span id="contacts-page-info">—</span></span>
           </div>
+          <div id="contacts-pagination"></div>
         </div>
       </div>
     </div>
@@ -1242,13 +1234,9 @@
           </div>
           <div id="leads-board" class="kanban" style="display:none;padding:16px;overflow-x:auto"></div>
           <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-top:1px solid var(--border);background:var(--surface);font-size:12px;color:var(--fg2)">
-            <span>Total Records <strong id="leads-count" style="color:var(--fg)">0</strong></span>
-            <div style="display:flex;align-items:center;gap:6px">
-              <button style="background:none;border:1px solid var(--border);border-radius:4px;padding:3px 8px;cursor:pointer;color:var(--fg2);font-size:12px">‹</button>
-              <span id="leads-page-info" style="font-size:12px;color:var(--fg)">1 to 25</span>
-              <button style="background:none;border:1px solid var(--border);border-radius:4px;padding:3px 8px;cursor:pointer;color:var(--fg2);font-size:12px">›</button>
-            </div>
+            <span>Total Records <strong id="leads-count" style="color:var(--fg)">0</strong> &nbsp;|&nbsp; Showing <span id="leads-page-info">—</span></span>
           </div>
+          <div id="leads-pagination"></div>
         </div>
       </div>
     </div>
@@ -1390,13 +1378,9 @@
           </div>
           <div id="deals-board" class="kanban" style="display:none;padding:16px;overflow-x:auto"></div>
           <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-top:1px solid var(--border);background:var(--surface);font-size:12px;color:var(--fg2)">
-            <span>Total Records <strong id="deals-count" style="color:var(--fg)">0</strong></span>
-            <div style="display:flex;align-items:center;gap:6px">
-              <button style="background:none;border:1px solid var(--border);border-radius:4px;padding:3px 8px;cursor:pointer;color:var(--fg2);font-size:12px">‹</button>
-              <span id="deals-page-info" style="font-size:12px;color:var(--fg)">1 to 25</span>
-              <button style="background:none;border:1px solid var(--border);border-radius:4px;padding:3px 8px;cursor:pointer;color:var(--fg2);font-size:12px">›</button>
-            </div>
+            <span>Total Records <strong id="deals-count" style="color:var(--fg)">0</strong> &nbsp;|&nbsp; Showing <span id="deals-page-info">—</span></span>
           </div>
+          <div id="deals-pagination"></div>
         </div>
       </div>
     </div>
@@ -2737,6 +2721,10 @@ function normRecord(r) {
 let currentModal = null;
 let editId = null;
 let taskFilter = 'pending';
+
+// Pagination state
+const PAGE_SIZE = 25;
+let leadsPage = 1, contactsPage = 1, companiesPage = 1, dealsPage = 1;
 const TEAM_MEMBERS = ['Sahil', 'Priya', 'Rahul', 'Neha', 'Arjun'];
 
 // ---- CURRENT USER (logged-in session) ----
@@ -5806,21 +5794,40 @@ function searchFromDB(type, q) {
 
 function renderTableRows(type) { renderTable(type, ''); }
 
+function renderPagination(type, page, totalPages) {
+  const el = document.getElementById(type + '-pagination');
+  if (!el) return;
+  if (totalPages <= 1) { el.innerHTML = ''; return; }
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;gap:8px;padding:10px 16px;border-top:1px solid var(--border);justify-content:flex-end;background:var(--surface)">
+      <span style="font-size:12px;color:var(--fg2);margin-right:8px">Page ${page} of ${totalPages}</span>
+      <button onclick="changePage('${type}',-1)" ${page<=1?'disabled':''} style="padding:4px 12px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--fg);font-size:12px;cursor:${page<=1?'default':'pointer'};opacity:${page<=1?0.4:1}">← Prev</button>
+      <button onclick="changePage('${type}',1)" ${page>=totalPages?'disabled':''} style="padding:4px 12px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--fg);font-size:12px;cursor:${page>=totalPages?'default':'pointer'};opacity:${page>=totalPages?0.4:1}">Next →</button>
+    </div>`;
+}
+
+function changePage(type, dir) {
+  if (type==='leads') { leadsPage = Math.max(1, leadsPage+dir); renderTable('leads',''); }
+  else if (type==='contacts') { contactsPage = Math.max(1, contactsPage+dir); renderTable('contacts',''); }
+  else if (type==='companies') { companiesPage = Math.max(1, companiesPage+dir); renderTable('companies',''); }
+  else if (type==='deals') { dealsPage = Math.max(1, dealsPage+dir); renderTable('deals',''); }
+}
+
 function renderTable(type, q='') {
   const Q = (q||'').toLowerCase();
   const tbody = document.getElementById(type.replace('team','team')+'-body') || document.getElementById(type==='team'?'team-body':type+'-body');
 
   if (type==='companies') {
-    // Get lane/domain from most recent linked lead for each company
     const companyLaneMap = {};
-    (DB.leads||[]).forEach(l => {
-      const cname = (l.company||'').toLowerCase();
-      if (cname && l.lane) companyLaneMap[cname] = l.lane;
-    });
+    (DB.leads||[]).forEach(l => { const cname=(l.company||'').toLowerCase(); if(cname&&l.lane) companyLaneMap[cname]=l.lane; });
     const getLane = (r) => r.lane || companyLaneMap[(r.name||'').toLowerCase()] || '—';
-    const rows = DB.companies.filter(r=>!Q||r.name.toLowerCase().includes(Q)||getLane(r).toLowerCase().includes(Q)||r.city?.toLowerCase().includes(Q));
-    const ccount = document.getElementById('companies-count'); if(ccount) ccount.textContent=rows.length;
-    const cpi = document.getElementById('companies-page-info'); if(cpi) cpi.textContent=rows.length?`1 to ${Math.min(25,rows.length)}`:'0';
+    const allRows = DB.companies.filter(r=>!Q||r.name.toLowerCase().includes(Q)||getLane(r).toLowerCase().includes(Q)||r.city?.toLowerCase().includes(Q));
+    if (Q) companiesPage = 1;
+    const totalPages = Math.max(1, Math.ceil(allRows.length / PAGE_SIZE));
+    companiesPage = Math.min(companiesPage, totalPages);
+    const rows = allRows.slice((companiesPage-1)*PAGE_SIZE, companiesPage*PAGE_SIZE);
+    const ccount = document.getElementById('companies-count'); if(ccount) ccount.textContent=allRows.length;
+    const cpi = document.getElementById('companies-page-info'); if(cpi) cpi.textContent=allRows.length?`${(companiesPage-1)*PAGE_SIZE+1}–${Math.min(companiesPage*PAGE_SIZE,allRows.length)} of ${allRows.length}`:'0';
     document.getElementById('companies-body').innerHTML = rows.length ? rows.map(r=>`<tr>
       <td><input type="checkbox" style="accent-color:var(--accent)"></td>
       <td class="name-cell" onclick="openModal('company','${r.id}')">${r.name}</td>
@@ -5831,46 +5838,52 @@ function renderTable(type, q='') {
         ${canDo('accounts','delete')?`<button class="btn btn-ghost btn-sm" title="Delete" onclick="deleteCRMRecord('companies','${r.id}')" style="padding:4px 7px;color:#ef4444">${ICON_TRASH}</button>`:''}
       </td>
     </tr>`).join('') : '<tr><td colspan="7" class="empty-state">No accounts found</td></tr>';
+    renderPagination('companies', companiesPage, totalPages);
   }
 
   else if (type==='contacts') {
-    const rows = DB.contacts.filter(r=>{
-      if (r.stage && LEAD_STAGES.includes(r.stage)) return false; // exclude lead records
+    const allRows = DB.contacts.filter(r=>{
+      if (r.stage && LEAD_STAGES.includes(r.stage)) return false;
       if (!Q) return true;
-      return (r.name||'').toLowerCase().includes(Q)||
-             (r.email||'').toLowerCase().includes(Q)||
-             (r.phone||'').toLowerCase().includes(Q)||
-             (r.company||getCompanyName(r.companyId)||'').toLowerCase().includes(Q)||
+      return (r.name||'').toLowerCase().includes(Q)||(r.email||'').toLowerCase().includes(Q)||
+             (r.phone||'').toLowerCase().includes(Q)||(r.company||getCompanyName(r.companyId)||'').toLowerCase().includes(Q)||
              (r.title||'').toLowerCase().includes(Q);
     });
-    const ctcount = document.getElementById('contacts-count'); if(ctcount) ctcount.textContent=rows.length;
-    const ctpi = document.getElementById('contacts-page-info'); if(ctpi) ctpi.textContent=rows.length?`1 to ${Math.min(25,rows.length)}`:'0';
+    if (Q) contactsPage = 1;
+    const totalPages = Math.max(1, Math.ceil(allRows.length / PAGE_SIZE));
+    contactsPage = Math.min(contactsPage, totalPages);
+    const rows = allRows.slice((contactsPage-1)*PAGE_SIZE, contactsPage*PAGE_SIZE);
+    const ctcount = document.getElementById('contacts-count'); if(ctcount) ctcount.textContent=allRows.length;
+    const ctpi = document.getElementById('contacts-page-info'); if(ctpi) ctpi.textContent=allRows.length?`${(contactsPage-1)*PAGE_SIZE+1}–${Math.min(contactsPage*PAGE_SIZE,allRows.length)} of ${allRows.length}`:'0';
     document.getElementById('contacts-body').innerHTML = rows.length ? rows.map(r=>`<tr>
       <td><input type="checkbox" style="accent-color:var(--accent)"></td>
       <td class="name-cell" onclick="openModal('contact','${r.id}')">${r.name}</td>
       <td>${r.title||'—'}</td><td>${r.company||getCompanyName(r.companyId)||'—'}</td>
-      <td style="font-family:'Inter',system-ui,sans-serif;color:var(--fg2)">${r.email||'—'}</td><td style="font-family:'Inter',system-ui,sans-serif;color:var(--fg2)">${r.phone||'—'}</td>
+      <td style="font-family:'Inter',system-ui,sans-serif;color:var(--fg2)">${r.email||'—'}</td>
+      <td style="font-family:'Inter',system-ui,sans-serif;color:var(--fg2)">${r.phone||'—'}</td>
       <td style="white-space:nowrap">
         ${canDo('contacts','edit')?`<button class="btn btn-ghost btn-sm" title="Edit" onclick="openModal('contact','${r.id}')" style="padding:4px 7px">${ICON_EDIT}</button>`:''}
         ${canDo('contacts','delete')?`<button class="btn btn-ghost btn-sm" title="Delete" onclick="deleteCRMRecord('contacts','${r.id}')" style="padding:4px 7px;color:#ef4444">${ICON_TRASH}</button>`:''}
       </td>
     </tr>`).join('') : '<tr><td colspan="7" class="empty-state">No contacts found</td></tr>';
+    renderPagination('contacts', contactsPage, totalPages);
   }
 
   else if (type==='leads') {
-    const rows = DB.leads.filter(r=>{
+    const allRows = DB.leads.filter(r=>{
       if (!Q) return true;
       const fullName = ((r.first_name||r.firstName||'') + ' ' + (r.last_name||r.lastName||'')).trim().toLowerCase();
-      const name = (r.name||'').toLowerCase();
-      const email = (r.email||'').toLowerCase();
-      const company = (r.company||r.companyName||getCompanyName(r.companyId)||'').toLowerCase();
-      const phone = (r.phone||'').toLowerCase();
-      const title = (r.title||'').toLowerCase();
-      const owner = (r.owner||'').toLowerCase();
+      const name=(r.name||'').toLowerCase(), email=(r.email||'').toLowerCase();
+      const company=(r.company||r.companyName||getCompanyName(r.companyId)||'').toLowerCase();
+      const phone=(r.phone||'').toLowerCase(), title=(r.title||'').toLowerCase(), owner=(r.owner||'').toLowerCase();
       return fullName.includes(Q)||name.includes(Q)||email.includes(Q)||company.includes(Q)||phone.includes(Q)||title.includes(Q)||owner.includes(Q);
     });
-    const lcount = document.getElementById('leads-count'); if(lcount) lcount.textContent=rows.length;
-    const lpi = document.getElementById('leads-page-info'); if(lpi) lpi.textContent=rows.length?`1 to ${Math.min(25,rows.length)}`:'0';
+    if (Q) leadsPage = 1;
+    const totalPages = Math.max(1, Math.ceil(allRows.length / PAGE_SIZE));
+    leadsPage = Math.min(leadsPage, totalPages);
+    const rows = allRows.slice((leadsPage-1)*PAGE_SIZE, leadsPage*PAGE_SIZE);
+    const lcount = document.getElementById('leads-count'); if(lcount) lcount.textContent=allRows.length;
+    const lpi = document.getElementById('leads-page-info'); if(lpi) lpi.textContent=allRows.length?`${(leadsPage-1)*PAGE_SIZE+1}–${Math.min(leadsPage*PAGE_SIZE,allRows.length)} of ${allRows.length}`:'0';
     const stageColor = s=>({New:'#6366f1',Contacted:'#0ea5e9','Pre Qualified':'#f59e0b',Qualified:'#10b981','Not Qualified':'#ef4444','Junk Lead':'#9ca3af','Proposal Sent':'#8b5cf6',Negotiation:'#f97316','Follow Up':'#06b6d4',Won:'#22c55e',Lost:'#ef4444','Lost Lead':'#9ca3af'}[s]||'#9ca3af');
     document.getElementById('leads-body').innerHTML = rows.length ? rows.map(r=>`<tr>
       <td><input type="checkbox" style="accent-color:var(--accent)"></td>
@@ -5886,19 +5899,22 @@ function renderTable(type, q='') {
         ${canDo('leads','delete')?`<button class="btn btn-ghost btn-sm" title="Delete" onclick="deleteCRMRecord('leads','${r.id}')" style="padding:4px 7px;color:#ef4444">${ICON_TRASH}</button>`:''}
       </td>
     </tr>`).join('') : '<tr><td colspan="9" class="empty-state">No leads found</td></tr>';
+    renderPagination('leads', leadsPage, totalPages);
   }
 
   else if (type==='deals') {
-    const rows = (DB.deals||[]).filter(r=>{
+    const allRows = (DB.deals||[]).filter(r=>{
       if (!Q) return true;
-      return (r.name||'').toLowerCase().includes(Q)||
-             (r.companyName||'').toLowerCase().includes(Q)||
-             (r.candidateName||'').toLowerCase().includes(Q)||
-             (r.stage||'').toLowerCase().includes(Q)||
+      return (r.name||'').toLowerCase().includes(Q)||(r.companyName||'').toLowerCase().includes(Q)||
+             (r.candidateName||'').toLowerCase().includes(Q)||(r.stage||'').toLowerCase().includes(Q)||
              (r.owner||'').toLowerCase().includes(Q);
     });
-    const dcount = document.getElementById('deals-count'); if(dcount) dcount.textContent=rows.length;
-    const dpi = document.getElementById('deals-page-info'); if(dpi) dpi.textContent=rows.length?`1 to ${Math.min(25,rows.length)}`:'0';
+    if (Q) dealsPage = 1;
+    const totalPages = Math.max(1, Math.ceil(allRows.length / PAGE_SIZE));
+    dealsPage = Math.min(dealsPage, totalPages);
+    const rows = allRows.slice((dealsPage-1)*PAGE_SIZE, dealsPage*PAGE_SIZE);
+    const dcount = document.getElementById('deals-count'); if(dcount) dcount.textContent=allRows.length;
+    const dpi = document.getElementById('deals-page-info'); if(dpi) dpi.textContent=allRows.length?`${(dealsPage-1)*PAGE_SIZE+1}–${Math.min(dealsPage*PAGE_SIZE,allRows.length)} of ${allRows.length}`:'0';
     document.getElementById('deals-body').innerHTML = rows.length ? rows.map(r=>`<tr>
       <td><input type="checkbox" style="accent-color:var(--accent)"></td>
       <td class="name-cell" onclick="openModal('deal','${r.id}')">${r.name||'—'}</td>
@@ -5913,6 +5929,7 @@ function renderTable(type, q='') {
         ${canDo('deals','delete')?`<button class="btn btn-ghost btn-sm" title="Delete" onclick="deleteCRMRecord('deals','${r.id}')" style="padding:4px 7px;color:#ef4444">${ICON_TRASH}</button>`:''}
       </td>
     </tr>`).join('') : '<tr><td colspan="9" class="empty-state">No deals found</td></tr>';
+    renderPagination('deals', dealsPage, totalPages);
   }
 
   else if (type==='tasks') {
