@@ -2321,6 +2321,7 @@
               <th>Status</th>
               <th>Start Date</th>
               <th>Closure Month</th>
+              <th>Ageing (Days)</th>
               <th>Delivery POC</th>
               <th>Sales POC</th>
               <th style="width:80px">Actions</th>
@@ -3509,6 +3510,10 @@ function renderBOTable() {
   tbody.innerHTML = rows.map(r => {
     const st = statusStyle[r.status] || { bg:'#f1f5f9', color:'#475569' };
     const rev = boCalcRevenue(r.fixedCtc, r.pct, r.numPositions);
+    // Ageing: days since start date (or created_at if no start date)
+    const ageBase = r.startDate ? new Date(r.startDate) : (r.createdAt ? new Date(r.createdAt) : null);
+    const ageDays = ageBase ? Math.floor((Date.now() - ageBase.getTime()) / 86400000) : null;
+    const ageColor = ageDays === null ? 'var(--fg3)' : ageDays > 60 ? '#dc2626' : ageDays > 30 ? '#d97706' : '#16a34a';
     return `<tr>
       <td style="font-weight:600;color:var(--fg)">${esc(r.clientName||'—')}</td>
       <td>${esc(r.positionDesc||'—')}</td>
@@ -3520,6 +3525,7 @@ function renderBOTable() {
       <td><span class="bo-status-badge" style="background:${st.bg};color:${st.color}">${esc(r.status||'Active')}</span></td>
       <td>${r.startDate ? new Date(r.startDate).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}) : '—'}</td>
       <td>${r.closureMonth ? r.closureMonth.replace('-',' / ').replace(/(\d{4}) \/ (\d{2})/,(_,y,m)=>new Date(y,m-1).toLocaleDateString('en-IN',{month:'short',year:'numeric'})) : '—'}</td>
+      <td style="font-weight:700;color:${ageColor};text-align:center">${ageDays !== null ? ageDays + 'd' : '—'}</td>
       <td>${esc(r.deliveryPoc||'—')}</td>
       <td>${esc(r.salesPoc||'—')}</td>
       <td>
