@@ -77,7 +77,7 @@ $func$;
 -- Re-create trigger (function is replaced in-place, trigger stays)
 DROP TRIGGER IF EXISTS trg_won_lead_sync ON leads;
 CREATE TRIGGER trg_won_lead_sync
-  AFTER INSERT OR UPDATE OF stage ON leads
+  AFTER INSERT OR UPDATE OF stage, industry, city, country ON leads
   FOR EACH ROW EXECUTE FUNCTION sync_won_lead();
 
 NOTIFY pgrst, 'reload schema';

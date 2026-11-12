@@ -7563,13 +7563,11 @@ const MODAL_FORMS = {
           </div>
         </div>
         <div class="lf-addr-box">
-          <div class="lf-addr-label" style="display:flex;align-items:center;justify-content:space-between">
-            <span>Shipping Address</span>
-            <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;color:var(--fg2);cursor:pointer">
-              <input type="checkbox" id="f-sameAsBilling" onchange="if(this.checked)copyBillingToShipping()" style="cursor:pointer">
-              Same as Billing
-            </label>
-          </div>
+          <div class="lf-addr-label">Shipping Address</div>
+          <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;color:var(--accent);cursor:pointer;margin:6px 0 4px 0;padding:4px 10px;background:var(--accent)15;border-radius:6px;border:1px solid var(--accent)40">
+            <input type="checkbox" id="f-sameAsBilling" onchange="if(this.checked)copyBillingToShipping()" style="cursor:pointer;accent-color:var(--accent)">
+            ✓ Same as Billing Address
+          </label>
           <div style="display:grid;grid-template-columns:160px 1fr;gap:10px 8px;align-items:start;margin-top:8px">
             <label style="text-align:right;padding-right:8px;padding-top:8px;font-size:12px;font-weight:500;color:var(--fg2)">Country / Region</label>
             <select id="f-shippingCountry"><option value="">-None-</option>${['India','USA','UK','UAE','Singapore','Canada','Australia','Germany','Other'].map(s=>`<option ${r.shippingCountry===s?'selected':''}>${s}</option>`).join('')}</select>
