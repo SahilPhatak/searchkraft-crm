@@ -2292,7 +2292,7 @@
             <button class="bo-filter-pill" onclick="boSetFilter(this,'Active')">Active</button>
             <button class="bo-filter-pill" onclick="boSetFilter(this,'Hold')">On Hold</button>
             <button class="bo-filter-pill" onclick="boSetFilter(this,'Closed Internally')">Closed Int.</button>
-            <button class="bo-filter-pill" onclick="boSetFilter(this,'Closed by Customer')">Closed by Client</button>
+            <button class="bo-filter-pill" onclick="boSetFilter(this,'Closed by Customer')">Closed by Customer</button>
           </div>
         </div>
         <button class="btn btn-primary" onclick="openBOForm()">+ Add Position</button>
@@ -3495,7 +3495,7 @@ function getFilteredBORows() {
 
 function renderBOTable(rows) {
   if (!rows) rows = getFilteredBORows();
-  updateBOKpis(rows);
+  updateBOKpis(rows); // always update KPIs with same filtered set
 
   const statusStyle = {
     'Active':              { bg:'#dcfce7', color:'#166534' },
@@ -3596,12 +3596,12 @@ function boSetFilter(btn, val) {
   _boFilter = val;
   document.querySelectorAll('.bo-filter-pill').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-  renderBOTable();
+  renderBOTable(getFilteredBORows());
 }
 
 function searchBO(q) {
   _boQuery = q;
-  renderBOTable();
+  renderBOTable(getFilteredBORows());
 }
 
 function openBOForm(id) {
@@ -3729,8 +3729,7 @@ async function saveBORecord() {
   }
 
   closeBOForm();
-  renderBOTable();
-  updateBOKpis();
+  renderBOTable(getFilteredBORows());
 }
 
 async function deleteBORecord(id) {
@@ -3739,8 +3738,7 @@ async function deleteBORecord(id) {
     await DB_CLIENT.from('business_onboarded').delete().eq('id', id);
   } catch(e) { console.warn('DB delete failed:', e.message); }
   DB.businessOnboarded = DB.businessOnboarded.filter(x => x.id != id);
-  renderBOTable();
-  updateBOKpis();
+  renderBOTable(getFilteredBORows());
   showToast('Position deleted', '#dc2626');
 }
 
