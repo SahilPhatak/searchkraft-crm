@@ -3664,49 +3664,48 @@ async function saveBORecord() {
   const pct = parseFloat(document.getElementById('bo-pct')?.value)||0;
   const { perPos, total } = boCalcRevenue(fixedCtc, pct, numPos);
 
+  const startDateVal    = document.getElementById('bo-startDate')?.value||null;
+  const closureMonthVal = document.getElementById('bo-closureMonth')?.value||null;
+
+  // Core payload — only columns guaranteed to exist in the table
   const payload = {
-    client_name:    clientName,
-    position_desc:  positionDesc,
-    num_positions:  numPos,
-    source:         document.getElementById('bo-source')?.value||'',
-    status:         document.getElementById('bo-status')?.value||'Active',
-    fixed_ctc:      fixedCtc||null,
-    pct:            pct||null,
+    client_name:     clientName,
+    position_desc:   positionDesc,
+    num_positions:   numPos,
+    source:          document.getElementById('bo-source')?.value||'',
+    status:          document.getElementById('bo-status')?.value||'Active',
+    fixed_ctc:       fixedCtc||null,
+    pct:             pct||null,
     revenue_per_pos: perPos||null,
-    total_revenue:  total||null,
-    delivery_poc:   document.getElementById('bo-deliveryPoc')?.value||'',
-    sales_poc:      document.getElementById('bo-salesPoc')?.value||'',
-    notes:          document.getElementById('bo-notes')?.value?.trim()||'',
-    start_date:     document.getElementById('bo-startDate')?.value||null,
-    closure_month:  document.getElementById('bo-closureMonth')?.value||null,
-    updated_at:     new Date().toISOString(),
+    total_revenue:   total||null,
+    delivery_poc:    document.getElementById('bo-deliveryPoc')?.value||'',
+    sales_poc:       document.getElementById('bo-salesPoc')?.value||'',
+    notes:           document.getElementById('bo-notes')?.value?.trim()||'',
+    updated_at:      new Date().toISOString(),
   };
 
-  // Try save with all columns; if schema cache error on new columns, retry without them
-  async function attemptSave(pl) {
-    if (_boEditId) {
-      return DB_CLIENT.from('business_onboarded').update(pl).eq('id', _boEditId).select().single();
-    } else {
-      return DB_CLIENT.from('business_onboarded').insert({...pl, created_at: new Date().toISOString()}).select().single();
-    }
-  }
-
   try {
-    let result = await attemptSave(payload);
-    // If error mentions missing column, retry without those columns
-    if (result.error && /closure_month|start_date/.test(result.error.message)) {
-      const fallback = {...payload};
-      delete fallback.start_date;
-      delete fallback.closure_month;
-      result = await attemptSave(fallback);
-    }
-    if (result.error) throw result.error;
-    const saved = result.data;
+    let saved;
     if (_boEditId) {
+      const { data, error } = await DB_CLIENT.from('business_onboarded').update(payload).eq('id', _boEditId).select().single();
+      if (error) throw error;
+      saved = data;
       const idx = DB.businessOnboarded.findIndex(x=>x.id==_boEditId);
       if (idx>=0) DB.businessOnboarded[idx] = normBORecord(saved);
     } else {
+      const { data, error } = await DB_CLIENT.from('business_onboarded').insert({...payload, created_at: new Date().toISOString()}).select().single();
+      if (error) throw error;
+      saved = data;
       DB.businessOnboarded.unshift(normBORecord(saved));
+    }
+    // Try to also save start_date / closure_month (columns added via migration)
+    // Silently ignore if columns don't exist yet in schema cache
+    if (saved && (startDateVal || closureMonthVal)) {
+      try {
+        await DB_CLIENT.from('business_onboarded')
+          .update({ start_date: startDateVal, closure_month: closureMonthVal, updated_at: new Date().toISOString() })
+          .eq('id', saved.id);
+      } catch(e2) { /* columns not migrated yet — ignore */ }
     }
     showToast(_boEditId ? 'Position updated!' : 'Position added!', '#16a34a');
   } catch(err) {
