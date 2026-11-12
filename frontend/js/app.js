@@ -226,6 +226,7 @@ async function onSignedIn(authUser) {
   markLoginTime(); // record login time as badge baseline
   updateNavBadges();
   startRealtimeSync(); // live updates from other team members
+  gcalLoadState(); // restore Google Calendar connection from Supabase
   const page = getHashPage();
   if (page && page !== 'login') {
     history.replaceState({ page }, '', '#/' + page);
