@@ -15,19 +15,19 @@ async function searchFromDB(type, q) {
     let query = DB_CLIENT.from('leads').select('*').order('created_at',{ascending:false}).limit(500);
     if (Q) query = query.or(`first_name.ilike.%${Q}%,last_name.ilike.%${Q}%,name.ilike.%${Q}%,email.ilike.%${Q}%,company.ilike.%${Q}%,phone.ilike.%${Q}%,stage.ilike.%${Q}%`);
     const { data } = await query;
-    if (data) { DB.leads = data.map(norm); }
-    renderTable('leads', q); // always pass Q so local filter also applies
+    if (data) { DB.leads = data.map(normRecord); }
+    renderTable('leads', q);
   } else if (type === 'contacts') {
     let query = DB_CLIENT.from('contacts').select('*').order('created_at',{ascending:false}).limit(500);
     if (Q) query = query.or(`name.ilike.%${Q}%,email.ilike.%${Q}%,company.ilike.%${Q}%,phone.ilike.%${Q}%,title.ilike.%${Q}%`);
     const { data } = await query;
-    if (data) { DB.contacts = data.map(norm).filter(r=>!r.stage||!LEAD_STAGES.includes(r.stage)); }
+    if (data) { DB.contacts = data.map(normRecord).filter(r=>!r.stage||!LEAD_STAGES.includes(r.stage)); }
     renderTable('contacts', q);
   } else if (type === 'companies') {
     let query = DB_CLIENT.from('companies').select('*').order('name',{ascending:true}).limit(500);
     if (Q) query = query.or(`name.ilike.%${Q}%,city.ilike.%${Q}%,lane.ilike.%${Q}%`);
     const { data } = await query;
-    if (data) { DB.companies = data.map(norm); }
+    if (data) { DB.companies = data.map(normRecord); }
     renderTable('companies', q);
   } else {
     renderTable(type, q);

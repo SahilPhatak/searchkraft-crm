@@ -170,50 +170,8 @@ let _realtimeChannel = null;
 function startRealtimeSync() {
   if (window._realtimeStarted) return; // already subscribed
   window._realtimeStarted = true;
-  const norm = (r) => ({
-    ...r,
-    createdAt:        r.createdAt        || r.created_at,
-    updatedAt:        r.updatedAt        || r.updated_at,
-    closeDate:        r.closeDate        || r.close_date,
-    dueDate:          r.dueDate          || r.due_date,
-    due:              r.due              || r.due_date,
-    companyId:        r.companyId        || r.company_id,
-    companyName:      r.companyName      || r.company,
-    contactId:        r.contactId        || r.contact_id,
-    ownerId:          r.ownerId          || r.owner_id,
-    leadId:           r.leadId           || r.lead_id,
-    dealId:           r.dealId           || r.deal_id,
-    bdOwner:          r.bdOwner          || r.bd_owner,
-    firstName:        r.firstName        || r.first_name,
-    lastName:         r.lastName         || r.last_name,
-    numEmployees:     r.numEmployees     || r.num_employees,
-    annualRevenue:    r.annualRevenue    || r.annual_revenue,
-    emailOptOut:      r.emailOptOut      ?? r.email_opt_out,
-    handoverDone:     r.handoverDone     ?? r.handover_done,
-    commercialsSigned:r.commercialsSigned?? r.commercials_signed,
-    wonAt:            r.wonAt            || r.won_at,
-    lostAt:           r.lostAt           || r.lost_at,
-    lostReason:       r.lostReason       || r.lost_reason,
-    completedAt:      r.completedAt      || r.completed_at,
-    relatedTo:        r.relatedTo        || r.related_to,
-    amount:           (r.amount != null && r.amount !== '') ? r.amount : r.value,
-    expectedRevenue:  (r.expectedRevenue != null && r.expectedRevenue !== '') ? r.expectedRevenue : r.expected_revenue,
-    probability:      r.probability      !== undefined ? r.probability      : r.probability_pct,
-    clientId:         r.clientId         || r.client_id,
-    clientName:       r.clientName       || r.client_name,
-    fileType:         r.fileType         || r.file_type,
-    fileSize:         r.fileSize         || r.file_size,
-    fileUrl:          r.fileUrl          || r.file_url,
-    uploadedBy:       r.uploadedBy       || r.uploaded_by,
-    referenceNumber:  r.referenceNumber  || r.reference_number,
-    startDate:        r.startDate        || r.start_date,
-    expiryDate:       r.expiryDate       || r.expiry_date,
-    candidateName:    r.candidateName    || r.candidate_name,
-    contactName:      r.contactName      || r.contact_name,
-    nextStep:         r.nextStep         || r.next_step,
-    dealType:         r.dealType         || r.deal_type,
-    campaign:         r.campaign         || r.campaign,
-  });
+  // Use global normRecord (defined in config.js, loaded first)
+  const norm = normRecord;
 
   // Map Supabase table name → DB key + page hash(es) to re-render
   const TABLE_MAP = {
