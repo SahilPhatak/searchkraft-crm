@@ -769,7 +769,7 @@
           <button class="crm-view-btn active-view-btn" title="List view" style="cursor:default">☰</button>
         </div>
         <div style="flex:1"></div>
-        <div class="search-bar" style="max-width:200px"><input type="text" placeholder="Search accounts…" oninput="debounce('companies',()=>searchFromDB('companies',this.value))"></div>
+        <div class="search-bar" style="max-width:200px"><input type="text" placeholder="Search accounts…" oninput="searchFromDB('companies',this.value)"></div>
         <button class="btn btn-primary btn-sm" onclick="openModal('company')">+ Create Account</button>
       </div>
       <!-- Body: filter sidebar + table -->
@@ -905,7 +905,7 @@
           <button class="crm-view-btn active-view-btn" title="List view" style="cursor:default">☰</button>
         </div>
         <div style="flex:1"></div>
-        <div class="search-bar" style="max-width:200px"><input type="text" placeholder="Search contacts…" oninput="debounce('contacts',()=>searchFromDB('contacts',this.value))"></div>
+        <div class="search-bar" style="max-width:200px"><input type="text" placeholder="Search contacts…" oninput="searchFromDB('contacts',this.value)"></div>
         <button class="btn btn-primary btn-sm" onclick="openModal('contact')">+ Create Contact</button>
       </div>
       <div style="display:flex;gap:0;flex:1;overflow:hidden">
@@ -1067,7 +1067,7 @@
           <button id="leads-btn-grid" class="crm-view-btn" onclick="switchLeadTab('board',this)" title="Pipeline board">⊞</button>
         </div>
         <div style="flex:1"></div>
-        <div class="search-bar" style="max-width:200px"><input type="text" placeholder="Search leads…" oninput="debounce('leads',()=>searchFromDB('leads',this.value))"></div>
+        <div class="search-bar" style="max-width:200px"><input type="text" placeholder="Search leads…" oninput="searchFromDB('leads',this.value)"></div>
         <button class="btn btn-primary btn-sm" onclick="openModal('lead')">+ Create Lead</button>
       </div>
       <div style="display:flex;gap:0;flex:1;overflow:hidden">
