@@ -2319,6 +2319,8 @@
               <th>Est. Revenue</th>
               <th>Source</th>
               <th>Status</th>
+              <th>Start Date</th>
+              <th>Closure Month</th>
               <th>Delivery POC</th>
               <th>Sales POC</th>
               <th style="width:80px">Actions</th>
@@ -2381,6 +2383,14 @@
               <option>Closed Internally</option>
               <option>Closed by Customer</option>
             </select>
+          </div>
+          <div class="lf-field">
+            <label>Start Date</label>
+            <input id="bo-startDate" type="date">
+          </div>
+          <div class="lf-field">
+            <label>Expected Closure Month</label>
+            <input id="bo-closureMonth" type="month" placeholder="YYYY-MM">
           </div>
         </div>
 
@@ -3482,7 +3492,7 @@ function renderBOTable() {
   if (!tbody) return;
 
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--fg3)">
+    tbody.innerHTML = `<tr><td colspan="13" style="text-align:center;padding:40px;color:var(--fg3)">
       No positions found. <button class="btn btn-primary btn-sm" onclick="openBOForm()" style="margin-left:10px">+ Add Position</button>
     </td></tr>`;
     return;
@@ -3500,6 +3510,8 @@ function renderBOTable() {
       <td style="font-weight:600;color:#16a34a">${rev.total > 0 ? '₹'+rev.total.toLocaleString('en-IN') : '—'}</td>
       <td><span class="badge badge-blue">${esc(r.source||'—')}</span></td>
       <td><span class="bo-status-badge" style="background:${st.bg};color:${st.color}">${esc(r.status||'Active')}</span></td>
+      <td>${r.startDate ? new Date(r.startDate).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}) : '—'}</td>
+      <td>${r.closureMonth ? r.closureMonth.replace('-',' / ').replace(/(\d{4}) \/ (\d{2})/,(_,y,m)=>new Date(y,m-1).toLocaleDateString('en-IN',{month:'short',year:'numeric'})) : '—'}</td>
       <td>${esc(r.deliveryPoc||'—')}</td>
       <td>${esc(r.salesPoc||'—')}</td>
       <td>
@@ -3602,10 +3614,13 @@ function openBOForm(id) {
     setVal('bo-deliveryPoc', r.deliveryPoc);
     setVal('bo-salesPoc', r.salesPoc);
     setVal('bo-notes', r.notes);
+    setVal('bo-startDate', r.startDate||'');
+    setVal('bo-closureMonth', r.closureMonth||'');
     calcBORevenue();
   } else {
     ['bo-clientName','bo-positionDesc','bo-source','bo-fixedCtc','bo-pct',
-     'bo-deliveryPoc','bo-salesPoc','bo-notes','bo-revenuePerPos','bo-totalRevenue'].forEach(id => setVal(id,''));
+     'bo-deliveryPoc','bo-salesPoc','bo-notes','bo-revenuePerPos','bo-totalRevenue',
+     'bo-startDate','bo-closureMonth'].forEach(id => setVal(id,''));
     setVal('bo-numPositions', 1);
     setVal('bo-status','Active');
   }
@@ -3642,6 +3657,8 @@ async function saveBORecord() {
     delivery_poc:   document.getElementById('bo-deliveryPoc')?.value||'',
     sales_poc:      document.getElementById('bo-salesPoc')?.value||'',
     notes:          document.getElementById('bo-notes')?.value?.trim()||'',
+    start_date:     document.getElementById('bo-startDate')?.value||null,
+    closure_month:  document.getElementById('bo-closureMonth')?.value||null,
     updated_at:     new Date().toISOString(),
   };
 
@@ -3668,7 +3685,8 @@ async function saveBORecord() {
       clientName: payload.client_name, positionDesc: payload.position_desc,
       numPositions: payload.num_positions, fixedCtc: payload.fixed_ctc,
       deliveryPoc: payload.delivery_poc, salesPoc: payload.sales_poc,
-      totalRevenue: payload.total_revenue, revenuePerPos: payload.revenue_per_pos };
+      totalRevenue: payload.total_revenue, revenuePerPos: payload.revenue_per_pos,
+      startDate: payload.start_date, closureMonth: payload.closure_month };
     if (_boEditId) {
       const idx = DB.businessOnboarded.findIndex(x=>x.id==_boEditId);
       if (idx>=0) DB.businessOnboarded[idx] = localRec;
@@ -3706,6 +3724,8 @@ function normBORecord(r) {
     totalRevenue: r.totalRevenue || r.total_revenue,
     deliveryPoc:  r.deliveryPoc  || r.delivery_poc,
     salesPoc:     r.salesPoc     || r.sales_poc,
+    startDate:    r.startDate    || r.start_date,
+    closureMonth: r.closureMonth || r.closure_month,
     createdAt:    r.createdAt    || r.created_at,
   };
 }

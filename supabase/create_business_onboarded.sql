@@ -15,6 +15,8 @@ CREATE TABLE IF NOT EXISTS public.business_onboarded (
   delivery_poc    TEXT,
   sales_poc       TEXT,
   notes           TEXT,
+  start_date      DATE,
+  closure_month   TEXT,
   created_at      TIMESTAMPTZ DEFAULT NOW(),
   updated_at      TIMESTAMPTZ DEFAULT NOW()
 );
