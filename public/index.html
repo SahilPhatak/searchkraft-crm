@@ -85,6 +85,13 @@
   </div>
 
   <div class="nav-section">
+    <div class="nav-section-label">Business</div>
+    <button class="nav-item" data-page="business-onboarded">
+      <span class="icon">🤝</span><span class="label"> Business Onboarded</span><span class="nav-badge" id="nb-business-onboarded"></span>
+    </button>
+  </div>
+
+  <div class="nav-section">
     <div class="nav-section-label">Admin</div>
     <button class="nav-item" data-page="team">
       <span class="icon">👥</span><span class="label"> Team</span>
@@ -2291,6 +2298,162 @@
 
     </div><!-- /page-personal-settings -->
 
+    <!-- ===================== BUSINESS ONBOARDED ===================== -->
+    <div class="page page-crm" id="page-business-onboarded" style="display:none">
+      <!-- Topbar -->
+      <div class="crm-topbar">
+        <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">
+          <div class="search-bar" style="max-width:220px">
+            <input type="text" placeholder="Search clients…" oninput="searchBO(this.value)" id="bo-search-input">
+          </div>
+          <!-- Status filter pills -->
+          <div style="display:flex;gap:6px;flex-wrap:wrap" id="bo-filter-pills">
+            <button class="bo-filter-pill active" onclick="boSetFilter(this,'all')">All</button>
+            <button class="bo-filter-pill" onclick="boSetFilter(this,'Active')">Active</button>
+            <button class="bo-filter-pill" onclick="boSetFilter(this,'Hold')">On Hold</button>
+            <button class="bo-filter-pill" onclick="boSetFilter(this,'Closed Internally')">Closed Int.</button>
+            <button class="bo-filter-pill" onclick="boSetFilter(this,'Closed by Customer')">Closed by Client</button>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="openBOForm()">+ Add Position</button>
+      </div>
+
+      <!-- KPI bar -->
+      <div style="display:flex;gap:12px;padding:14px 20px 0;flex-shrink:0;flex-wrap:wrap">
+        <div class="bo-kpi" id="bo-kpi-total"><span class="bo-kpi-num" id="bo-kpi-total-n">0</span><span class="bo-kpi-lbl">Total Positions</span></div>
+        <div class="bo-kpi" id="bo-kpi-active"><span class="bo-kpi-num" id="bo-kpi-active-n">0</span><span class="bo-kpi-lbl">Active</span></div>
+        <div class="bo-kpi" id="bo-kpi-hold"><span class="bo-kpi-num" id="bo-kpi-hold-n">0</span><span class="bo-kpi-lbl">On Hold</span></div>
+        <div class="bo-kpi" id="bo-kpi-rev"><span class="bo-kpi-num" id="bo-kpi-rev-n">₹0</span><span class="bo-kpi-lbl">Est. Revenue</span></div>
+      </div>
+
+      <!-- Table -->
+      <div class="table-wrap" style="flex:1;overflow:auto;padding:14px 20px 20px">
+        <table class="crm-table" id="bo-table">
+          <thead>
+            <tr>
+              <th>Client</th>
+              <th>Position</th>
+              <th># Pos</th>
+              <th>Fixed CTC</th>
+              <th>% / Commercial</th>
+              <th>Est. Revenue</th>
+              <th>Source</th>
+              <th>Status</th>
+              <th>Delivery POC</th>
+              <th>Sales POC</th>
+              <th style="width:80px">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="bo-tbody"></tbody>
+        </table>
+      </div>
+    </div><!-- /page-business-onboarded -->
+
+    <!-- BO FORM OVERLAY (full-page slide-in) -->
+    <div id="bo-form-overlay" style="display:none;position:fixed;inset:0;z-index:600;background:var(--bg);flex-direction:column;overflow:hidden">
+      <!-- Topbar -->
+      <div class="lead-form-topbar">
+        <div style="display:flex;align-items:center;gap:12px">
+          <button onclick="closeBOForm()" class="btn btn-ghost btn-sm" style="padding:6px 10px">← Back</button>
+          <span id="bo-form-title" style="font-size:17px;font-weight:700;color:var(--fg)">Add Position</span>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button onclick="closeBOForm()" class="btn btn-secondary btn-sm">Cancel</button>
+          <button onclick="saveBORecord()" class="btn btn-primary btn-sm">Save</button>
+        </div>
+      </div>
+
+      <!-- Form body -->
+      <div class="lead-form-body" style="flex:1;overflow-y:auto;padding:28px 40px">
+
+        <!-- Client & Role -->
+        <div class="lf-section-title">Position Details</div>
+        <div class="lf-grid">
+          <div class="lf-field">
+            <label>Client Name <span style="color:#dc2626">*</span></label>
+            <select id="bo-clientName">
+              <option value="">— Select Client —</option>
+            </select>
+          </div>
+          <div class="lf-field">
+            <label>Role / Position Description <span style="color:#dc2626">*</span></label>
+            <input id="bo-positionDesc" type="text" placeholder="e.g. Senior Backend Engineer">
+          </div>
+          <div class="lf-field">
+            <label>Number of Positions</label>
+            <input id="bo-numPositions" type="number" min="1" value="1" placeholder="1">
+          </div>
+          <div class="lf-field">
+            <label>Source of Role</label>
+            <select id="bo-source">
+              <option value="">-None-</option>
+              <option>Farming</option>
+              <option>New</option>
+              <option>Retention</option>
+              <option>Renewal</option>
+            </select>
+          </div>
+          <div class="lf-field">
+            <label>Role Status</label>
+            <select id="bo-status">
+              <option>Active</option>
+              <option>Hold</option>
+              <option>Closed Internally</option>
+              <option>Closed by Customer</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Commercial -->
+        <div class="lf-section-title" style="margin-top:28px">Commercial Details</div>
+        <div class="lf-grid">
+          <div class="lf-field">
+            <label>Fixed CTC of Position (₹ LPA)</label>
+            <input id="bo-fixedCtc" type="number" min="0" step="0.01" placeholder="e.g. 12.5" oninput="calcBORevenue()">
+          </div>
+          <div class="lf-field">
+            <label>% Commercial</label>
+            <input id="bo-pct" type="number" min="0" max="100" step="0.1" placeholder="e.g. 8.33" oninput="calcBORevenue()">
+          </div>
+          <div class="lf-field">
+            <label>Calculated Revenue per Position (₹)</label>
+            <input id="bo-revenuePerPos" type="text" readonly style="background:var(--surface2);font-weight:600;color:var(--accent)" placeholder="Auto-calculated">
+          </div>
+          <div class="lf-field">
+            <label>Total Estimated Revenue (₹)</label>
+            <input id="bo-totalRevenue" type="text" readonly style="background:var(--surface2);font-weight:700;color:#16a34a;font-size:15px" placeholder="Auto-calculated">
+          </div>
+        </div>
+
+        <!-- POC -->
+        <div class="lf-section-title" style="margin-top:28px">Points of Contact</div>
+        <div class="lf-grid">
+          <div class="lf-field">
+            <label>Delivery POC</label>
+            <select id="bo-deliveryPoc">
+              <option value="">-None-</option>
+            </select>
+          </div>
+          <div class="lf-field">
+            <label>Sales POC</label>
+            <select id="bo-salesPoc">
+              <option value="">-None-</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Notes -->
+        <div class="lf-section-title" style="margin-top:28px">Additional Notes</div>
+        <div class="lf-grid">
+          <div class="lf-field lf-full">
+            <label>Notes / Remarks</label>
+            <textarea id="bo-notes" rows="4" placeholder="Any additional context about this position…"></textarea>
+          </div>
+        </div>
+
+      </div><!-- /form body -->
+    </div><!-- /bo-form-overlay -->
+
   </div><!-- /content -->
 </div><!-- /main -->
 
@@ -2504,8 +2667,12 @@ const DB_CLIENT = window.supabase.createClient(SUPA_URL, SUPA_KEY);
 // ---- DATA STORE (local cache, synced from Supabase) ----
 let DB = {
   companies: [], contacts: [], leads: [], deals: [], activities: [],
-  tasks: [], invoices: [], documents: [], users: [], audit: []
+  tasks: [], invoices: [], documents: [], users: [], audit: [],
+  businessOnboarded: []
 };
+let _boEditId = null;
+let _boFilter = 'all';
+let _boQuery = '';
 
 // ---- GLOBAL NORMALIZER: snake_case Supabase → camelCase app fields ----
 // Used in load(), searchFromDB(), and realtime sync
@@ -2927,7 +3094,7 @@ function renderPage(pg) {
   });
   const el = document.getElementById('page-'+pg);
   if (el) {
-    const flexPages = ['documents'];
+    const flexPages = ['documents','business-onboarded'];
     el.style.display = flexPages.includes(pg) ? 'flex' : 'block';
     el.classList.add('active');
   }
@@ -2946,6 +3113,7 @@ function renderPage(pg) {
   else if (pg==='team') renderTable('team','');
   else if (pg==='audit') renderAudit();
   else if (pg==='setup') { const firstTab = document.querySelector('.setup-tab'); if(firstTab) firstTab.click(); }
+  else if (pg==='business-onboarded') renderBusinessOnboarded();
 }
 
 // ---- NAVIGATION + URL HASH ROUTING ----
@@ -2953,7 +3121,8 @@ const PAGE_TITLES = {
   dashboard:'Home', leads:'Leads', 'my-day':'Workqueue', reports:'Analytics',
   calendar:'Calendar', contacts:'Contacts', companies:'Accounts', deals:'Deals',
   documents:'Documents', commercial:'Invoices', tasks:'Tasks', activities:'Calls & Meetings',
-  team:'Team', audit:'Audit Log', setup:'Setup', 'personal-settings':'Personal Settings'
+  team:'Team', audit:'Audit Log', setup:'Setup', 'personal-settings':'Personal Settings',
+  'business-onboarded':'Business Onboarded'
 };
 
 function hasUnsavedForm() {
@@ -3298,6 +3467,281 @@ function initAccessibilityPanel() {
 
 // Load prefs on startup
 document.addEventListener('DOMContentLoaded', loadPrefs);
+
+// ============================================================
+// BUSINESS ONBOARDED MODULE
+// ============================================================
+
+function renderBusinessOnboarded() {
+  renderBOTable();
+  updateBOKpis();
+  updateNavBadges();
+}
+
+function renderBOTable() {
+  const Q = (_boQuery || '').toLowerCase().trim();
+  const rows = DB.businessOnboarded.filter(r => {
+    if (_boFilter !== 'all' && r.status !== _boFilter) return false;
+    if (!Q) return true;
+    return [r.clientName, r.positionDesc, r.source, r.status, r.deliveryPoc, r.salesPoc]
+      .some(v => (v||'').toLowerCase().includes(Q));
+  });
+
+  const statusStyle = {
+    'Active':              { bg:'#dcfce7', color:'#166534' },
+    'Hold':                { bg:'#fef9c3', color:'#854d0e' },
+    'Closed Internally':   { bg:'#fee2e2', color:'#991b1b' },
+    'Closed by Customer':  { bg:'#f1f5f9', color:'#475569' },
+  };
+
+  const tbody = document.getElementById('bo-tbody');
+  if (!tbody) return;
+
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--fg3)">
+      No positions found. <button class="btn btn-primary btn-sm" onclick="openBOForm()" style="margin-left:10px">+ Add Position</button>
+    </td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = rows.map(r => {
+    const st = statusStyle[r.status] || { bg:'#f1f5f9', color:'#475569' };
+    const rev = boCalcRevenue(r.fixedCtc, r.pct, r.numPositions);
+    return `<tr>
+      <td style="font-weight:600;color:var(--fg)">${esc(r.clientName||'—')}</td>
+      <td>${esc(r.positionDesc||'—')}</td>
+      <td style="text-align:center;font-weight:600">${r.numPositions||1}</td>
+      <td>${r.fixedCtc ? '₹'+Number(r.fixedCtc).toLocaleString('en-IN')+' LPA' : '—'}</td>
+      <td>${r.pct ? r.pct+'%' : '—'}</td>
+      <td style="font-weight:600;color:#16a34a">${rev.total > 0 ? '₹'+rev.total.toLocaleString('en-IN') : '—'}</td>
+      <td><span class="badge badge-blue">${esc(r.source||'—')}</span></td>
+      <td><span class="bo-status-badge" style="background:${st.bg};color:${st.color}">${esc(r.status||'Active')}</span></td>
+      <td>${esc(r.deliveryPoc||'—')}</td>
+      <td>${esc(r.salesPoc||'—')}</td>
+      <td>
+        <div style="display:flex;gap:4px">
+          <button class="icon-btn" title="Edit" onclick="openBOForm('${r.id}')">✎</button>
+          <button class="icon-btn" title="Delete" style="color:#dc2626" onclick="deleteBORecord('${r.id}')">🗑</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function updateBOKpis() {
+  const all = DB.businessOnboarded;
+  const active = all.filter(r => r.status === 'Active').length;
+  const hold   = all.filter(r => r.status === 'Hold').length;
+  let totalRev = 0;
+  all.forEach(r => { totalRev += boCalcRevenue(r.fixedCtc, r.pct, r.numPositions).total; });
+
+  const $n = id => document.getElementById(id);
+  if ($n('bo-kpi-total-n')) $n('bo-kpi-total-n').textContent = all.length;
+  if ($n('bo-kpi-active-n')) $n('bo-kpi-active-n').textContent = active;
+  if ($n('bo-kpi-hold-n'))   $n('bo-kpi-hold-n').textContent = hold;
+  if ($n('bo-kpi-rev-n'))    $n('bo-kpi-rev-n').textContent = '₹' + totalRev.toLocaleString('en-IN');
+  const nb = document.getElementById('nb-business-onboarded');
+  if (nb) { nb.textContent = all.length || ''; nb.style.display = all.length ? '' : 'none'; }
+}
+
+function boCalcRevenue(ctc, pct, num) {
+  const ctcVal = parseFloat(ctc) || 0;
+  const pctVal = parseFloat(pct) || 0;
+  const numVal = parseInt(num) || 1;
+  // CTC in LPA → convert to actual rupees (×100000), apply %, multiply by positions
+  const perPos = Math.round(ctcVal * 100000 * pctVal / 100);
+  const total  = perPos * numVal;
+  return { perPos, total };
+}
+
+function calcBORevenue() {
+  const ctc = document.getElementById('bo-fixedCtc')?.value;
+  const pct = document.getElementById('bo-pct')?.value;
+  const num = document.getElementById('bo-numPositions')?.value || 1;
+  const { perPos, total } = boCalcRevenue(ctc, pct, num);
+  const fmt = n => n > 0 ? '₹' + n.toLocaleString('en-IN') : '';
+  const rpp = document.getElementById('bo-revenuePerPos');
+  const rtt = document.getElementById('bo-totalRevenue');
+  if (rpp) rpp.value = fmt(perPos);
+  if (rtt) rtt.value = fmt(total);
+}
+
+function boSetFilter(btn, val) {
+  _boFilter = val;
+  document.querySelectorAll('.bo-filter-pill').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderBOTable();
+}
+
+function searchBO(q) {
+  _boQuery = q;
+  renderBOTable();
+}
+
+function openBOForm(id) {
+  _boEditId = id || null;
+  const overlay = document.getElementById('bo-form-overlay');
+  if (!overlay) return;
+  overlay.style.display = 'flex';
+
+  // Populate client dropdown from DB.companies (onboarded clients)
+  const clientSel = document.getElementById('bo-clientName');
+  if (clientSel) {
+    const existing = Array.from(new Set(
+      [...DB.companies.map(c => c.name||c.companyName), ...DB.businessOnboarded.map(r=>r.clientName)]
+      .filter(Boolean).sort()
+    ));
+    clientSel.innerHTML = '<option value="">— Select Client —</option>' +
+      existing.map(n => `<option>${esc(n)}</option>`).join('');
+  }
+
+  // Populate team dropdowns
+  const team = getTeamNames();
+  ['bo-deliveryPoc','bo-salesPoc'].forEach(selId => {
+    const sel = document.getElementById(selId);
+    if (sel) sel.innerHTML = '<option value="">-None-</option>' + team.map(n=>`<option>${n}</option>`).join('');
+  });
+
+  // Fill form if editing
+  const r = id ? DB.businessOnboarded.find(x => x.id == id) : null;
+  document.getElementById('bo-form-title').textContent = r ? 'Edit Position' : 'Add Position';
+
+  const setVal = (elId, val) => { const el = document.getElementById(elId); if(el) el.value = val||''; };
+  if (r) {
+    setVal('bo-clientName', r.clientName);
+    setVal('bo-positionDesc', r.positionDesc);
+    setVal('bo-numPositions', r.numPositions||1);
+    setVal('bo-source', r.source);
+    setVal('bo-status', r.status||'Active');
+    setVal('bo-fixedCtc', r.fixedCtc);
+    setVal('bo-pct', r.pct);
+    setVal('bo-deliveryPoc', r.deliveryPoc);
+    setVal('bo-salesPoc', r.salesPoc);
+    setVal('bo-notes', r.notes);
+    calcBORevenue();
+  } else {
+    ['bo-clientName','bo-positionDesc','bo-source','bo-fixedCtc','bo-pct',
+     'bo-deliveryPoc','bo-salesPoc','bo-notes','bo-revenuePerPos','bo-totalRevenue'].forEach(id => setVal(id,''));
+    setVal('bo-numPositions', 1);
+    setVal('bo-status','Active');
+  }
+  document.getElementById('bo-numPositions').addEventListener('input', calcBORevenue);
+}
+
+function closeBOForm() {
+  const overlay = document.getElementById('bo-form-overlay');
+  if (overlay) overlay.style.display = 'none';
+  _boEditId = null;
+}
+
+async function saveBORecord() {
+  const clientName  = document.getElementById('bo-clientName')?.value?.trim();
+  const positionDesc = document.getElementById('bo-positionDesc')?.value?.trim();
+  if (!clientName)   { showToast('Please select a client name.', '#dc2626'); return; }
+  if (!positionDesc) { showToast('Please enter a position description.', '#dc2626'); return; }
+
+  const numPos = parseInt(document.getElementById('bo-numPositions')?.value)||1;
+  const fixedCtc = parseFloat(document.getElementById('bo-fixedCtc')?.value)||0;
+  const pct = parseFloat(document.getElementById('bo-pct')?.value)||0;
+  const { perPos, total } = boCalcRevenue(fixedCtc, pct, numPos);
+
+  const payload = {
+    client_name:    clientName,
+    position_desc:  positionDesc,
+    num_positions:  numPos,
+    source:         document.getElementById('bo-source')?.value||'',
+    status:         document.getElementById('bo-status')?.value||'Active',
+    fixed_ctc:      fixedCtc||null,
+    pct:            pct||null,
+    revenue_per_pos: perPos||null,
+    total_revenue:  total||null,
+    delivery_poc:   document.getElementById('bo-deliveryPoc')?.value||'',
+    sales_poc:      document.getElementById('bo-salesPoc')?.value||'',
+    notes:          document.getElementById('bo-notes')?.value?.trim()||'',
+    updated_at:     new Date().toISOString(),
+  };
+
+  try {
+    let saved;
+    if (_boEditId) {
+      const { data, error } = await DB_CLIENT.from('business_onboarded').update(payload).eq('id', _boEditId).select().single();
+      if (error) throw error;
+      saved = data;
+      const idx = DB.businessOnboarded.findIndex(x=>x.id==_boEditId);
+      if (idx>=0) DB.businessOnboarded[idx] = normBORecord(saved);
+    } else {
+      payload.created_at = new Date().toISOString();
+      const { data, error } = await DB_CLIENT.from('business_onboarded').insert(payload).select().single();
+      if (error) throw error;
+      saved = data;
+      DB.businessOnboarded.unshift(normBORecord(saved));
+    }
+    showToast(_boEditId ? 'Position updated!' : 'Position added!', '#16a34a');
+  } catch(err) {
+    // If Supabase table doesn't exist yet, store locally
+    console.warn('Supabase save failed, storing locally:', err.message);
+    const localRec = { id: Date.now(), ...payload,
+      clientName: payload.client_name, positionDesc: payload.position_desc,
+      numPositions: payload.num_positions, fixedCtc: payload.fixed_ctc,
+      deliveryPoc: payload.delivery_poc, salesPoc: payload.sales_poc,
+      totalRevenue: payload.total_revenue, revenuePerPos: payload.revenue_per_pos };
+    if (_boEditId) {
+      const idx = DB.businessOnboarded.findIndex(x=>x.id==_boEditId);
+      if (idx>=0) DB.businessOnboarded[idx] = localRec;
+    } else {
+      DB.businessOnboarded.unshift(localRec);
+    }
+    showToast((_boEditId ? 'Updated' : 'Saved') + ' locally (DB table pending setup)', '#f59e0b');
+  }
+
+  closeBOForm();
+  renderBOTable();
+  updateBOKpis();
+}
+
+async function deleteBORecord(id) {
+  if (!confirm('Delete this position?')) return;
+  try {
+    await DB_CLIENT.from('business_onboarded').delete().eq('id', id);
+  } catch(e) { console.warn('DB delete failed:', e.message); }
+  DB.businessOnboarded = DB.businessOnboarded.filter(x => x.id != id);
+  renderBOTable();
+  updateBOKpis();
+  showToast('Position deleted', '#dc2626');
+}
+
+function normBORecord(r) {
+  return {
+    ...r,
+    clientName:   r.clientName   || r.client_name,
+    positionDesc: r.positionDesc || r.position_desc,
+    numPositions: r.numPositions || r.num_positions || 1,
+    fixedCtc:     r.fixedCtc     || r.fixed_ctc,
+    pct:          r.pct,
+    revenuePerPos:r.revenuePerPos|| r.revenue_per_pos,
+    totalRevenue: r.totalRevenue || r.total_revenue,
+    deliveryPoc:  r.deliveryPoc  || r.delivery_poc,
+    salesPoc:     r.salesPoc     || r.sales_poc,
+    createdAt:    r.createdAt    || r.created_at,
+  };
+}
+
+// Load business_onboarded from Supabase on startup
+async function loadBusinessOnboarded() {
+  try {
+    const { data, error } = await DB_CLIENT.from('business_onboarded').select('*').order('created_at', { ascending: false });
+    if (error) throw error;
+    if (data) DB.businessOnboarded = data.map(normBORecord);
+  } catch(e) {
+    console.warn('business_onboarded table not yet created:', e.message);
+    // Table will be created by SQL migration; use empty array for now
+  }
+  updateBOKpis();
+}
+
+// ============================================================
+// END BUSINESS ONBOARDED MODULE
+// ============================================================
 
 function togglePsDetails() {
   const body = document.getElementById('ps-details-body');
@@ -9054,6 +9498,8 @@ async function onSignedIn(authUser) {
   showAppPage();
   // Load CRM data from Supabase
   await load();
+  // Load business onboarded data
+  await loadBusinessOnboarded();
   // Only seed if ALL tables are truly empty (first-time DB setup — no real data yet)
   if (!DB.companies.length && !DB.leads.length && !DB.deals.length && !DB.contacts.length) {
     seedData();

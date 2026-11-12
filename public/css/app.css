@@ -1266,3 +1266,24 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
   animation-duration: 0.001ms !important;
   transition-duration: 0.001ms !important;
 }
+
+/* ---- Business Onboarded ---- */
+.bo-filter-pill {
+  padding: 4px 12px; border-radius: 20px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--fg2); font-size: 12px; font-weight: 500;
+  cursor: pointer; transition: all 0.15s; white-space: nowrap;
+}
+.bo-filter-pill.active, .bo-filter-pill:hover {
+  background: var(--accent-bg); color: var(--accent); border-color: var(--accent);
+}
+.bo-kpi {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  padding: 10px 20px; min-width: 110px;
+}
+.bo-kpi-num { font-size: 20px; font-weight: 800; color: var(--fg); }
+.bo-kpi-lbl { font-size: 11px; font-weight: 500; color: var(--fg3); text-transform: uppercase; letter-spacing: 0.5px; }
+.bo-status-badge {
+  display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 12px;
+  font-size: 11px; font-weight: 700; white-space: nowrap;
+}
