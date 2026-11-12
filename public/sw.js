@@ -1,5 +1,5 @@
-// SearchKraft CRM Service Worker v3
-const CACHE = 'sk-crm-v3';
+// SearchKraft CRM Service Worker v4
+const CACHE = 'sk-crm-v4';
 const FONTS_CACHE = 'sk-fonts-v1';
 
 // Assets to precache on install
