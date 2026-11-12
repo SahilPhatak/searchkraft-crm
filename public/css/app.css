@@ -1169,6 +1169,7 @@ textarea { min-height: 80px; resize: vertical; }
   padding: 14px 32px 14px 32px;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
   flex-shrink: 0;
 }

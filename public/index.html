@@ -2407,7 +2407,7 @@
           </div>
           <div class="lf-field">
             <label>Calculated Revenue per Position (₹)</label>
-            <input id="bo-revenuePerPos" type="text" readonly style="background:var(--surface2);font-weight:600;color:var(--accent)" placeholder="Auto-calculated">
+            <input id="bo-revenuePerPos" type="text" readonly style="background:var(--surface2);font-weight:700;color:#16a34a;font-size:15px" placeholder="Auto-calculated">
           </div>
           <div class="lf-field">
             <label>Total Estimated Revenue (₹)</label>
@@ -2439,6 +2439,12 @@
             <label>Notes / Remarks</label>
             <textarea id="bo-notes" rows="4" placeholder="Any additional context about this position…"></textarea>
           </div>
+        </div>
+
+        <!-- Bottom Save/Cancel -->
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:32px;padding-top:20px;border-top:1px solid var(--border)">
+          <button onclick="closeBOForm()" class="btn btn-secondary">Cancel</button>
+          <button onclick="saveBORecord()" class="btn btn-primary">Save Position</button>
         </div>
 
       </div><!-- /form body -->
