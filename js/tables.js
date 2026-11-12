@@ -12,20 +12,23 @@ function debounce(key, fn, ms=350) {
 async function searchFromDB(type, q) {
   const Q = (q||'').trim();
   if (type === 'leads') {
-    let query = DB_CLIENT.from('leads').select('*').order('created_at',{ascending:false}).limit(200);
-    if (Q) query = query.or(`first_name.ilike.%${Q}%,last_name.ilike.%${Q}%,email.ilike.%${Q}%,company.ilike.%${Q}%,client_name.ilike.%${Q}%`);
+    let query = DB_CLIENT.from('leads').select('*').order('created_at',{ascending:false}).limit(500);
+    if (Q) query = query.or(`first_name.ilike.%${Q}%,last_name.ilike.%${Q}%,name.ilike.%${Q}%,email.ilike.%${Q}%,company.ilike.%${Q}%,phone.ilike.%${Q}%,stage.ilike.%${Q}%`);
     const { data } = await query;
-    if (data) { DB.leads = data.map(norm); renderTableRows('leads'); }
+    if (data) { DB.leads = data.map(norm); }
+    renderTable('leads', q); // always pass Q so local filter also applies
   } else if (type === 'contacts') {
-    let query = DB_CLIENT.from('contacts').select('*').order('created_at',{ascending:false}).limit(200);
-    if (Q) query = query.or(`name.ilike.%${Q}%,email.ilike.%${Q}%,company.ilike.%${Q}%`);
+    let query = DB_CLIENT.from('contacts').select('*').order('created_at',{ascending:false}).limit(500);
+    if (Q) query = query.or(`name.ilike.%${Q}%,email.ilike.%${Q}%,company.ilike.%${Q}%,phone.ilike.%${Q}%,title.ilike.%${Q}%`);
     const { data } = await query;
-    if (data) { DB.contacts = data.map(norm).filter(r=>!r.stage||!LEAD_STAGES.includes(r.stage)); renderTableRows('contacts'); }
+    if (data) { DB.contacts = data.map(norm).filter(r=>!r.stage||!LEAD_STAGES.includes(r.stage)); }
+    renderTable('contacts', q);
   } else if (type === 'companies') {
-    let query = DB_CLIENT.from('companies').select('*').order('name',{ascending:true}).limit(200);
-    if (Q) query = query.or(`name.ilike.%${Q}%,city.ilike.%${Q}%`);
+    let query = DB_CLIENT.from('companies').select('*').order('name',{ascending:true}).limit(500);
+    if (Q) query = query.or(`name.ilike.%${Q}%,city.ilike.%${Q}%,lane.ilike.%${Q}%`);
     const { data } = await query;
-    if (data) { DB.companies = data.map(norm); renderTableRows('companies'); }
+    if (data) { DB.companies = data.map(norm); }
+    renderTable('companies', q);
   } else {
     renderTable(type, q);
   }
@@ -61,11 +64,15 @@ function renderTable(type, q='') {
   }
 
   else if (type==='contacts') {
-    // Only show proper contacts (not lead records accidentally mixed in)
-    const rows = DB.contacts.filter(r=>
-      (!r.stage || !LEAD_STAGES.includes(r.stage)) &&
-      (!Q||(r.name||'').toLowerCase().includes(Q)||(r.email||'').toLowerCase().includes(Q))
-    );
+    const rows = DB.contacts.filter(r=>{
+      if (r.stage && LEAD_STAGES.includes(r.stage)) return false; // exclude lead records
+      if (!Q) return true;
+      return (r.name||'').toLowerCase().includes(Q)||
+             (r.email||'').toLowerCase().includes(Q)||
+             (r.phone||'').toLowerCase().includes(Q)||
+             (r.company||getCompanyName(r.companyId)||'').toLowerCase().includes(Q)||
+             (r.title||'').toLowerCase().includes(Q);
+    });
     const ctcount = document.getElementById('contacts-count'); if(ctcount) ctcount.textContent=rows.length;
     const ctpi = document.getElementById('contacts-page-info'); if(ctpi) ctpi.textContent=rows.length?`1 to ${Math.min(25,rows.length)}`:'0';
     document.getElementById('contacts-body').innerHTML = rows.length ? rows.map(r=>`<tr>
@@ -81,7 +88,17 @@ function renderTable(type, q='') {
   }
 
   else if (type==='leads') {
-    const rows = DB.leads.filter(r=>(!Q||(r.title||r.name||'').toLowerCase().includes(Q)||getCompanyName(r.companyId).toLowerCase().includes(Q)||(r.company||r.companyName||'').toLowerCase().includes(Q)));
+    const rows = DB.leads.filter(r=>{
+      if (!Q) return true;
+      const fullName = ((r.first_name||'') + ' ' + (r.last_name||'')).trim().toLowerCase();
+      const name = (r.name||r.title||'').toLowerCase();
+      const email = (r.email||'').toLowerCase();
+      const company = (r.company||r.companyName||getCompanyName(r.companyId)||'').toLowerCase();
+      const phone = (r.phone||'').toLowerCase();
+      const stage = (r.stage||'').toLowerCase();
+      const owner = (r.owner||'').toLowerCase();
+      return fullName.includes(Q)||name.includes(Q)||email.includes(Q)||company.includes(Q)||phone.includes(Q)||stage.includes(Q)||owner.includes(Q);
+    });
     const lcount = document.getElementById('leads-count'); if(lcount) lcount.textContent=rows.length;
     const lpi = document.getElementById('leads-page-info'); if(lpi) lpi.textContent=rows.length?`1 to ${Math.min(25,rows.length)}`:'0';
     const stageColor = s=>({New:'#6366f1',Contacted:'#0ea5e9','Pre Qualified':'#f59e0b',Qualified:'#10b981','Not Qualified':'#ef4444','Junk Lead':'#9ca3af','Proposal Sent':'#8b5cf6',Negotiation:'#f97316','Follow Up':'#06b6d4',Won:'#22c55e',Lost:'#ef4444','Lost Lead':'#9ca3af'}[s]||'#9ca3af');
@@ -102,7 +119,14 @@ function renderTable(type, q='') {
   }
 
   else if (type==='deals') {
-    const rows = (DB.deals||[]).filter(r=>!Q||(r.name||'').toLowerCase().includes(Q)||(r.companyName||'').toLowerCase().includes(Q));
+    const rows = (DB.deals||[]).filter(r=>{
+      if (!Q) return true;
+      return (r.name||'').toLowerCase().includes(Q)||
+             (r.companyName||'').toLowerCase().includes(Q)||
+             (r.candidateName||'').toLowerCase().includes(Q)||
+             (r.stage||'').toLowerCase().includes(Q)||
+             (r.owner||'').toLowerCase().includes(Q);
+    });
     const dcount = document.getElementById('deals-count'); if(dcount) dcount.textContent=rows.length;
     const dpi = document.getElementById('deals-page-info'); if(dpi) dpi.textContent=rows.length?`1 to ${Math.min(25,rows.length)}`:'0';
     document.getElementById('deals-body').innerHTML = rows.length ? rows.map(r=>`<tr>

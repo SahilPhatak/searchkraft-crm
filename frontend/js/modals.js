@@ -585,39 +585,39 @@ const MODAL_FORMS = {
 };
 
 function handleTopbarSearch(q) {
-  q = q.trim().toLowerCase();
-  // Find which page is currently active and search within it
+  q = (q||'').trim().toLowerCase();
   const activePage = document.querySelector('.page.active');
   if (!activePage) return;
-  const pageId = activePage.id; // e.g. 'page-companies'
+  const pageId = activePage.id;
+
+  // Sync topbar query into the page's own search input
+  const syncInp = (selector) => {
+    const inp = activePage.querySelector(selector || '.search-bar input');
+    if (inp && inp.value !== q) inp.value = q;
+  };
 
   if (pageId === 'page-companies') {
     debounce('companies', () => searchFromDB('companies', q));
-    // also update the page search input
-    const inp = activePage.querySelector('.search-bar input');
-    if (inp && inp.value !== q) inp.value = q;
+    syncInp();
   } else if (pageId === 'page-leads') {
     debounce('leads', () => searchFromDB('leads', q));
-    const inp = activePage.querySelector('.search-bar input');
-    if (inp && inp.value !== q) inp.value = q;
+    syncInp();
   } else if (pageId === 'page-contacts') {
     debounce('contacts', () => searchFromDB('contacts', q));
-    const inp = activePage.querySelector('.search-bar input');
-    if (inp && inp.value !== q) inp.value = q;
+    syncInp();
   } else if (pageId === 'page-deals') {
-    renderTable('deals', q);
-    const inp = activePage.querySelector('.search-bar input');
-    if (inp && inp.value !== q) inp.value = q;
+    debounce('deals', () => renderTable('deals', q));
+    syncInp();
   } else if (pageId === 'page-activities') {
-    renderTable('activities', q);
-    const inp = activePage.querySelector('.search-bar input');
-    if (inp && inp.value !== q) inp.value = q;
+    debounce('activities', () => renderTable('activities', q));
+    syncInp();
   } else if (pageId === 'page-tasks') {
-    renderTable('tasks', q);
-    const inp = activePage.querySelector('.search-bar input');
-    if (inp && inp.value !== q) inp.value = q;
+    debounce('tasks', () => renderTable('tasks', q));
+    syncInp();
+  } else if (pageId === 'page-documents') {
+    const docInp = document.getElementById('doc-search');
+    if (docInp) { docInp.value = q; renderDocTable(); }
   } else {
-    // Try searching leads by default
     if (q) debounce('leads', () => searchFromDB('leads', q));
   }
 }
