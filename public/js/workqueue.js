@@ -1,6 +1,6 @@
 // ---- MY DAY ----
 // ---- WORKQUEUE ----
-let wqActiveSection = 'tasks';
+if (typeof wqActiveSection === 'undefined') var wqActiveSection = 'tasks';
 
 function renderWorkqueue() {
   const cu = getCurrentUser();
