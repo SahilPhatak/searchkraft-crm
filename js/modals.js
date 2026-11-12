@@ -160,14 +160,29 @@ const MODAL_FORMS = {
         <div class="lf-field"><label>Mobile</label><input id="f-mobile" type="tel" value="${r.mobile||''}"></div>
         <div class="lf-field"><label>Fax</label><input id="f-fax" type="tel" value="${r.fax||''}"></div>
         <div class="lf-field"><label>Assistant</label><input id="f-assistant" type="text" value="${r.assistant||''}"></div>
-        <div class="lf-field"><label>Date of Birth</label><input id="f-dob" type="date" placeholder="DD/MM/YYYY" value="${r.dob||''}"></div>
-        <div class="lf-field"></div>
         <div class="lf-field"><label>Asst Phone</label><input id="f-asstPhone" type="tel" value="${r.asstPhone||''}"></div>
-        <div class="lf-field"></div>
-        <div class="lf-field" style="display:flex;align-items:center;gap:8px;padding-top:4px"><label style="text-align:right;padding-right:12px">Email Opt Out</label><input type="checkbox" id="f-emailOptOut" ${r.emailOptOut?'checked':''} style="accent-color:var(--accent);width:15px;height:15px;flex-shrink:0;margin:0"></div>
+        <div class="lf-field"><label>Date of Birth</label><input id="f-dob" type="date" placeholder="DD/MM/YYYY" value="${r.dob||''}"></div>
         <div class="lf-field"><label>Secondary Email</label><input id="f-email2" type="email" value="${r.email2||''}"></div>
         <div class="lf-field"><label>Reporting To</label><input id="f-reportingTo" type="text" value="${r.reportingTo||''}"></div>
+        <div class="lf-checkbox"><label>Email Opt Out</label><input type="checkbox" id="f-emailOptOut" ${r.emailOptOut?'checked':''}></div>
       </div>
+
+      <!-- Additional Contacts / Points of Contact -->
+      <div class="lf-section-title" style="margin-top:32px;display:flex;align-items:center;justify-content:space-between">
+        <span>Additional Contacts / POCs</span>
+        <button type="button" onclick="addPocRow()" class="btn btn-secondary btn-sm">+ Add POC</button>
+      </div>
+      <div id="poc-list" style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+        ${(r.pocs||[]).map((p,i)=>`
+        <div class="poc-row" style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:8px;align-items:center">
+          <input type="text" placeholder="Name" value="${p.name||''}" class="poc-name">
+          <input type="email" placeholder="Email" value="${p.email||''}" class="poc-email">
+          <input type="tel" placeholder="Phone" value="${p.phone||''}" class="poc-phone">
+          <input type="text" placeholder="Title / Role" value="${p.title||''}" class="poc-title">
+          <button type="button" onclick="this.closest('.poc-row').remove()" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:18px;line-height:1;padding:0 4px" title="Remove">×</button>
+        </div>`).join('')}
+      </div>
+      ${(r.pocs||[]).length===0?'<div id="poc-empty" style="color:var(--fg3);font-size:12px;padding:8px 0">No additional contacts added. Click "+ Add POC" to add one.</div>':''}
 
       <!-- Address Information -->
       <div class="lf-section-title" style="margin-top:32px;display:flex;align-items:center;justify-content:space-between">
@@ -243,7 +258,13 @@ const MODAL_FORMS = {
         city:v('city'), state:v('state'), zip:v('zip'), lat:v('lat'), lng:v('lng'),
         country2:v('country2'), addrLine2:v('addrLine2'), street2:v('street2'),
         city2:v('city2'), state2:v('state2'), zip2:v('zip2'), lat2:v('lat2'), lng2:v('lng2'),
-        description:v('description')
+        description:v('description'),
+        pocs: Array.from(document.querySelectorAll('#poc-list .poc-row')).map(row=>({
+          name:  row.querySelector('.poc-name')?.value?.trim()||'',
+          email: row.querySelector('.poc-email')?.value?.trim()||'',
+          phone: row.querySelector('.poc-phone')?.value?.trim()||'',
+          title: row.querySelector('.poc-title')?.value?.trim()||''
+        })).filter(p=>p.name||p.email||p.phone)
       };
       upsert('contacts', id, r);
     }
@@ -583,6 +604,26 @@ const MODAL_FORMS = {
     }
   }
 };
+
+function addPocRow() {
+  const list = document.getElementById('poc-list');
+  if (!list) return;
+  // Hide the empty placeholder message if present
+  const empty = document.getElementById('poc-empty');
+  if (empty) empty.remove();
+  const row = document.createElement('div');
+  row.className = 'poc-row';
+  row.style.cssText = 'display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:8px;align-items:center';
+  row.innerHTML = `
+    <input type="text" placeholder="Name" class="poc-name">
+    <input type="email" placeholder="Email" class="poc-email">
+    <input type="tel" placeholder="Phone" class="poc-phone">
+    <input type="text" placeholder="Title / Role" class="poc-title">
+    <button type="button" onclick="this.closest('.poc-row').remove()" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:18px;line-height:1;padding:0 4px" title="Remove">×</button>
+  `;
+  list.appendChild(row);
+  row.querySelector('.poc-name')?.focus();
+}
 
 function handleTopbarSearch(q) {
   q = (q||'').trim().toLowerCase();
