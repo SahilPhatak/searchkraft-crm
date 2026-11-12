@@ -3699,21 +3699,9 @@ async function saveBORecord() {
     }
     showToast(_boEditId ? 'Position updated!' : 'Position added!', '#16a34a');
   } catch(err) {
-    // If Supabase table doesn't exist yet, store locally
-    console.warn('Supabase save failed, storing locally:', err.message);
-    const localRec = { id: Date.now(), ...payload,
-      clientName: payload.client_name, positionDesc: payload.position_desc,
-      numPositions: payload.num_positions, fixedCtc: payload.fixed_ctc,
-      deliveryPoc: payload.delivery_poc, salesPoc: payload.sales_poc,
-      totalRevenue: payload.total_revenue, revenuePerPos: payload.revenue_per_pos,
-      startDate: payload.start_date, closureMonth: payload.closure_month };
-    if (_boEditId) {
-      const idx = DB.businessOnboarded.findIndex(x=>x.id==_boEditId);
-      if (idx>=0) DB.businessOnboarded[idx] = localRec;
-    } else {
-      DB.businessOnboarded.unshift(localRec);
-    }
-    showToast((_boEditId ? 'Updated' : 'Saved') + ' locally (DB table pending setup)', '#f59e0b');
+    console.error('Supabase BO save error:', err);
+    showToast('Save failed: ' + (err.message || JSON.stringify(err)), '#dc2626');
+    return; // do NOT close form — let user see the error and retry
   }
 
   closeBOForm();
@@ -3757,8 +3745,8 @@ async function loadBusinessOnboarded() {
     if (error) throw error;
     if (data) DB.businessOnboarded = data.map(normBORecord);
   } catch(e) {
-    console.warn('business_onboarded table not yet created:', e.message);
-    // Table will be created by SQL migration; use empty array for now
+    console.error('business_onboarded load error:', e.message, e);
+    showToast('Business Onboarded load failed: ' + e.message, '#dc2626');
   }
   updateBOKpis();
 }
