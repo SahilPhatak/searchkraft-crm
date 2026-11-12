@@ -3,6 +3,11 @@
 <meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>SearchKraft - CRM</title>
 <meta name="claude:viewport-fit-sides" content="cover">
+<meta name="theme-color" content="#1a56db">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SK CRM">
+<link rel="manifest" href="/manifest.json">
 
 <!-- Critical inline styles (body/html reset only) -->
 <style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
@@ -10,1247 +15,10 @@
 <!-- Fonts -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<style>
-/* ============================================================
-   SEARCHKRAFT OS — Design System
-   Layout: Fixed sidebar nav + scrollable main content area
-   Color: Deep navy enterprise palette, amber accent
-   Type: Inter (UI) + JetBrains Mono (data/IDs)
-   ============================================================ */
-
-:root {
-  --bg:        #F8F9FC;
-  --surface:   #FFFFFF;
-  --surface2:  #F1F3F8;
-  --border:    #E2E6EF;
-  --border2:   #CDD3E0;
-  --fg:        #0F1623;
-  --fg2:       #4A5568;
-  --fg3:       #8896B3;
-  --accent:    #2563EB;
-  --accent-bg: #EEF4FF;
-  --amber:     #D97706;
-  --amber-bg:  #FFFBEB;
-  --green:     #059669;
-  --green-bg:  #ECFDF5;
-  --red:       #DC2626;
-  --red-bg:    #FEF2F2;
-  --purple:    #7C3AED;
-  --purple-bg: #F5F3FF;
-  --nav-bg:    #0f1c2e;
-  --nav-bg2:   #0a1520;
-  --nav-fg:    rgba(255,255,255,0.65);
-  --nav-active:#FFFFFF;
-  --nav-hover: rgba(255,255,255,0.12);
-  --nav-accent:rgba(255,255,255,0.18);
-  --nav-section-label: rgba(255,255,255,0.4);
-  color-scheme: light;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg:        #0A0F1C;
-    --surface:   #111827;
-    --surface2:  #1C2537;
-    --border:    #1F2D45;
-    --border2:   #2D3F5C;
-    --fg:        #F0F4FF;
-    --fg2:       #94A3C4;
-    --fg3:       #4A5A7A;
-    --accent:    #3B82F6;
-    --accent-bg: #1E2D4A;
-    --amber:     #F59E0B;
-    --amber-bg:  #1C1A0E;
-    --green:     #10B981;
-    --green-bg:  #0A1F17;
-    --red:       #EF4444;
-    --red-bg:    #200E0E;
-    --purple:    #8B5CF6;
-    --purple-bg: #160F2A;
-    --nav-bg:    #0f1c2e;
-    --nav-bg2:   #0a1520;
-    --nav-fg:    rgba(255,255,255,0.6);
-    --nav-active:#FFFFFF;
-    --nav-hover: rgba(255,255,255,0.1);
-    --nav-accent:rgba(255,255,255,0.16);
-    --nav-section-label: rgba(255,255,255,0.35);
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --bg:        #0A0F1C;
-  --surface:   #111827;
-  --surface2:  #1C2537;
-  --border:    #1F2D45;
-  --border2:   #2D3F5C;
-  --fg:        #F0F4FF;
-  --fg2:       #94A3C4;
-  --fg3:       #4A5A7A;
-  --accent:    #3B82F6;
-  --accent-bg: #1E2D4A;
-  --amber:     #F59E0B;
-  --amber-bg:  #1C1A0E;
-  --green:     #10B981;
-  --green-bg:  #0A1F17;
-  --red:       #EF4444;
-  --red-bg:    #200E0E;
-  --purple:    #8B5CF6;
-  --purple-bg: #160F2A;
-  --nav-bg:    #0f1c2e;
-  --nav-bg2:   #0a1520;
-  --nav-fg:    rgba(255,255,255,0.6);
-  --nav-active:#FFFFFF;
-  --nav-hover: rgba(255,255,255,0.1);
-  --nav-accent:rgba(255,255,255,0.16);
-  --nav-section-label: rgba(255,255,255,0.35);
-  color-scheme: dark;
-}
-
-:root[data-theme="light"] {
-  --bg:        #F8F9FC;
-  --surface:   #FFFFFF;
-  --surface2:  #F1F3F8;
-  --border:    #E2E6EF;
-  --border2:   #CDD3E0;
-  --fg:        #0F1623;
-  --fg2:       #4A5568;
-  --fg3:       #8896B3;
-  --accent:    #2563EB;
-  --accent-bg: #EEF4FF;
-  --amber:     #D97706;
-  --amber-bg:  #FFFBEB;
-  --green:     #059669;
-  --green-bg:  #ECFDF5;
-  --red:       #DC2626;
-  --red-bg:    #FEF2F2;
-  --purple:    #7C3AED;
-  --purple-bg: #F5F3FF;
-  --nav-bg:    #0f1c2e;
-  --nav-bg2:   #0a1520;
-  --nav-fg:    rgba(255,255,255,0.65);
-  --nav-active:#FFFFFF;
-  --nav-hover: rgba(255,255,255,0.12);
-  --nav-accent:rgba(255,255,255,0.18);
-  --nav-section-label: rgba(255,255,255,0.4);
-  color-scheme: light;
-}
-
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-html, body { height: 100%; font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif; }
-
-* { font-family: 'Inter', system-ui, sans-serif; }
-input, select, textarea, button { font-family: 'Inter', system-ui, sans-serif; font-size: 14px; }
-/* Plus Jakarta Sans for display headings only */
-.lf-title, .topbar-title, #topbar-title, .nav-section-label,
-h1, h2, h3 { font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif; }
-/* IBM Plex Mono for all numeric displays — naturally open zero, never looks like 8 */
-.stat-tile .value {
-  font-family: 'Roboto Mono', 'IBM Plex Mono', monospace !important;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.5px;
-}
-#lq-leads, #lq-deals, #lq-won, #lq-revenue, #lq-winrate {
-  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif !important;
-}
-
-body {
-  background: var(--bg);
-  color: var(--fg);
-  display: flex;
-  height: 100%;
-  overflow: hidden;
-  font-size: 14px;
-  line-height: 1.5;
-  min-width: 0;
-  max-width: 100vw;
-}
-
-/* ---- SIDEBAR ---- */
-#sidebar {
-  width: 210px;
-  min-width: 210px;
-  flex-shrink: 0;
-  background: linear-gradient(180deg, #152338 0%, #0f1c2e 40%, #0a1520 100%);
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding-bottom: 20px;
-  border-right: none;
-  box-shadow: 3px 0 24px rgba(0,0,0,0.35);
-}
-
-.sidebar-logo {
-  padding: 14px 12px 14px;
-  border-bottom: 1px solid rgba(255,255,255,0.15);
-  margin-bottom: 8px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.sidebar-logo-icon {
-  width: 40px; height: 40px; flex-shrink: 0;
-  background: linear-gradient(145deg, #2563eb 0%, #3b82f6 60%, #60a5fa 100%);
-  border-radius: 12px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 14px; font-weight: 800; color: #fff;
-  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
-  letter-spacing: -0.4px;
-  box-shadow: 0 2px 10px rgba(59,130,246,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
-}
-.sidebar-logo-text { flex: 1; min-width: 0; overflow: hidden; }
-.sidebar-logo-text .brand-sub {
-  font-size: 10px; font-weight: 700;
-  color: rgba(255,255,255,0.45);
-  letter-spacing: 1.2px; text-transform: uppercase;
-  white-space: nowrap;
-  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
-}
-.sidebar-logo-text .brand-main {
-  font-size: 18px; font-weight: 800;
-  color: #FFFFFF;
-  letter-spacing: -0.5px;
-  white-space: nowrap;
-  line-height: 1.15;
-  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
-}
-.sidebar-toggle {
-  width: 28px; height: 28px; flex-shrink: 0;
-  background: rgba(255,255,255,0.12);
-  border: none; border-radius: 7px; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  color: rgba(255,255,255,0.8); transition: background 0.15s;
-}
-.sidebar-toggle:hover { background: rgba(255,255,255,0.25); }
-
-/* Collapsed sidebar */
-#sidebar.collapsed { width: 56px; min-width: 56px; }
-#sidebar.collapsed .sidebar-logo-text { display: none; }
-#sidebar.collapsed .nav-section-label { display: none; }
-#sidebar.collapsed .nav-item span.label { display: none; }
-#sidebar.collapsed .nav-item { justify-content: center; padding: 10px 0; }
-#sidebar.collapsed .sidebar-logo { justify-content: center; gap: 0; }
-#sidebar.collapsed .sidebar-toggle { margin: 0; }
-#sidebar.collapsed .nav-item .icon { margin: 0; font-size: 18px; }
-
-.nav-section {
-  padding: 0 10px;
-  margin-bottom: 2px;
-}
-.nav-section-label {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  color: rgba(255,255,255,0.38);
-  padding: 14px 6px 5px;
-}
-.nav-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 9px 10px;
-  border-radius: 10px;
-  cursor: pointer;
-  color: rgba(255,255,255,0.78);
-  font-size: 14px;
-  font-weight: 500;
-  letter-spacing: 0.1px;
-  transition: background 0.14s, color 0.14s, transform 0.1s;
-  user-select: none;
-  border: none;
-  background: none;
-  width: 100%;
-  text-align: left;
-  position: relative;
-}
-.nav-item:hover {
-  background: rgba(255,255,255,0.12);
-  color: #fff;
-  transform: translateX(2px);
-}
-.nav-item:active {
-  background: rgba(255,255,255,0.18);
-  transform: translateX(1px) scale(0.99);
-}
-.nav-item.active {
-  background: rgba(255,255,255,0.18);
-  color: #fff;
-  font-weight: 600;
-}
-.nav-item.active::before {
-  content: '';
-  position: absolute;
-  left: 0; top: 20%; bottom: 20%;
-  width: 3px;
-  border-radius: 0 3px 3px 0;
-  background: #fff;
-}
-.nav-item .icon {
-  width: 30px; height: 30px;
-  display: flex; align-items: center; justify-content: center;
-  border-radius: 8px;
-  font-size: 15px;
-  flex-shrink: 0;
-  background: rgba(255,255,255,0.12);
-  transition: background 0.14s;
-}
-.nav-item:hover .icon { background: rgba(255,255,255,0.2); }
-.nav-item.active .icon { background: rgba(255,255,255,0.25); }
-.nav-badge {
-  margin-left: auto;
-  background: rgba(255,255,255,0.18);
-  color: rgba(255,255,255,0.9);
-  font-size: 10px;
-  font-weight: 700;
-  padding: 1px 7px;
-  border-radius: 10px;
-  font-family: 'Roboto Mono', 'IBM Plex Mono', monospace;
-  font-variant-numeric: tabular-nums;
-}
-.nav-item.active .nav-badge { background: rgba(255,255,255,0.3); color: #fff; }
-
-/* ---- CRM LIST VIEW ---- */
-.crm-subtab {
-  padding: 10px 16px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--fg2);
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-  white-space: nowrap;
-  transition: color 0.12s;
-  user-select: none;
-}
-.crm-subtab:hover { color: var(--fg); }
-.active-subtab { color: var(--accent) !important; border-bottom: 2px solid var(--accent) !important; font-weight: 600; }
-.crm-toolbar-btn {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: 500;
-  cursor: pointer; border: 1px solid var(--border); background: var(--surface);
-  color: var(--fg2); transition: all 0.12s; white-space: nowrap; font-family: inherit;
-}
-.crm-toolbar-btn:hover { background: var(--surface2); color: var(--fg); }
-.crm-view-btn {
-  width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center;
-  border: 1px solid var(--border); background: var(--surface); color: var(--fg2);
-  cursor: pointer; font-size: 13px; border-radius: 4px;
-}
-.crm-view-btn:hover { background: var(--surface2); color: var(--fg); }
-.active-view-btn { background: var(--accent-bg) !important; color: var(--accent) !important; border-color: var(--accent) !important; }
-tbody tr:hover { background: var(--surface2); }
-tbody tr td:first-child { color: var(--accent); font-weight: 600; }
-tbody tr td.name-cell { color: var(--accent) !important; font-weight: 600; cursor: pointer; }
-tbody tr td.name-cell:hover { text-decoration: underline; }
-
-/* ---- MAIN ---- */
-#main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  min-width: 0;
-  max-width: 100%;
-}
-
-/* ---- MOBILE: hide sidebar, full-width main ---- */
-#mobile-nav-overlay { display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:900 }
-#sidebar { display: none; } /* hidden by default; JS sets flex via class */
-#sidebar.app-visible { display: flex; } /* desktop: always show */
-#sidebar.mobile-open { display:flex !important;position:fixed;top:0;left:0;width:240px;height:100%;z-index:950;box-shadow:4px 0 32px rgba(0,0,0,0.35) }
-.mob-hamburger { display:none;background:none;border:none;cursor:pointer;padding:6px;color:var(--fg);margin-right:4px }
-@media (max-width: 860px) {
-  #sidebar { display: none !important; } /* always hidden on mobile/tablet */
-  #sidebar.mobile-open { display:flex !important; } /* ONLY show when hamburger opened */
-  #main { width: 100vw; max-width: 100vw; }
-  .mob-hamburger { display:flex;align-items:center;justify-content:center }
-  #desktop-sidebar-toggle { display: none !important; } /* hide desktop toggle on mobile */
-  .topbar { padding: 0 14px; gap: 8px; }
-  .topbar .search-bar { display: none; }
-  .content { padding: 14px; }
-}
-@media (min-width: 861px) {
-  .mob-hamburger { display: none !important; } /* hide mobile hamburger on desktop */
-}
-
-.topbar {
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  padding: 0 20px;
-  height: 50px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
-  overflow: visible;
-  position: relative;
-  z-index: 100;
-}
-.topbar-title { font-size: 15px; font-weight: 600; color: var(--fg); flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.topbar-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
-
-/* Topbar search */
-.topbar-search {
-  display: flex; align-items: center; gap: 8px;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 0 12px;
-  height: 34px;
-  width: 240px;
-  color: var(--fg2);
-  font-size: 13px;
-  cursor: text;
-  flex-shrink: 0;
-}
-.topbar-search svg { flex-shrink: 0; opacity: 0.5; }
-.topbar-search input {
-  background: none; border: none; outline: none;
-  font-size: 13px; color: var(--fg); width: 100%;
-}
-.topbar-search input::placeholder { color: var(--fg3); }
-
-/* Topbar icon buttons */
-.tb-btn {
-  width: 32px; height: 32px;
-  border: none; border-radius: 8px; cursor: pointer;
-  background: transparent;
-  color: var(--fg2);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 16px; transition: background 0.15s;
-  flex-shrink: 0;
-}
-.tb-btn:hover { background: var(--surface2); }
-.tb-btn-plus {
-  width: 32px; height: 32px;
-  border: 1.5px solid var(--accent);
-  border-radius: 8px; cursor: pointer;
-  background: transparent; color: var(--accent);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 20px; font-weight: 300; transition: background 0.15s;
-  flex-shrink: 0;
-}
-.tb-btn-plus:hover { background: var(--accent); color: #fff; }
-.tb-avatar {
-  width: 28px; height: 28px; border-radius: 50%;
-  background: linear-gradient(135deg,#e74c3c,#c0392b);
-  color: #fff; font-size: 11px; font-weight: 700;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0; cursor: pointer;
-  position: relative;
-}
-.tb-avatar-badge {
-  position: absolute; top: -3px; right: -3px;
-  width: 10px; height: 10px; border-radius: 50%;
-  background: #22c55e; border: 1.5px solid var(--surface);
-}
-.tb-divider { width: 1px; height: 20px; background: var(--border); margin: 0 2px; flex-shrink: 0; }
-.view-opt:hover { background: var(--surface2); color: var(--fg) !important; }
-.view-opt.active { background: var(--accent-bg); color: var(--accent) !important; font-weight: 600; }
-
-/* Create panel items */
-.cr-item {
-  display: flex; align-items: center; gap: 10px;
-  padding: 9px 10px; border-radius: 8px; cursor: pointer;
-  font-size: 13.5px; color: var(--fg); transition: background 0.12s;
-}
-.cr-item:hover { background: var(--surface2); }
-.cr-item.cr-disabled { color: var(--fg3); cursor: default; }
-.cr-item.cr-disabled:hover { background: none; }
-.cr-item.cr-hidden { display: none; }
-.cr-plus { font-size: 16px; font-weight: 400; color: var(--fg3); width: 16px; text-align: center; flex-shrink: 0; }
-.cr-config-item {
-  display: flex; align-items: center; gap: 10px;
-  padding: 8px 6px; border-radius: 8px; cursor: pointer;
-  font-size: 13px; color: var(--fg); transition: background 0.12s; margin-bottom: 2px;
-}
-.cr-config-item:hover { background: var(--surface2); }
-.cr-collab-btn {
-  display: flex; align-items: center; gap: 10px;
-  padding: 9px 12px; border-radius: 8px; cursor: pointer;
-  font-size: 13px; color: var(--fg); border: 1px solid var(--border);
-  margin-bottom: 6px; transition: background 0.12s, border-color 0.12s;
-}
-.cr-collab-btn:hover { background: var(--surface2); border-color: var(--border2); }
-.filter-chk { display:flex;align-items:center;gap:9px;font-size:13px;color:var(--fg2);padding:7px 6px;cursor:pointer;border-radius:6px;transition:background 0.1s; }
-.filter-chk:hover { background:var(--bg); }
-.views-dropdown { position:absolute;top:28px;left:0;width:300px;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,0.18);z-index:9999;padding:10px 0;max-height:420px;overflow-y:auto; }
-.views-dd-search { display:block;width:calc(100% - 24px);margin:4px 12px 10px;padding:8px 12px;border:1.5px solid var(--accent);border-radius:7px;font-size:13px;color:var(--fg);background:var(--bg);outline:none; }
-.views-dd-section { font-size:12px;font-weight:700;color:var(--fg);padding:8px 16px 4px;cursor:pointer; }
-.views-dd-item { font-size:13px;color:var(--fg2);padding:8px 22px;cursor:pointer;transition:background 0.1s; }
-.views-dd-item:hover { background:var(--bg); }
-.views-dd-active { font-weight:700;color:var(--fg); }
-.act-filter-radio { display:flex;align-items:center;gap:10px;font-size:13px;color:var(--fg2);padding:8px 6px;cursor:pointer;border-radius:6px;transition:background 0.1s;user-select:none; }
-.act-filter-radio:hover { background:var(--bg); }
-.act-filter-radio.active-afr { color:var(--fg); }
-.act-radio-dot { width:16px;height:16px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;background:var(--surface);transition:border-color 0.15s,background 0.15s; }
-.act-radio-dot.selected { border-color:var(--accent);background:var(--accent); }
-.act-radio-dot.selected::after { content:'';width:6px;height:6px;border-radius:50%;background:#fff;display:block; }
-.filter-select { width:100%;border:1px solid var(--border);border-radius:7px;padding:7px 10px;font-size:13px;color:var(--fg);background:var(--surface);cursor:pointer;outline:none;appearance:auto; }
-.filter-section-hdr { display:flex;align-items:center;justify-content:space-between;font-size:12px;font-weight:700;color:var(--fg);padding:10px 0 8px;cursor:pointer;user-select:none;border-top:1px solid var(--border);margin-top:6px; }
-.filter-section-hdr:first-child { border-top:none;margin-top:0; }
-.filter-section-hdr .fsh-arrow { font-size:10px;color:var(--fg3);transition:transform 0.2s; }
-.filter-section-hdr.collapsed .fsh-arrow { transform:rotate(-90deg); }
-/* ---- Setup page ---- */
-.setup-tab { padding:12px 18px;border:none;background:none;font-size:13px;font-weight:500;color:var(--fg2);cursor:pointer;border-bottom:2px solid transparent;transition:color 0.15s,border-color 0.15s;white-space:nowrap; }
-.setup-tab:hover { color:var(--fg); }
-.setup-tab.active { color:var(--accent);border-bottom:2px solid var(--accent);font-weight:600; }
-.setup-panel { display:none; }
-.setup-panel.sp-active { display:flex; flex:1; min-height:0; overflow:hidden; }
-.setup-link { font-size:13px;color:var(--fg2);padding:5px 0;cursor:pointer;transition:color 0.12s; }
-.setup-link:hover { color:var(--accent);text-decoration:underline; }
-.setup-dd-item { padding:8px 14px;font-size:13px;color:var(--fg2);cursor:pointer; }
-.setup-dd-item:hover { background:var(--bg);color:var(--fg); }
-/* User list items */
-.user-list-item { display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;border-bottom:1px solid var(--border);transition:background 0.1s; }
-.user-list-item:hover { background:var(--bg); }
-.user-list-item.selected { background:#EEF4FF; }
-.user-avatar { width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#fff;flex-shrink:0;position:relative; }
-.user-online-dot { position:absolute;bottom:1px;right:1px;width:9px;height:9px;border-radius:50%;border:2px solid var(--surface); }
-.user-badge { display:inline-flex;align-items:center;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700; }
-.badge-super { background:#FFF3E0;color:#E65100;border:1px solid #FFCC02; }
-.badge-admin { background:#E3F2FD;color:#1565C0; }
-.badge-manager { background:#E8F5E9;color:#2E7D32; }
-.badge-user { background:#F3E5F5;color:#6A1B9A; }
-.badge-restricted { background:#FBE9E7;color:#BF360C; }
-/* Permission matrix */
-.perm-table { width:100%;border-collapse:collapse;font-size:12px; }
-.perm-table th { padding:8px 10px;text-align:left;color:var(--fg2);font-weight:600;border-bottom:1px solid var(--border);background:var(--bg); }
-.perm-table td { padding:8px 10px;border-bottom:1px solid var(--border);color:var(--fg); }
-.perm-check { width:18px;height:18px;accent-color:var(--accent);cursor:pointer; }
-/* Toggle switch */
-.sk-toggle { position:relative;display:inline-block;width:40px;height:22px; }
-.sk-toggle input { opacity:0;width:0;height:0; }
-.sk-toggle-slider { position:absolute;cursor:pointer;inset:0;background:#ccc;border-radius:22px;transition:.3s; }
-.sk-toggle-slider:before { position:absolute;content:"";height:16px;width:16px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s; }
-.sk-toggle input:checked+.sk-toggle-slider { background:var(--accent); }
-.sk-toggle input:checked+.sk-toggle-slider:before { transform:translateX(18px); }
-/* Roles & Profiles inner tabs */
-.roles-itab { padding:10px 20px;border:none;background:none;font-size:13px;font-weight:500;color:var(--fg2);cursor:pointer;border-bottom:2px solid transparent;transition:color 0.15s,border-color 0.15s;white-space:nowrap; }
-.roles-itab:hover { color:var(--fg); }
-.roles-itab.active { color:var(--accent);border-bottom:2px solid var(--accent);font-weight:600; }
-.roles-panel { display:none;flex:1;min-height:0;flex-direction:column; }
-.roles-panel.rp-active { display:flex; }
-/* Data Sharing sub-tabs (pill style) */
-.sharing-tab { padding:6px 16px;border:1.5px solid var(--border);background:none;font-size:12px;font-weight:500;color:var(--fg2);cursor:pointer;border-radius:20px;transition:all 0.15s;white-space:nowrap; }
-.sharing-tab.st-active { background:var(--accent-bg);color:var(--accent);border-color:var(--accent);font-weight:600; }
-/* Form fields for modals */
-.um-field { margin-bottom:14px; }
-.um-label { font-size:12px;font-weight:600;color:var(--fg2);margin-bottom:4px;display:block; }
-.um-input { width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;color:var(--fg);background:var(--surface);outline:none;box-sizing:border-box; }
-.um-input:focus { border-color:var(--accent); }
-.um-select { width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;color:var(--fg);background:var(--surface);outline:none;cursor:pointer; }
-.filter-chk:hover { background:var(--surface2);color:var(--fg); }
-
-.content {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: 0;
-  position: relative;
-  z-index: 1;
-  min-height: 0;
-  /* Setup page needs this to honour height:100% on its child */
-  display: flex;
-  flex-direction: column;
-}
-/* Pages that need inner padding (dashboard, reports, etc.) */
-.page-pad {
-  padding: 20px 24px 24px;
-}
-/* CRM list pages — no negative margins needed, content fills full width */
-.page-crm {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-
-/* ---- BUTTONS ---- */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 14px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  border: 1px solid transparent;
-  transition: all 0.15s;
-  font-family: inherit;
-  white-space: nowrap;
-  position: relative;
-  letter-spacing: 0.1px;
-}
-.btn:active { transform: translateY(1px); }
-.btn-primary {
-  background: linear-gradient(180deg, #4A7FE8 0%, #2563EB 50%, #1E54D8 100%);
-  color: #fff;
-  border-color: #1a4ec4;
-  box-shadow: 0 2px 0 #1340a8, 0 4px 12px rgba(37,99,235,0.35), inset 0 1px 0 rgba(255,255,255,0.2);
-  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
-}
-.btn-primary:hover {
-  background: linear-gradient(180deg, #5A8FF8 0%, #3B72F5 50%, #2A5FE5 100%);
-  box-shadow: 0 2px 0 #1340a8, 0 6px 18px rgba(37,99,235,0.45), inset 0 1px 0 rgba(255,255,255,0.25);
-}
-.btn-primary:active {
-  box-shadow: 0 0 0 #1340a8, 0 2px 6px rgba(37,99,235,0.3), inset 0 1px 3px rgba(0,0,0,0.15);
-  transform: translateY(2px);
-}
-.btn-secondary {
-  background: linear-gradient(180deg, var(--surface) 0%, var(--surface2) 100%);
-  color: var(--fg2);
-  border-color: var(--border);
-  box-shadow: 0 2px 0 var(--border), 0 2px 6px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.07);
-}
-.btn-secondary:hover {
-  background: linear-gradient(180deg, var(--surface2) 0%, var(--surface) 100%);
-  color: var(--fg);
-  box-shadow: 0 2px 0 var(--border), 0 4px 10px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.1);
-}
-.btn-secondary:active {
-  box-shadow: 0 0 0 var(--border), inset 0 1px 3px rgba(0,0,0,0.1);
-  transform: translateY(2px);
-}
-.btn-ghost { background: transparent; color: var(--fg2); border-color: transparent; }
-.btn-ghost:hover { background: var(--surface2); color: var(--fg); }
-.btn-danger {
-  background: linear-gradient(180deg, #fca5a5 0%, var(--red-bg) 100%);
-  color: var(--red);
-  border-color: var(--red);
-  box-shadow: 0 2px 0 var(--red), inset 0 1px 0 rgba(255,255,255,0.1);
-}
-.btn-sm { padding: 5px 10px; font-size: 12px; border-radius: 6px; }
-.btn-icon { padding: 7px; }
-
-/* ---- CARDS & TILES ---- */
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 20px;
-}
-.card-sm { padding: 14px 16px; }
-
-/* ---- PREMIUM TYPOGRAPHY UPGRADES ---- */
-h1,h2,h3,h4,h5,h6,
-.page-title, .modal-title, .section-title,
-.dash-welcome-name, .kpi-value, .lq-value,
-.dash-section-hdr {
-  font-family: 'Plus Jakarta Sans', 'DM Sans', 'Inter', sans-serif;
-}
-.nav-item, .btn, .badge, label, th {
-  letter-spacing: 0.01em;
-}
-
-/* ---- PREMIUM DASHBOARD ---- */
-#page-dashboard {
-  padding: 28px 32px;
-}
-
-/* KPI Grid */
-.dash-kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 16px;
-  margin-bottom: 24px;
-}
-.dash-kpi-row {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 16px;
-}
-.dash-kpi-card {
-  background: var(--surface);
-  border-radius: 18px;
-  padding: 22px 24px 20px;
-  border: 1px solid var(--border);
-  cursor: pointer;
-  transition: box-shadow 0.2s, transform 0.2s;
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-}
-/* Thin accent bar only — one color signal per card */
-.dash-kpi-card::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 3px;
-  border-radius: 18px 18px 0 0;
-  background: var(--kpi-color, #6366f1);
-  opacity: 0.55;
-}
-.dash-kpi-card::after { display: none; }
-.dash-kpi-card:hover {
-  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
-  transform: translateY(-2px);
-}
-.dash-kpi-card .kpi-icon {
-  width: 38px; height: 38px; border-radius: 10px;
-  display: flex; align-items: center; justify-content: center;
-  background: var(--surface2, #f1f5f9);
-  margin-bottom: 16px;
-  font-size: 17px;
-}
-.dash-kpi-card .kpi-label {
-  font-size: 10px; font-weight: 700; letter-spacing: 0.9px;
-  text-transform: uppercase;
-  color: var(--fg3);
-  margin-bottom: 9px;
-}
-.dash-kpi-card .kpi-value {
-  font-size: 38px !important;
-  font-weight: 800 !important;
-  font-family: 'Plus Jakarta Sans', 'DM Sans', 'Inter', sans-serif !important;
-  letter-spacing: -2px !important;
-  line-height: 1 !important;
-  display: block;
-}
-.dash-kpi-card .kpi-sub {
-  font-size: 11.5px;
-  color: var(--fg3);
-  margin-top: 12px;
-  display: flex; align-items: center; gap: 5px;
-  font-weight: 500;
-}
-
-/* Section headers — pill badge style */
-.dash-section-hdr {
-  display: inline-flex; align-items: center; gap: 6px;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 4px 12px 4px 8px;
-  font-size: 11.5px; font-weight: 600; color: var(--fg2);
-  letter-spacing: 0.1px;
-}
-.dash-section-hdr .dot {
-  width: 8px; height: 8px; border-radius: 50%;
-  background: var(--accent); flex-shrink: 0;
-}
-
-/* Cards */
-.dash-card {
-  background: var(--surface);
-  border-radius: 18px;
-  border: 1px solid var(--border);
-  overflow: hidden;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
-}
-.dash-card-header {
-  padding: 18px 22px;
-  border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: space-between;
-  background: var(--surface);
-}
-.dash-empty {
-  padding: 40px 20px; text-align: center;
-  color: var(--fg3); font-size: 13px;
-}
-
-/* mb helpers */
-.mb-16 { margin-bottom: 20px; }
-.mb-24 { margin-bottom: 24px; }
-
-/* LQ stats */
-.lq-stat {
-  padding: 20px 22px; text-align: center;
-  border-right: 1px solid var(--border);
-}
-.lq-stat:last-child { border-right: none; }
-.lq-stat .lq-label {
-  font-size: 10px; font-weight: 700; text-transform: uppercase;
-  letter-spacing: 0.8px; color: var(--fg3); margin-bottom: 10px;
-}
-.lq-stat .lq-value {
-  font-size: 36px !important;
-  font-weight: 800 !important;
-  font-family: 'Plus Jakarta Sans', 'DM Sans', 'Inter', sans-serif !important;
-  letter-spacing: -2px !important;
-  line-height: 1 !important;
-}
-/* ---- END PREMIUM DASHBOARD ---- */
-.stat-tile {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 18px 20px;
-}
-.stat-tile .label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.7px; color: var(--fg3); margin-bottom: 8px; }
-.stat-tile .value { font-size: 28px; font-weight: 600; color: var(--fg); font-family: 'Roboto Mono', 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; line-height: 1; letter-spacing: -1px; }
-.stat-tile .sub { font-size: 12px; color: var(--fg2); margin-top: 6px; }
-.stat-tile .trend-up { color: var(--green); }
-.stat-tile .trend-dn { color: var(--red); }
-
-/* Tabular nums globally */
-* { font-variant-numeric: tabular-nums; }
-
-/* ---- GRID HELPERS ---- */
-.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
-.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-.grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
-@media (max-width: 900px) { .grid-4 { grid-template-columns: repeat(2,1fr); } .grid-3 { grid-template-columns: 1fr 1fr; } }
-@media (max-width: 600px) { .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; } }
-
-.section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
-}
-.section-header h2 { font-size: 15px; font-weight: 600; color: var(--fg); }
-.section-title { font-size: 13px; font-weight: 600; color: var(--fg); margin-bottom: 12px; }
-
-/* ---- TABLES ---- */
-.table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); }
-table { width: 100%; border-collapse: collapse; min-width: 0; }
-th {
-  background: var(--surface2);
-  color: var(--fg3);
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  padding: 9px 14px;
-  text-align: left;
-  white-space: nowrap;
-  border-bottom: 1px solid var(--border);
-}
-td {
-  padding: 11px 14px;
-  color: var(--fg2);
-  font-size: 13px;
-  border-bottom: 1px solid var(--border);
-  vertical-align: middle;
-}
-tr:last-child td { border-bottom: none; }
-tr:hover td { background: var(--surface2); }
-td .primary { color: var(--fg); font-weight: 500; }
-td .mono { font-family: 'Roboto Mono', 'IBM Plex Mono', monospace; font-size: 11px; color: var(--fg3); }
-td { font-family: 'Inter', system-ui, sans-serif !important; }
-
-/* ---- BADGES ---- */
-.badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
-  border-radius: 20px;
-  font-size: 11px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-.badge-blue { background: var(--accent-bg); color: var(--accent); }
-.badge-green { background: var(--green-bg); color: var(--green); }
-.badge-amber { background: var(--amber-bg); color: var(--amber); }
-.badge-red { background: var(--red-bg); color: var(--red); }
-.badge-purple { background: var(--purple-bg); color: var(--purple); }
-.badge-gray { background: var(--surface2); color: var(--fg2); }
-
-/* ---- FORMS ---- */
-.form-group { margin-bottom: 14px; }
-label { display: block; font-size: 12px; font-weight: 500; color: var(--fg2); margin-bottom: 5px; }
-input[type=text], input[type=email], input[type=number], input[type=date], input[type=tel],
-select, textarea {
-  width: 100%;
-  padding: 8px 12px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--surface);
-  color: var(--fg);
-  font-size: 13px;
-  font-family: inherit;
-  transition: border-color 0.12s;
-}
-input:focus, select:focus, textarea:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-bg);
-}
-textarea { min-height: 80px; resize: vertical; }
-.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
-@media (max-width: 600px) { .form-row, .form-row-3 { grid-template-columns: 1fr; } }
-
-/* ---- MODAL ---- */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.5);
-  z-index: 200;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-}
-.modal {
-  background: var(--surface);
-  border-radius: 12px;
-  border: 1px solid var(--border);
-  width: 100%;
-  max-width: 560px;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
-}
-.modal-header {
-  padding: 18px 20px;
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  position: sticky;
-  top: 0;
-  background: var(--surface);
-  z-index: 1;
-}
-.modal-header h3 { font-size: 15px; font-weight: 600; }
-.modal-body { padding: 20px; }
-.modal-footer {
-  padding: 14px 20px;
-  border-top: 1px solid var(--border);
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-/* ---- SEARCH BAR ---- */
-.search-bar {
-  position: relative;
-  flex: 1;
-  max-width: 340px;
-}
-.search-bar input {
-  width: 100%;
-  padding: 7px 12px 7px 34px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--surface2);
-  color: var(--fg);
-  font-size: 13px;
-}
-.search-bar::before {
-  content: '⌕';
-  position: absolute;
-  left: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--fg3);
-  font-size: 16px;
-  pointer-events: none;
-}
-
-/* ---- PIPELINE KANBAN ---- */
-.kanban {
-  display: flex;
-  gap: 14px;
-  overflow-x: auto;
-  padding-bottom: 8px;
-  align-items: flex-start;
-}
-.kanban-col {
-  min-width: 210px;
-  max-width: 210px;
-  background: var(--surface2);
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  transition: background 0.15s;
-}
-.kanban-col.drag-over {
-  background: var(--accent-bg);
-  border-color: var(--accent);
-}
-.kanban-col-header {
-  padding: 12px 14px 10px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid var(--border);
-}
-.kanban-col-header .col-label { font-size: 12px; font-weight: 600; color: var(--fg2); }
-.kanban-col-header .col-count {
-  background: var(--border);
-  color: var(--fg3);
-  font-size: 11px;
-  font-weight: 700;
-  padding: 1px 7px;
-  border-radius: 10px;
-}
-.kanban-cards { padding: 10px; display: flex; flex-direction: column; gap: 8px; min-height: 60px; }
-.k-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 11px 12px;
-  cursor: grab;
-}
-.k-card:hover { border-color: var(--accent); }
-.k-card.dragging { opacity: 0.4; cursor: grabbing; }
-.k-card .k-name { font-size: 12px; font-weight: 500; color: var(--fg); margin-bottom: 4px; }
-.k-card .k-meta { font-size: 11px; color: var(--fg3); }
-.k-card .k-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 7px; }
-
-/* ---- ACTIVITY FEED ---- */
-.activity-list { display: flex; flex-direction: column; gap: 0; }
-.activity-item {
-  display: flex;
-  gap: 12px;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--border);
-  align-items: flex-start;
-}
-.activity-item:last-child { border-bottom: none; }
-.activity-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  margin-top: 5px;
-  flex-shrink: 0;
-}
-.activity-content .act-text { font-size: 13px; color: var(--fg); }
-.activity-content .act-time { font-size: 11px; color: var(--fg3); margin-top: 2px; }
-
-/* ---- TABS ---- */
-.tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
-.tab {
-  padding: 9px 16px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--fg2);
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-  transition: all 0.12s;
-}
-.tab:hover { color: var(--fg); }
-.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
-
-/* ---- EMPTY STATE ---- */
-.empty-state {
-  text-align: center;
-  padding: 48px 24px;
-  color: var(--fg3);
-}
-.empty-state .icon { font-size: 36px; margin-bottom: 12px; }
-.empty-state p { font-size: 13px; margin-top: 4px; }
-
-/* ---- MISC ---- */
-.avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: var(--accent-bg);
-  color: var(--accent);
-  font-size: 12px;
-  font-weight: 700;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
-.gap-12 { display: flex; flex-direction: column; gap: 12px; }
-.gap-16 { display: flex; flex-direction: column; gap: 16px; }
-.flex-row { display: flex; align-items: center; gap: 10px; }
-.ml-auto { margin-left: auto; }
-.text-sm { font-size: 12px; }
-.text-xs { font-size: 11px; }
-.text-muted { color: var(--fg2); }
-.text-dim { color: var(--fg3); }
-.fw-600 { font-weight: 600; }
-.mono { font-family: 'Roboto Mono', 'IBM Plex Mono', monospace; }
-.mb-16 { margin-bottom: 16px; }
-.mb-20 { margin-bottom: 20px; }
-.progress-bar { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
-.progress-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
-
-/* ---- PAGES (hidden/shown) ---- */
-.page { display: none; }
-.page.active { display: block; flex: 1; min-height: 0; }
-.page.active.page-flex { display: flex; flex: 1; min-height: 0; }
-/* Setup page: fill the content area, flex column, no overflow on self */
-#page-setup {
-  display: none;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-}
-#page-setup.active {
-  display: flex !important;
-}
-
-/* ---- WORKQUEUE NAV ITEMS ---- */
-.wq-nav-item {
-  display: flex; align-items: center; gap: 10px;
-  width: 100%; padding: 7px 10px; border-radius: 6px;
-  background: none; border: none; cursor: pointer;
-  font-size: 12px; color: var(--fg2); text-align: left;
-  font-family: 'Inter', sans-serif; transition: background 0.1s;
-  position: relative;
-}
-.wq-nav-item:hover { background: var(--surface2); color: var(--fg); }
-.wq-active, .wq-nav-item.wq-active { background: #EEF4FF; color: var(--accent); font-weight: 600; border-left: 3px solid var(--accent); padding-left: 7px; border-radius: 0; }
-.wq-badge {
-  margin-left: auto; background: var(--surface2); color: var(--fg3);
-  font-size: 10px; font-weight: 600; padding: 1px 7px;
-  border-radius: 20px; min-width: 22px; text-align: center;
-}
-.wq-active .wq-badge { background: var(--accent-bg); color: var(--accent); }
-
-/* ---- CALENDAR CELL ---- */
-.cal-cell {
-  border-right: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-  padding: 6px 6px 4px;
-  cursor: pointer;
-  background: var(--surface);
-  vertical-align: top;
-  transition: background 0.1s;
-  overflow: hidden;
-  min-width: 0;
-  box-sizing: border-box;
-}
-.cal-cell:hover { background: var(--surface2); }
-.cal-cell.other-month { background: var(--surface2); }
-.cal-cell.other-month .cal-day-num { color: var(--fg3); }
-.cal-cell.is-today .cal-day-num {
-  background: var(--accent); color: #fff;
-  border-radius: 50%; width: 22px; height: 22px;
-  display: inline-flex; align-items: center; justify-content: center;
-}
-.cal-day-num { font-size: 12px; font-weight: 600; color: var(--fg2); margin-bottom: 3px; display: inline-block; }
-.cal-event { font-size:11px; padding:2px 6px; border-radius:3px; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:block; width:100%; box-sizing:border-box; font-weight:500; line-height:1.5; border-left:3px solid transparent; }
-.cal-event-task { background:#FEF3C7; color:#92400E; border-left-color:#F59E0B; }
-.cal-event-meeting { background:#DBEAFE; color:#1E40AF; border-left-color:#3B82F6; }
-.cal-event-call { background:#D1FAE5; color:#065F46; border-left-color:#10B981; }
-.cal-event-gcal { background:#FCE8F3; color:#9D174D; border-left-color:#EC4899; }
-.cal-view-active { background: var(--accent-bg) !important; color: var(--accent) !important; font-weight: 600; }
-
-/* ---- QUICK ADD PANEL ---- */
-.qap-item {
-  display: flex; align-items: center; gap: 10px;
-  width: 100%; padding: 9px 20px;
-  background: none; border: none; cursor: pointer;
-  font-size: 13px; color: var(--fg2); text-align: left;
-  font-family: 'Inter', sans-serif; transition: background 0.1s;
-}
-.qap-item:hover { background: var(--surface2); color: var(--fg); }
-.qap-item[data-label]::before { content: '+'; color: var(--accent); font-weight: 700; font-size: 14px; width: 14px; flex-shrink: 0; }
-.qap-item { display: flex; gap: 10px; }
-
-.qap-right-item {
-  display: flex; align-items: center; gap: 9px;
-  width: 100%; padding: 7px 10px; margin-bottom: 2px;
-  background: none; border: none; cursor: pointer; border-radius: 6px;
-  font-size: 13px; color: var(--fg2); text-align: left;
-  font-family: 'Inter', sans-serif; transition: background 0.1s;
-}
-.qap-right-item:hover { background: var(--surface2); color: var(--fg); }
-.qap-right-item span { font-size: 15px; width: 18px; text-align: center; flex-shrink: 0; }
-
-/* ---- FULL-PAGE RECORD FORM ---- */
-.lead-form-overlay {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  min-height: 100%;
-  background: var(--bg);
-  position: relative;
-  z-index: 10;
-  isolation: isolate;
-}
-.lead-form-topbar {
-  background: var(--bg);
-  border-bottom: 1px solid var(--border);
-  padding: 14px 32px 14px 32px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-shrink: 0;
-}
-.lead-form-topbar .lf-title { font-size: 20px; font-weight: 700; color: var(--fg); flex: 1; }
-.lead-form-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 28px 48px 40px;
-  max-width: 1100px;
-  width: 100%;
-  margin: 0 auto;
-}
-.lf-section-title {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--fg);
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 20px;
-}
-.lf-avatar-row { margin-bottom: 20px; }
-.lf-avatar-placeholder {
-  width: 56px; height: 56px;
-  border-radius: 50%;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 24px; color: var(--fg3);
-}
-.lf-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px 40px;
-}
-.lf-field { display: flex; flex-direction: column; gap: 5px; }
-.lf-field label { font-size: 12px; font-weight: 500; color: var(--fg2); text-align: right; padding-right: 12px; }
-.lf-full { grid-column: 1 / -1; }
-.lf-addr-box {
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 16px 20px 20px;
-  position: relative;
-}
-.lf-addr-label {
-  position: absolute; top: -10px; left: 14px;
-  background: var(--bg); padding: 0 6px;
-  font-size: 12px; font-weight: 600; color: var(--fg2);
-}
-/* Zoho-style 2-col: label on left, input on right */
-.lf-grid { display: grid; grid-template-columns: 200px 1fr 200px 1fr; gap: 14px 12px; align-items: start; }
-.lf-field { display: contents; }
-.lf-field label { text-align: right; font-size: 12px; font-weight: 500; color: var(--fg2); padding: 8px 10px 0 0; align-self: start; }
-.lf-field input, .lf-field select, .lf-field textarea, .lf-field > div:not([class]) { grid-column: span 1; }
-.lf-full { grid-column: 1 / -1; display: grid; grid-template-columns: 200px 1fr; gap: 12px; }
-.lf-full label { text-align: right; font-size: 12px; font-weight: 500; color: var(--fg2); padding: 8px 10px 0 0; }
-.lf-addr-box .lf-grid { grid-template-columns: 200px 1fr 200px 1fr; }
-/* Checkbox fields: label on left, checkbox inline with it */
-.lf-checkbox { display: contents; }
-.lf-checkbox label { text-align: right; font-size: 12px; font-weight: 500; color: var(--fg2); padding: 8px 10px 0 0; align-self: start; }
-.lf-checkbox input[type="checkbox"] { margin-top: 7px; width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; justify-self: start; }
-@media (max-width: 760px) {
-  .lead-form-body { padding: 16px; }
-  .lf-grid { grid-template-columns: 1fr 1fr !important; gap: 12px 8px; }
-  .lf-full { grid-template-columns: 1fr !important; }
-  .lf-field label { text-align: left; padding-right: 0; }
-}
-@media (max-width: 480px) {
-  .lf-grid { grid-template-columns: 1fr !important; }
-  .lead-form-topbar { flex-wrap: wrap; gap: 8px; padding: 10px 14px; }
-  .lead-form-topbar > div:last-child { width: 100%; justify-content: flex-end; }
-}
-
-@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-/* scrollbar */
-::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 10px; }
-</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500;600&display=swap">
 
 <!-- App styles -->
-<link rel="stylesheet" href="css/app.css">
+<link rel="stylesheet" href="css/app.css?v=3">
 
 <!-- Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -1313,6 +81,13 @@ textarea { min-height: 80px; resize: vertical; }
     </button>
     <button class="nav-item" data-page="activities">
       <span class="icon">📞</span><span class="label"> Calls &amp; Meetings</span><span class="nav-badge" id="nb-activities"></span>
+    </button>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-label">Business</div>
+    <button class="nav-item" data-page="business-onboarded">
+      <span class="icon">🤝</span><span class="label"> Business Onboarded</span><span class="nav-badge" id="nb-business-onboarded"></span>
     </button>
   </div>
 
@@ -2006,7 +781,7 @@ textarea { min-height: 80px; resize: vertical; }
           <button class="crm-view-btn active-view-btn" title="List view" style="cursor:default">☰</button>
         </div>
         <div style="flex:1"></div>
-        <div class="search-bar" style="max-width:200px"><input type="text" placeholder="Search accounts…" oninput="debounce('companies',()=>searchFromDB('companies',this.value))"></div>
+        <div class="search-bar" style="max-width:200px"><input type="text" placeholder="Search accounts…" oninput="searchFromDB('companies',this.value)"></div>
         <button class="btn btn-primary btn-sm" onclick="openModal('company')">+ Create Account</button>
       </div>
       <!-- Body: filter sidebar + table -->
@@ -2142,7 +917,7 @@ textarea { min-height: 80px; resize: vertical; }
           <button class="crm-view-btn active-view-btn" title="List view" style="cursor:default">☰</button>
         </div>
         <div style="flex:1"></div>
-        <div class="search-bar" style="max-width:200px"><input type="text" placeholder="Search contacts…" oninput="debounce('contacts',()=>searchFromDB('contacts',this.value))"></div>
+        <div class="search-bar" style="max-width:200px"><input type="text" placeholder="Search contacts…" oninput="searchFromDB('contacts',this.value)"></div>
         <button class="btn btn-primary btn-sm" onclick="openModal('contact')">+ Create Contact</button>
       </div>
       <div style="display:flex;gap:0;flex:1;overflow:hidden">
@@ -2304,7 +1079,7 @@ textarea { min-height: 80px; resize: vertical; }
           <button id="leads-btn-grid" class="crm-view-btn" onclick="switchLeadTab('board',this)" title="Pipeline board">⊞</button>
         </div>
         <div style="flex:1"></div>
-        <div class="search-bar" style="max-width:200px"><input type="text" placeholder="Search leads…" oninput="debounce('leads',()=>searchFromDB('leads',this.value))"></div>
+        <div class="search-bar" style="max-width:200px"><input type="text" placeholder="Search leads…" oninput="searchFromDB('leads',this.value)"></div>
         <button class="btn btn-primary btn-sm" onclick="openModal('lead')">+ Create Lead</button>
       </div>
       <div style="display:flex;gap:0;flex:1;overflow:hidden">
@@ -3456,27 +2231,64 @@ textarea { min-height: 80px; resize: vertical; }
 
       <!-- Accessibility panel -->
       <div id="ps-accessibility" class="ps-panel" style="flex:1;overflow-y:auto;padding:32px 40px;display:none">
+
+        <!-- Theme -->
         <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px 28px;margin-bottom:22px">
-          <div style="font-size:16px;font-weight:700;color:var(--fg);margin-bottom:18px">Accessibility Settings</div>
+          <div style="font-size:16px;font-weight:700;color:var(--fg);margin-bottom:18px">Theme</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px" id="theme-picker">
+            <button onclick="setTheme('light')" id="theme-btn-light" style="padding:14px 10px;border-radius:12px;border:2px solid var(--border);background:var(--bg);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:8px;transition:border-color 0.2s">
+              <div style="width:48px;height:32px;border-radius:6px;background:#ffffff;border:1px solid #e5e7eb;display:flex;align-items:center;justify-content:center;gap:4px"><div style="width:10px;height:10px;border-radius:2px;background:#1a56db"></div><div style="width:16px;height:6px;border-radius:2px;background:#e5e7eb"></div></div>
+              <span style="font-size:12px;font-weight:600;color:var(--fg)">Light</span>
+            </button>
+            <button onclick="setTheme('dark')" id="theme-btn-dark" style="padding:14px 10px;border-radius:12px;border:2px solid var(--border);background:var(--bg);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:8px;transition:border-color 0.2s">
+              <div style="width:48px;height:32px;border-radius:6px;background:#0f1117;border:1px solid #374151;display:flex;align-items:center;justify-content:center;gap:4px"><div style="width:10px;height:10px;border-radius:2px;background:#3b82f6"></div><div style="width:16px;height:6px;border-radius:2px;background:#374151"></div></div>
+              <span style="font-size:12px;font-weight:600;color:var(--fg)">Dark</span>
+            </button>
+            <button onclick="setTheme('auto')" id="theme-btn-auto" style="padding:14px 10px;border-radius:12px;border:2px solid var(--border);background:var(--bg);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:8px;transition:border-color 0.2s">
+              <div style="width:48px;height:32px;border-radius:6px;background:linear-gradient(135deg,#ffffff 50%,#0f1117 50%);border:1px solid #9ca3af;display:flex;align-items:center;justify-content:center"></div>
+              <span style="font-size:12px;font-weight:600;color:var(--fg)">Auto</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Accessibility -->
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px 28px;margin-bottom:22px">
+          <div style="font-size:16px;font-weight:700;color:var(--fg);margin-bottom:18px">Accessibility</div>
           <div style="display:flex;flex-direction:column;gap:18px">
             <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:16px;border-bottom:1px solid var(--border)">
-              <div><div style="font-size:14px;font-weight:600;color:var(--fg)">High Contrast Mode</div><div style="font-size:12px;color:var(--fg2);margin-top:2px">Increase contrast for better visibility</div></div>
-              <label class="sk-toggle"><input type="checkbox"><span class="sk-toggle-slider"></span></label>
-            </div>
-            <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:16px;border-bottom:1px solid var(--border)">
-              <div><div style="font-size:14px;font-weight:600;color:var(--fg)">Reduce Motion</div><div style="font-size:12px;color:var(--fg2);margin-top:2px">Minimize animations and transitions</div></div>
-              <label class="sk-toggle"><input type="checkbox"><span class="sk-toggle-slider"></span></label>
+              <div><div style="font-size:14px;font-weight:600;color:var(--fg)">Compact View</div><div style="font-size:12px;color:var(--fg2);margin-top:2px">Show more records per screen with smaller row heights</div></div>
+              <label class="sk-toggle"><input type="checkbox" id="pref-compact" onchange="savePref('compact',this.checked);document.documentElement.classList.toggle('compact',this.checked)"><span class="sk-toggle-slider"></span></label>
             </div>
             <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:16px;border-bottom:1px solid var(--border)">
               <div><div style="font-size:14px;font-weight:600;color:var(--fg)">Large Text</div><div style="font-size:12px;color:var(--fg2);margin-top:2px">Increase default font size across the app</div></div>
-              <label class="sk-toggle"><input type="checkbox"><span class="sk-toggle-slider"></span></label>
+              <label class="sk-toggle"><input type="checkbox" id="pref-largetext" onchange="savePref('largeText',this.checked);document.documentElement.classList.toggle('large-text',this.checked)"><span class="sk-toggle-slider"></span></label>
             </div>
             <div style="display:flex;align-items:center;justify-content:space-between">
-              <div><div style="font-size:14px;font-weight:600;color:var(--fg)">Screen Reader Support</div><div style="font-size:12px;color:var(--fg2);margin-top:2px">Optimize for screen reader compatibility</div></div>
-              <label class="sk-toggle"><input type="checkbox" checked><span class="sk-toggle-slider"></span></label>
+              <div><div style="font-size:14px;font-weight:600;color:var(--fg)">Reduce Motion</div><div style="font-size:12px;color:var(--fg2);margin-top:2px">Minimize animations and transitions</div></div>
+              <label class="sk-toggle"><input type="checkbox" id="pref-reducemotion" onchange="savePref('reduceMotion',this.checked);document.documentElement.classList.toggle('reduce-motion',this.checked)"><span class="sk-toggle-slider"></span></label>
             </div>
           </div>
         </div>
+
+        <!-- Notifications -->
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px 28px;margin-bottom:22px">
+          <div style="font-size:16px;font-weight:700;color:var(--fg);margin-bottom:18px">Notifications</div>
+          <div style="display:flex;flex-direction:column;gap:18px">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:16px;border-bottom:1px solid var(--border)">
+              <div><div style="font-size:14px;font-weight:600;color:var(--fg)">Follow-up Reminders</div><div style="font-size:12px;color:var(--fg2);margin-top:2px">Notify when a follow-up is due today</div></div>
+              <label class="sk-toggle"><input type="checkbox" checked id="pref-followup-notif" onchange="savePref('followupNotif',this.checked)"><span class="sk-toggle-slider"></span></label>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:16px;border-bottom:1px solid var(--border)">
+              <div><div style="font-size:14px;font-weight:600;color:var(--fg)">Deal Stage Updates</div><div style="font-size:12px;color:var(--fg2);margin-top:2px">Alert when a deal stage changes</div></div>
+              <label class="sk-toggle"><input type="checkbox" checked id="pref-deal-notif" onchange="savePref('dealNotif',this.checked)"><span class="sk-toggle-slider"></span></label>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div><div style="font-size:14px;font-weight:600;color:var(--fg)">Sound on New Record</div><div style="font-size:12px;color:var(--fg2);margin-top:2px">Play a soft chime when a record is saved</div></div>
+              <label class="sk-toggle"><input type="checkbox" id="pref-sound" onchange="savePref('sound',this.checked)"><span class="sk-toggle-slider"></span></label>
+            </div>
+          </div>
+        </div>
+
       </div><!-- /ps-accessibility -->
 
       <!-- Permissions summary — visible to all users -->
@@ -3485,6 +2297,162 @@ textarea { min-height: 80px; resize: vertical; }
       </div>
 
     </div><!-- /page-personal-settings -->
+
+    <!-- ===================== BUSINESS ONBOARDED ===================== -->
+    <div class="page page-crm" id="page-business-onboarded" style="display:none">
+      <!-- Topbar -->
+      <div class="crm-topbar">
+        <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">
+          <div class="search-bar" style="max-width:220px">
+            <input type="text" placeholder="Search clients…" oninput="searchBO(this.value)" id="bo-search-input">
+          </div>
+          <!-- Status filter pills -->
+          <div style="display:flex;gap:6px;flex-wrap:wrap" id="bo-filter-pills">
+            <button class="bo-filter-pill active" onclick="boSetFilter(this,'all')">All</button>
+            <button class="bo-filter-pill" onclick="boSetFilter(this,'Active')">Active</button>
+            <button class="bo-filter-pill" onclick="boSetFilter(this,'Hold')">On Hold</button>
+            <button class="bo-filter-pill" onclick="boSetFilter(this,'Closed Internally')">Closed Int.</button>
+            <button class="bo-filter-pill" onclick="boSetFilter(this,'Closed by Customer')">Closed by Client</button>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="openBOForm()">+ Add Position</button>
+      </div>
+
+      <!-- KPI bar -->
+      <div style="display:flex;gap:12px;padding:14px 20px 0;flex-shrink:0;flex-wrap:wrap">
+        <div class="bo-kpi" id="bo-kpi-total"><span class="bo-kpi-num" id="bo-kpi-total-n">0</span><span class="bo-kpi-lbl">Total Positions</span></div>
+        <div class="bo-kpi" id="bo-kpi-active"><span class="bo-kpi-num" id="bo-kpi-active-n">0</span><span class="bo-kpi-lbl">Active</span></div>
+        <div class="bo-kpi" id="bo-kpi-hold"><span class="bo-kpi-num" id="bo-kpi-hold-n">0</span><span class="bo-kpi-lbl">On Hold</span></div>
+        <div class="bo-kpi" id="bo-kpi-rev"><span class="bo-kpi-num" id="bo-kpi-rev-n">₹0</span><span class="bo-kpi-lbl">Est. Revenue</span></div>
+      </div>
+
+      <!-- Table -->
+      <div class="table-wrap" style="flex:1;overflow:auto;padding:14px 20px 20px">
+        <table class="crm-table" id="bo-table">
+          <thead>
+            <tr>
+              <th>Client</th>
+              <th>Position</th>
+              <th># Pos</th>
+              <th>Fixed CTC</th>
+              <th>% / Commercial</th>
+              <th>Est. Revenue</th>
+              <th>Source</th>
+              <th>Status</th>
+              <th>Delivery POC</th>
+              <th>Sales POC</th>
+              <th style="width:80px">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="bo-tbody"></tbody>
+        </table>
+      </div>
+    </div><!-- /page-business-onboarded -->
+
+    <!-- BO FORM OVERLAY (full-page slide-in) -->
+    <div id="bo-form-overlay" style="display:none;position:fixed;inset:0;z-index:600;background:var(--bg);flex-direction:column;overflow:hidden">
+      <!-- Topbar -->
+      <div class="lead-form-topbar">
+        <div style="display:flex;align-items:center;gap:12px">
+          <button onclick="closeBOForm()" class="btn btn-ghost btn-sm" style="padding:6px 10px">← Back</button>
+          <span id="bo-form-title" style="font-size:17px;font-weight:700;color:var(--fg)">Add Position</span>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button onclick="closeBOForm()" class="btn btn-secondary btn-sm">Cancel</button>
+          <button onclick="saveBORecord()" class="btn btn-primary btn-sm">Save</button>
+        </div>
+      </div>
+
+      <!-- Form body -->
+      <div class="lead-form-body" style="flex:1;overflow-y:auto;padding:28px 40px">
+
+        <!-- Client & Role -->
+        <div class="lf-section-title">Position Details</div>
+        <div class="lf-grid">
+          <div class="lf-field">
+            <label>Client Name <span style="color:#dc2626">*</span></label>
+            <select id="bo-clientName">
+              <option value="">— Select Client —</option>
+            </select>
+          </div>
+          <div class="lf-field">
+            <label>Role / Position Description <span style="color:#dc2626">*</span></label>
+            <input id="bo-positionDesc" type="text" placeholder="e.g. Senior Backend Engineer">
+          </div>
+          <div class="lf-field">
+            <label>Number of Positions</label>
+            <input id="bo-numPositions" type="number" min="1" value="1" placeholder="1">
+          </div>
+          <div class="lf-field">
+            <label>Source of Role</label>
+            <select id="bo-source">
+              <option value="">-None-</option>
+              <option>Farming</option>
+              <option>New</option>
+              <option>Retention</option>
+              <option>Renewal</option>
+            </select>
+          </div>
+          <div class="lf-field">
+            <label>Role Status</label>
+            <select id="bo-status">
+              <option>Active</option>
+              <option>Hold</option>
+              <option>Closed Internally</option>
+              <option>Closed by Customer</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Commercial -->
+        <div class="lf-section-title" style="margin-top:28px">Commercial Details</div>
+        <div class="lf-grid">
+          <div class="lf-field">
+            <label>Fixed CTC of Position (₹ LPA)</label>
+            <input id="bo-fixedCtc" type="number" min="0" step="0.01" placeholder="e.g. 12.5" oninput="calcBORevenue()">
+          </div>
+          <div class="lf-field">
+            <label>% Commercial</label>
+            <input id="bo-pct" type="number" min="0" max="100" step="0.1" placeholder="e.g. 8.33" oninput="calcBORevenue()">
+          </div>
+          <div class="lf-field">
+            <label>Calculated Revenue per Position (₹)</label>
+            <input id="bo-revenuePerPos" type="text" readonly style="background:var(--surface2);font-weight:600;color:var(--accent)" placeholder="Auto-calculated">
+          </div>
+          <div class="lf-field">
+            <label>Total Estimated Revenue (₹)</label>
+            <input id="bo-totalRevenue" type="text" readonly style="background:var(--surface2);font-weight:700;color:#16a34a;font-size:15px" placeholder="Auto-calculated">
+          </div>
+        </div>
+
+        <!-- POC -->
+        <div class="lf-section-title" style="margin-top:28px">Points of Contact</div>
+        <div class="lf-grid">
+          <div class="lf-field">
+            <label>Delivery POC</label>
+            <select id="bo-deliveryPoc">
+              <option value="">-None-</option>
+            </select>
+          </div>
+          <div class="lf-field">
+            <label>Sales POC</label>
+            <select id="bo-salesPoc">
+              <option value="">-None-</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Notes -->
+        <div class="lf-section-title" style="margin-top:28px">Additional Notes</div>
+        <div class="lf-grid">
+          <div class="lf-field lf-full">
+            <label>Notes / Remarks</label>
+            <textarea id="bo-notes" rows="4" placeholder="Any additional context about this position…"></textarea>
+          </div>
+        </div>
+
+      </div><!-- /form body -->
+    </div><!-- /bo-form-overlay -->
 
   </div><!-- /content -->
 </div><!-- /main -->
@@ -3683,7 +2651,10 @@ textarea { min-height: 80px; resize: vertical; }
 </div>
 
 <!-- App JavaScript (split by concern) -->
+
+
 <script>
+// ===== public/js/config.js =====
 // ============================================================
 //  SearchKraft - CRM — Application Logic
 // ============================================================
@@ -3696,8 +2667,76 @@ const DB_CLIENT = window.supabase.createClient(SUPA_URL, SUPA_KEY);
 // ---- DATA STORE (local cache, synced from Supabase) ----
 let DB = {
   companies: [], contacts: [], leads: [], deals: [], activities: [],
-  tasks: [], invoices: [], documents: [], users: [], audit: []
+  tasks: [], invoices: [], documents: [], users: [], audit: [],
+  businessOnboarded: []
 };
+let _boEditId = null;
+let _boFilter = 'all';
+let _boQuery = '';
+
+// ---- GLOBAL NORMALIZER: snake_case Supabase → camelCase app fields ----
+// Used in load(), searchFromDB(), and realtime sync
+function normRecord(r) {
+  return {
+    ...r,
+    createdAt:          r.createdAt         || r.created_at,
+    updatedAt:          r.updatedAt         || r.updated_at,
+    closeDate:          r.closeDate         || r.close_date,
+    dueDate:            r.dueDate           || r.due_date,
+    due:                r.due               || r.due_date,
+    companyId:          r.companyId         || r.company_id,
+    companyName:        r.companyName       || r.company,
+    contactId:          r.contactId         || r.contact_id,
+    ownerId:            r.ownerId           || r.owner_id,
+    leadId:             r.leadId            || r.lead_id,
+    dealId:             r.dealId            || r.deal_id,
+    bdOwner:            r.bdOwner           || r.bd_owner,
+    firstName:          r.firstName         || r.first_name,
+    lastName:           r.lastName          || r.last_name,
+    // Build a combined display name for leads stored as first_name + last_name
+    name: r.name || (r.first_name || r.last_name
+      ? [r.first_name, r.last_name].filter(Boolean).join(' ')
+      : undefined),
+    numEmployees:       r.numEmployees      || r.num_employees,
+    annualRevenue:      r.annualRevenue     || r.annual_revenue,
+    emailOptOut:        r.emailOptOut       ?? r.email_opt_out,
+    handoverDate:       r.handoverDate      || r.handover_date,
+    followupDate:       r.followupDate      || r.followup_date,
+    handoverDone:       r.handoverDone      ?? r.handover_done,
+    clientName:         r.clientName        || r.client_name,
+    clientType:         r.clientType        || r.client_type,
+    deliveryPOC:        r.deliveryPOC       || r.delivery_poc,
+    numPositions:       r.numPositions      || r.num_positions,
+    commercialsSigned:  r.commercialsSigned ?? r.commercials_signed,
+    followupStatus:     r.followupStatus    || r.followup_status,
+    followupNotes:      r.followupNotes     || r.followup_notes,
+    sourceSD:           r.sourceSD          || r.source_sd,
+    leadType:           r.leadType          || r.lead_type,
+    addrLine1:          r.addrLine1         || r.addr_line1,
+    wonAt:              r.wonAt             || r.won_at,
+    lostAt:             r.lostAt            || r.lost_at,
+    lostReason:         r.lostReason        || r.lost_reason,
+    completedAt:        r.completedAt       || r.completed_at,
+    relatedTo:          r.relatedTo         || r.related_to,
+    amount:             (r.amount != null && r.amount !== '') ? r.amount : r.value,
+    expectedRevenue:    (r.expectedRevenue != null && r.expectedRevenue !== '') ? r.expectedRevenue : r.expected_revenue,
+    probability:        r.probability       !== undefined ? r.probability : r.probability_pct,
+    clientId:           r.clientId          || r.client_id,
+    fileType:           r.fileType          || r.file_type,
+    fileSize:           r.fileSize          || r.file_size,
+    fileUrl:            r.fileUrl           || r.file_url,
+    uploadedBy:         r.uploadedBy        || r.uploaded_by,
+    referenceNumber:    r.referenceNumber   || r.reference_number,
+    startDate:          r.startDate         || r.start_date,
+    expiryDate:         r.expiryDate        || r.expiry_date,
+    candidateName:      r.candidateName     || r.candidate_name,
+    contactName:        r.contactName       || r.contact_name,
+    nextStep:           r.nextStep          || r.next_step,
+    dealType:           r.dealType          || r.deal_type,
+    custom_perms:       r.custom_perms      || null,
+    force_password_change: r.force_password_change || false,
+  };
+}
 
 let currentModal = null;
 let editId = null;
@@ -3882,64 +2921,8 @@ async function load() {
     safe(DB_CLIENT.from('documents').select('*').order('created_at', { ascending: false }), 'documents'),
     safe(DB_CLIENT.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(200), 'audit_logs'),
   ]);
-  // Normalize snake_case from Supabase → camelCase used throughout the app
-  const norm = (r) => ({
-    ...r,
-    createdAt:        r.createdAt        || r.created_at,
-    updatedAt:        r.updatedAt        || r.updated_at,
-    closeDate:        r.closeDate        || r.close_date,
-    dueDate:          r.dueDate          || r.due_date,
-    due:              r.due              || r.due_date,
-    companyId:        r.companyId        || r.company_id,
-    companyName:      r.companyName      || r.company,
-    contactId:        r.contactId        || r.contact_id,
-    ownerId:          r.ownerId          || r.owner_id,
-    leadId:           r.leadId           || r.lead_id,
-    dealId:           r.dealId           || r.deal_id,
-    bdOwner:          r.bdOwner          || r.bd_owner,
-    firstName:        r.firstName        || r.first_name,
-    lastName:         r.lastName         || r.last_name,
-    numEmployees:     r.numEmployees     || r.num_employees,
-    annualRevenue:    r.annualRevenue    || r.annual_revenue,
-    emailOptOut:      r.emailOptOut      ?? r.email_opt_out,
-    handoverDate:     r.handoverDate     || r.handover_date,
-    followupDate:     r.followupDate     || r.followup_date,
-    handoverDone:     r.handoverDone     ?? r.handover_done,
-    clientName:       r.clientName       || r.client_name,
-    clientType:       r.clientType       || r.client_type,
-    deliveryPOC:      r.deliveryPOC      || r.delivery_poc,
-    numPositions:     r.numPositions     || r.num_positions,
-    commercialsSigned:r.commercialsSigned?? r.commercials_signed,
-    followupStatus:   r.followupStatus   || r.followup_status,
-    followupNotes:    r.followupNotes    || r.followup_notes,
-    sourceSD:         r.sourceSD         || r.source_sd,
-    leadType:         r.leadType         || r.lead_type,
-    addrLine1:        r.addrLine1        || r.addr_line1,
-    wonAt:            r.wonAt            || r.won_at,
-    lostAt:           r.lostAt           || r.lost_at,
-    lostReason:       r.lostReason       || r.lost_reason,
-    completedAt:      r.completedAt      || r.completed_at,
-    relatedTo:        r.relatedTo        || r.related_to,
-    amount:           (r.amount != null && r.amount !== '') ? r.amount : r.value,
-    expectedRevenue:  (r.expectedRevenue != null && r.expectedRevenue !== '') ? r.expectedRevenue : r.expected_revenue,
-    probability:      r.probability      !== undefined ? r.probability      : r.probability_pct,
-    // documents
-    clientId:         r.clientId         || r.client_id,
-    clientName:       r.clientName       || r.client_name,
-    fileType:         r.fileType         || r.file_type,
-    fileSize:         r.fileSize         || r.file_size,
-    fileUrl:          r.fileUrl          || r.file_url,
-    uploadedBy:       r.uploadedBy       || r.uploaded_by,
-    referenceNumber:  r.referenceNumber  || r.reference_number,
-    startDate:        r.startDate        || r.start_date,
-    expiryDate:       r.expiryDate       || r.expiry_date,
-    candidateName:    r.candidateName    || r.candidate_name,
-    contactName:      r.contactName      || r.contact_name,
-    nextStep:         r.nextStep         || r.next_step,
-    dealType:         r.dealType         || r.deal_type,
-    custom_perms:           r.custom_perms            || null,
-    force_password_change:  r.force_password_change   || false,
-  });
+  // Use the global normRecord function (defined at top of config.js)
+  const norm = normRecord;
   // Only overwrite DB cache if Supabase returned data (null = query failed, keep existing cache)
   if (leads      !== null) DB.leads      = leads.map(norm);
   if (contacts   !== null) DB.contacts   = contacts.map(norm);
@@ -4011,9 +2994,9 @@ function isOverdue(d) { return d && d.slice(0,10) < today(); }
 const LEAD_STAGES = ['New','Contacted','Pre Qualified','Qualified','Not Qualified','Junk Lead','Proposal Sent','Negotiation','Follow Up','Won','Lost','Lost Lead'];
 const DEAL_STAGES = ['Offered','Joined','Absconded','Declined'];
 // Stages that count as "won" for revenue calculations
-const WON_STAGES  = new Set(['Joined']);
+const WON_STAGES  = new Set(['Joined','Won','Closed Won','Placed']);
 // Stages that count as "lost"
-const LOST_STAGES = new Set(['Absconded','Declined']);
+const LOST_STAGES = new Set(['Absconded','Declined','Lost','Closed Lost']);
 // Active pipeline stages (not won, not lost)
 function isWon(d)    { return WON_STAGES.has(d.stage); }
 function isLost(d)   { return LOST_STAGES.has(d.stage); }
@@ -4092,8 +3075,9 @@ function seedData() {
   save();
 }
 
-</script>
-<script>
+
+
+// ===== public/js/data.js =====
 // ---- NAVIGATION ----
 document.querySelectorAll('.nav-item').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -4110,7 +3094,7 @@ function renderPage(pg) {
   });
   const el = document.getElementById('page-'+pg);
   if (el) {
-    const flexPages = ['documents'];
+    const flexPages = ['documents','business-onboarded'];
     el.style.display = flexPages.includes(pg) ? 'flex' : 'block';
     el.classList.add('active');
   }
@@ -4129,6 +3113,7 @@ function renderPage(pg) {
   else if (pg==='team') renderTable('team','');
   else if (pg==='audit') renderAudit();
   else if (pg==='setup') { const firstTab = document.querySelector('.setup-tab'); if(firstTab) firstTab.click(); }
+  else if (pg==='business-onboarded') renderBusinessOnboarded();
 }
 
 // ---- NAVIGATION + URL HASH ROUTING ----
@@ -4136,7 +3121,8 @@ const PAGE_TITLES = {
   dashboard:'Home', leads:'Leads', 'my-day':'Workqueue', reports:'Analytics',
   calendar:'Calendar', contacts:'Contacts', companies:'Accounts', deals:'Deals',
   documents:'Documents', commercial:'Invoices', tasks:'Tasks', activities:'Calls & Meetings',
-  team:'Team', audit:'Audit Log', setup:'Setup', 'personal-settings':'Personal Settings'
+  team:'Team', audit:'Audit Log', setup:'Setup', 'personal-settings':'Personal Settings',
+  'business-onboarded':'Business Onboarded'
 };
 
 function hasUnsavedForm() {
@@ -4266,50 +3252,8 @@ let _realtimeChannel = null;
 function startRealtimeSync() {
   if (window._realtimeStarted) return; // already subscribed
   window._realtimeStarted = true;
-  const norm = (r) => ({
-    ...r,
-    createdAt:        r.createdAt        || r.created_at,
-    updatedAt:        r.updatedAt        || r.updated_at,
-    closeDate:        r.closeDate        || r.close_date,
-    dueDate:          r.dueDate          || r.due_date,
-    due:              r.due              || r.due_date,
-    companyId:        r.companyId        || r.company_id,
-    companyName:      r.companyName      || r.company,
-    contactId:        r.contactId        || r.contact_id,
-    ownerId:          r.ownerId          || r.owner_id,
-    leadId:           r.leadId           || r.lead_id,
-    dealId:           r.dealId           || r.deal_id,
-    bdOwner:          r.bdOwner          || r.bd_owner,
-    firstName:        r.firstName        || r.first_name,
-    lastName:         r.lastName         || r.last_name,
-    numEmployees:     r.numEmployees     || r.num_employees,
-    annualRevenue:    r.annualRevenue    || r.annual_revenue,
-    emailOptOut:      r.emailOptOut      ?? r.email_opt_out,
-    handoverDone:     r.handoverDone     ?? r.handover_done,
-    commercialsSigned:r.commercialsSigned?? r.commercials_signed,
-    wonAt:            r.wonAt            || r.won_at,
-    lostAt:           r.lostAt           || r.lost_at,
-    lostReason:       r.lostReason       || r.lost_reason,
-    completedAt:      r.completedAt      || r.completed_at,
-    relatedTo:        r.relatedTo        || r.related_to,
-    amount:           (r.amount != null && r.amount !== '') ? r.amount : r.value,
-    expectedRevenue:  (r.expectedRevenue != null && r.expectedRevenue !== '') ? r.expectedRevenue : r.expected_revenue,
-    probability:      r.probability      !== undefined ? r.probability      : r.probability_pct,
-    clientId:         r.clientId         || r.client_id,
-    clientName:       r.clientName       || r.client_name,
-    fileType:         r.fileType         || r.file_type,
-    fileSize:         r.fileSize         || r.file_size,
-    fileUrl:          r.fileUrl          || r.file_url,
-    uploadedBy:       r.uploadedBy       || r.uploaded_by,
-    referenceNumber:  r.referenceNumber  || r.reference_number,
-    startDate:        r.startDate        || r.start_date,
-    expiryDate:       r.expiryDate       || r.expiry_date,
-    candidateName:    r.candidateName    || r.candidate_name,
-    contactName:      r.contactName      || r.contact_name,
-    nextStep:         r.nextStep         || r.next_step,
-    dealType:         r.dealType         || r.deal_type,
-    campaign:         r.campaign         || r.campaign,
-  });
+  // Use global normRecord (defined in config.js, loaded first)
+  const norm = normRecord;
 
   // Map Supabase table name → DB key + page hash(es) to re-render
   const TABLE_MAP = {
@@ -4374,11 +3318,17 @@ function stopRealtimeSync() {
   if (_realtimeChannel) { DB_CLIENT.removeChannel(_realtimeChannel); _realtimeChannel = null; }
   if (window._pollInterval) { clearInterval(window._pollInterval); window._pollInterval = null; }
 }
-</script>
-<script>
+
+
+// ===== public/js/settings.js =====
 // ---- PERSONAL SETTINGS PAGE ----
 function openPersonalSettings() {
   closeUserPanel();
+  // Close any open modals/overlays first
+  const overlay = document.getElementById('modal-overlay');
+  if (overlay) overlay.style.display = 'none';
+  const userOverlay = document.getElementById('user-modal-overlay');
+  if (userOverlay) userOverlay.style.display = 'none';
   history.pushState({ page: 'personal-settings' }, '', '#/personal-settings');
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
@@ -4455,8 +3405,343 @@ function switchPsTab(btn, tabId) {
   btn.style.color = 'var(--accent)'; btn.style.borderBottomColor = 'var(--accent)'; btn.style.fontWeight = '600';
   document.querySelectorAll('.ps-panel').forEach(p => p.style.display = 'none');
   const panel = document.getElementById(tabId);
-  if (panel) panel.style.display = 'block';
+  if (panel) { panel.style.display = 'flex'; panel.style.flexDirection = 'column'; }
+  if (tabId === 'ps-accessibility') initAccessibilityPanel();
 }
+
+// ---- THEME + PREFERENCES ----
+function setTheme(mode) {
+  localStorage.setItem('sk-theme', mode);
+  applyTheme(mode);
+  document.querySelectorAll('[id^="theme-btn-"]').forEach(b => {
+    b.style.borderColor = 'var(--border)';
+    b.style.boxShadow = 'none';
+  });
+  const btn = document.getElementById('theme-btn-' + mode);
+  if (btn) { btn.style.borderColor = 'var(--accent)'; btn.style.boxShadow = '0 0 0 3px var(--accent-bg)'; }
+}
+
+function applyTheme(mode) {
+  const root = document.documentElement;
+  if (mode === 'dark') {
+    root.setAttribute('data-theme', 'dark');
+  } else if (mode === 'light') {
+    root.setAttribute('data-theme', 'light');
+  } else {
+    // auto — follow system
+    root.removeAttribute('data-theme');
+  }
+}
+
+function savePref(key, val) {
+  const prefs = JSON.parse(localStorage.getItem('sk-prefs') || '{}');
+  prefs[key] = val;
+  localStorage.setItem('sk-prefs', JSON.stringify(prefs));
+}
+
+function loadPrefs() {
+  try {
+    const theme = localStorage.getItem('sk-theme') || 'auto';
+    applyTheme(theme);
+    const prefs = JSON.parse(localStorage.getItem('sk-prefs') || '{}');
+    if (prefs.compact) document.documentElement.classList.add('compact');
+    if (prefs.largeText) document.documentElement.classList.add('large-text');
+    if (prefs.reduceMotion) document.documentElement.classList.add('reduce-motion');
+  } catch(e) {}
+}
+
+function initAccessibilityPanel() {
+  try {
+    const theme = localStorage.getItem('sk-theme') || 'auto';
+    setTheme(theme);
+    const prefs = JSON.parse(localStorage.getItem('sk-prefs') || '{}');
+    const setChk = (id, val) => { const el = document.getElementById(id); if(el) el.checked = !!val; };
+    setChk('pref-compact', prefs.compact);
+    setChk('pref-largetext', prefs.largeText);
+    setChk('pref-reducemotion', prefs.reduceMotion);
+    setChk('pref-followup-notif', prefs.followupNotif !== false);
+    setChk('pref-deal-notif', prefs.dealNotif !== false);
+    setChk('pref-sound', prefs.sound);
+  } catch(e) {}
+}
+
+// Load prefs on startup
+document.addEventListener('DOMContentLoaded', loadPrefs);
+
+// ============================================================
+// BUSINESS ONBOARDED MODULE
+// ============================================================
+
+function renderBusinessOnboarded() {
+  renderBOTable();
+  updateBOKpis();
+  updateNavBadges();
+}
+
+function renderBOTable() {
+  const Q = (_boQuery || '').toLowerCase().trim();
+  const rows = DB.businessOnboarded.filter(r => {
+    if (_boFilter !== 'all' && r.status !== _boFilter) return false;
+    if (!Q) return true;
+    return [r.clientName, r.positionDesc, r.source, r.status, r.deliveryPoc, r.salesPoc]
+      .some(v => (v||'').toLowerCase().includes(Q));
+  });
+
+  const statusStyle = {
+    'Active':              { bg:'#dcfce7', color:'#166534' },
+    'Hold':                { bg:'#fef9c3', color:'#854d0e' },
+    'Closed Internally':   { bg:'#fee2e2', color:'#991b1b' },
+    'Closed by Customer':  { bg:'#f1f5f9', color:'#475569' },
+  };
+
+  const tbody = document.getElementById('bo-tbody');
+  if (!tbody) return;
+
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--fg3)">
+      No positions found. <button class="btn btn-primary btn-sm" onclick="openBOForm()" style="margin-left:10px">+ Add Position</button>
+    </td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = rows.map(r => {
+    const st = statusStyle[r.status] || { bg:'#f1f5f9', color:'#475569' };
+    const rev = boCalcRevenue(r.fixedCtc, r.pct, r.numPositions);
+    return `<tr>
+      <td style="font-weight:600;color:var(--fg)">${esc(r.clientName||'—')}</td>
+      <td>${esc(r.positionDesc||'—')}</td>
+      <td style="text-align:center;font-weight:600">${r.numPositions||1}</td>
+      <td>${r.fixedCtc ? '₹'+Number(r.fixedCtc).toLocaleString('en-IN')+' LPA' : '—'}</td>
+      <td>${r.pct ? r.pct+'%' : '—'}</td>
+      <td style="font-weight:600;color:#16a34a">${rev.total > 0 ? '₹'+rev.total.toLocaleString('en-IN') : '—'}</td>
+      <td><span class="badge badge-blue">${esc(r.source||'—')}</span></td>
+      <td><span class="bo-status-badge" style="background:${st.bg};color:${st.color}">${esc(r.status||'Active')}</span></td>
+      <td>${esc(r.deliveryPoc||'—')}</td>
+      <td>${esc(r.salesPoc||'—')}</td>
+      <td>
+        <div style="display:flex;gap:4px">
+          <button class="icon-btn" title="Edit" onclick="openBOForm('${r.id}')">✎</button>
+          <button class="icon-btn" title="Delete" style="color:#dc2626" onclick="deleteBORecord('${r.id}')">🗑</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function updateBOKpis() {
+  const all = DB.businessOnboarded;
+  const active = all.filter(r => r.status === 'Active').length;
+  const hold   = all.filter(r => r.status === 'Hold').length;
+  let totalRev = 0;
+  all.forEach(r => { totalRev += boCalcRevenue(r.fixedCtc, r.pct, r.numPositions).total; });
+
+  const $n = id => document.getElementById(id);
+  if ($n('bo-kpi-total-n')) $n('bo-kpi-total-n').textContent = all.length;
+  if ($n('bo-kpi-active-n')) $n('bo-kpi-active-n').textContent = active;
+  if ($n('bo-kpi-hold-n'))   $n('bo-kpi-hold-n').textContent = hold;
+  if ($n('bo-kpi-rev-n'))    $n('bo-kpi-rev-n').textContent = '₹' + totalRev.toLocaleString('en-IN');
+  const nb = document.getElementById('nb-business-onboarded');
+  if (nb) { nb.textContent = all.length || ''; nb.style.display = all.length ? '' : 'none'; }
+}
+
+function boCalcRevenue(ctc, pct, num) {
+  const ctcVal = parseFloat(ctc) || 0;
+  const pctVal = parseFloat(pct) || 0;
+  const numVal = parseInt(num) || 1;
+  // CTC in LPA → convert to actual rupees (×100000), apply %, multiply by positions
+  const perPos = Math.round(ctcVal * 100000 * pctVal / 100);
+  const total  = perPos * numVal;
+  return { perPos, total };
+}
+
+function calcBORevenue() {
+  const ctc = document.getElementById('bo-fixedCtc')?.value;
+  const pct = document.getElementById('bo-pct')?.value;
+  const num = document.getElementById('bo-numPositions')?.value || 1;
+  const { perPos, total } = boCalcRevenue(ctc, pct, num);
+  const fmt = n => n > 0 ? '₹' + n.toLocaleString('en-IN') : '';
+  const rpp = document.getElementById('bo-revenuePerPos');
+  const rtt = document.getElementById('bo-totalRevenue');
+  if (rpp) rpp.value = fmt(perPos);
+  if (rtt) rtt.value = fmt(total);
+}
+
+function boSetFilter(btn, val) {
+  _boFilter = val;
+  document.querySelectorAll('.bo-filter-pill').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderBOTable();
+}
+
+function searchBO(q) {
+  _boQuery = q;
+  renderBOTable();
+}
+
+function openBOForm(id) {
+  _boEditId = id || null;
+  const overlay = document.getElementById('bo-form-overlay');
+  if (!overlay) return;
+  overlay.style.display = 'flex';
+
+  // Populate client dropdown from DB.companies (onboarded clients)
+  const clientSel = document.getElementById('bo-clientName');
+  if (clientSel) {
+    const existing = Array.from(new Set(
+      [...DB.companies.map(c => c.name||c.companyName), ...DB.businessOnboarded.map(r=>r.clientName)]
+      .filter(Boolean).sort()
+    ));
+    clientSel.innerHTML = '<option value="">— Select Client —</option>' +
+      existing.map(n => `<option>${esc(n)}</option>`).join('');
+  }
+
+  // Populate team dropdowns
+  const team = getTeamNames();
+  ['bo-deliveryPoc','bo-salesPoc'].forEach(selId => {
+    const sel = document.getElementById(selId);
+    if (sel) sel.innerHTML = '<option value="">-None-</option>' + team.map(n=>`<option>${n}</option>`).join('');
+  });
+
+  // Fill form if editing
+  const r = id ? DB.businessOnboarded.find(x => x.id == id) : null;
+  document.getElementById('bo-form-title').textContent = r ? 'Edit Position' : 'Add Position';
+
+  const setVal = (elId, val) => { const el = document.getElementById(elId); if(el) el.value = val||''; };
+  if (r) {
+    setVal('bo-clientName', r.clientName);
+    setVal('bo-positionDesc', r.positionDesc);
+    setVal('bo-numPositions', r.numPositions||1);
+    setVal('bo-source', r.source);
+    setVal('bo-status', r.status||'Active');
+    setVal('bo-fixedCtc', r.fixedCtc);
+    setVal('bo-pct', r.pct);
+    setVal('bo-deliveryPoc', r.deliveryPoc);
+    setVal('bo-salesPoc', r.salesPoc);
+    setVal('bo-notes', r.notes);
+    calcBORevenue();
+  } else {
+    ['bo-clientName','bo-positionDesc','bo-source','bo-fixedCtc','bo-pct',
+     'bo-deliveryPoc','bo-salesPoc','bo-notes','bo-revenuePerPos','bo-totalRevenue'].forEach(id => setVal(id,''));
+    setVal('bo-numPositions', 1);
+    setVal('bo-status','Active');
+  }
+  document.getElementById('bo-numPositions').addEventListener('input', calcBORevenue);
+}
+
+function closeBOForm() {
+  const overlay = document.getElementById('bo-form-overlay');
+  if (overlay) overlay.style.display = 'none';
+  _boEditId = null;
+}
+
+async function saveBORecord() {
+  const clientName  = document.getElementById('bo-clientName')?.value?.trim();
+  const positionDesc = document.getElementById('bo-positionDesc')?.value?.trim();
+  if (!clientName)   { showToast('Please select a client name.', '#dc2626'); return; }
+  if (!positionDesc) { showToast('Please enter a position description.', '#dc2626'); return; }
+
+  const numPos = parseInt(document.getElementById('bo-numPositions')?.value)||1;
+  const fixedCtc = parseFloat(document.getElementById('bo-fixedCtc')?.value)||0;
+  const pct = parseFloat(document.getElementById('bo-pct')?.value)||0;
+  const { perPos, total } = boCalcRevenue(fixedCtc, pct, numPos);
+
+  const payload = {
+    client_name:    clientName,
+    position_desc:  positionDesc,
+    num_positions:  numPos,
+    source:         document.getElementById('bo-source')?.value||'',
+    status:         document.getElementById('bo-status')?.value||'Active',
+    fixed_ctc:      fixedCtc||null,
+    pct:            pct||null,
+    revenue_per_pos: perPos||null,
+    total_revenue:  total||null,
+    delivery_poc:   document.getElementById('bo-deliveryPoc')?.value||'',
+    sales_poc:      document.getElementById('bo-salesPoc')?.value||'',
+    notes:          document.getElementById('bo-notes')?.value?.trim()||'',
+    updated_at:     new Date().toISOString(),
+  };
+
+  try {
+    let saved;
+    if (_boEditId) {
+      const { data, error } = await DB_CLIENT.from('business_onboarded').update(payload).eq('id', _boEditId).select().single();
+      if (error) throw error;
+      saved = data;
+      const idx = DB.businessOnboarded.findIndex(x=>x.id==_boEditId);
+      if (idx>=0) DB.businessOnboarded[idx] = normBORecord(saved);
+    } else {
+      payload.created_at = new Date().toISOString();
+      const { data, error } = await DB_CLIENT.from('business_onboarded').insert(payload).select().single();
+      if (error) throw error;
+      saved = data;
+      DB.businessOnboarded.unshift(normBORecord(saved));
+    }
+    showToast(_boEditId ? 'Position updated!' : 'Position added!', '#16a34a');
+  } catch(err) {
+    // If Supabase table doesn't exist yet, store locally
+    console.warn('Supabase save failed, storing locally:', err.message);
+    const localRec = { id: Date.now(), ...payload,
+      clientName: payload.client_name, positionDesc: payload.position_desc,
+      numPositions: payload.num_positions, fixedCtc: payload.fixed_ctc,
+      deliveryPoc: payload.delivery_poc, salesPoc: payload.sales_poc,
+      totalRevenue: payload.total_revenue, revenuePerPos: payload.revenue_per_pos };
+    if (_boEditId) {
+      const idx = DB.businessOnboarded.findIndex(x=>x.id==_boEditId);
+      if (idx>=0) DB.businessOnboarded[idx] = localRec;
+    } else {
+      DB.businessOnboarded.unshift(localRec);
+    }
+    showToast((_boEditId ? 'Updated' : 'Saved') + ' locally (DB table pending setup)', '#f59e0b');
+  }
+
+  closeBOForm();
+  renderBOTable();
+  updateBOKpis();
+}
+
+async function deleteBORecord(id) {
+  if (!confirm('Delete this position?')) return;
+  try {
+    await DB_CLIENT.from('business_onboarded').delete().eq('id', id);
+  } catch(e) { console.warn('DB delete failed:', e.message); }
+  DB.businessOnboarded = DB.businessOnboarded.filter(x => x.id != id);
+  renderBOTable();
+  updateBOKpis();
+  showToast('Position deleted', '#dc2626');
+}
+
+function normBORecord(r) {
+  return {
+    ...r,
+    clientName:   r.clientName   || r.client_name,
+    positionDesc: r.positionDesc || r.position_desc,
+    numPositions: r.numPositions || r.num_positions || 1,
+    fixedCtc:     r.fixedCtc     || r.fixed_ctc,
+    pct:          r.pct,
+    revenuePerPos:r.revenuePerPos|| r.revenue_per_pos,
+    totalRevenue: r.totalRevenue || r.total_revenue,
+    deliveryPoc:  r.deliveryPoc  || r.delivery_poc,
+    salesPoc:     r.salesPoc     || r.sales_poc,
+    createdAt:    r.createdAt    || r.created_at,
+  };
+}
+
+// Load business_onboarded from Supabase on startup
+async function loadBusinessOnboarded() {
+  try {
+    const { data, error } = await DB_CLIENT.from('business_onboarded').select('*').order('created_at', { ascending: false });
+    if (error) throw error;
+    if (data) DB.businessOnboarded = data.map(normBORecord);
+  } catch(e) {
+    console.warn('business_onboarded table not yet created:', e.message);
+    // Table will be created by SQL migration; use empty array for now
+  }
+  updateBOKpis();
+}
+
+// ============================================================
+// END BUSINESS ONBOARDED MODULE
+// ============================================================
 
 function togglePsDetails() {
   const body = document.getElementById('ps-details-body');
@@ -5126,8 +4411,9 @@ function filterQAP(q) {
 }
 
 
-</script>
-<script>
+
+
+// ===== public/js/nav.js =====
 // ────────────────────────────────────────────────────────────────────────────
 
 async function refreshDashboard() {
@@ -5181,16 +4467,34 @@ function renderDashboard() {
   const todayStr = today();
   const openTasks = DB.tasks.filter(t => t.status === 'Pending' || t.status === 'In Progress');
   const overdueTasks = openTasks.filter(t => (t.dueDate||t.due) && (t.dueDate||t.due) < todayStr);
-  // Last quarter metrics
-  const q = Math.floor(thisMonth/3);
-  const lqMonths = [0,1,2].map(i=>{ const m=(q-1)*3+i; return `${thisYear}-${String(m+1).padStart(2,'0')}`; });
-  const lqDeals = DB.deals.filter(d => lqMonths.some(m=>(d.createdAt||'').startsWith(m)));
-  const lqWon = lqDeals.filter(d=>isWon(d));
+  // Current quarter metrics — Indian FY: Q1=Apr-Jun, Q2=Jul-Sep, Q3=Oct-Dec, Q4=Jan-Mar
+  // Map calendar month (0=Jan) → FY quarter index (0=Q1)
+  const fyQMap = [3,3,3,0,0,0,1,1,1,2,2,2]; // Jan-Mar→Q4(3), Apr-Jun→Q1(0), Jul-Sep→Q2(1), Oct-Dec→Q3(2)
+  const cqIdx = fyQMap[thisMonth]; // current FY quarter index (0-3)
+  // FY quarter month ranges (calendar months, 0-based): Q1=Apr(3)-Jun(5), Q2=Jul(6)-Sep(8), Q3=Oct(9)-Dec(11), Q4=Jan(0)-Mar(2)
+  const fyQMonths = [[3,4,5],[6,7,8],[9,10,11],[0,1,2]];
+  const cqCalMonths = fyQMonths[cqIdx]; // calendar months in this quarter
+  // Build YYYY-MM strings for each month in current quarter
+  const cqYearFor = (m) => (cqIdx === 3 && m <= 2) ? thisYear : thisYear; // Q4 Jan-Mar stays in same year for display
+  const lqMonths = cqCalMonths.map(m => `${thisYear}-${String(m+1).padStart(2,'0')}`);
+  // All deals active or closed in current quarter (created OR won in this quarter)
+  const lqDeals = DB.deals.filter(d => {
+    const dateStr = d.createdAt || '';
+    return lqMonths.some(m => dateStr.startsWith(m));
+  });
+  // Won deals: check wonAt or closeDate falling in this quarter (not just created)
+  const lqWon = DB.deals.filter(d => {
+    if (!isWon(d)) return false;
+    const dateStr = d.wonAt || d.closeDate || d.createdAt || '';
+    return lqMonths.some(m => dateStr.startsWith(m));
+  });
   const lqRevenue = lqWon.reduce((a,d)=>a+Number(d.expectedRevenue||d.amount||d.value||0),0);
   const lqWinRate = lqDeals.length ? Math.round(lqWon.length/lqDeals.length*100) : 0;
   const lqLeads = DB.leads.filter(l=>lqMonths.some(m=>(l.createdAt||'').startsWith(m)));
   const qNames = ['Q1','Q2','Q3','Q4'];
-  const lqLabel = `${qNames[(q-1+4)%4]} ${(q===0)?thisYear-1:thisYear}`;
+  // FY year label: Q1-Q3 use current year FY, Q4 (Jan-Mar) is end of previous FY
+  const fyLabelYear = cqIdx === 3 ? thisYear : thisYear;
+  const lqLabel = `${qNames[cqIdx]} FY${String(fyLabelYear+1).slice(2)}`; // e.g. "Q3 FY27"
 
   const setEl = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
   setEl('stat-leads-month', leadsThisMonth.length);
@@ -5550,143 +4854,14 @@ function renderMonthlyRevenue() {
   }).join('');
 }
 
+
+// nav.js v2 - workqueue removed 202611120825
+
+
+// ===== public/js/workqueue.js =====
 // ---- MY DAY ----
 // ---- WORKQUEUE ----
-let wqActiveSection = 'tasks';
-
-function renderWorkqueue() {
-  const cu = getCurrentUser();
-  document.getElementById('wq-user-name').textContent = cu;
-  document.getElementById('wq-user-avatar').textContent = cu.slice(0,2).toUpperCase();
-
-  const filter = document.getElementById('wq-filter')?.value || 'today';
-  const tdStr = today();
-  const weekEnd = new Date(); weekEnd.setDate(weekEnd.getDate()+7);
-  const weekStr = weekEnd.toISOString().slice(0,10);
-
-  function inFilter(dateStr) {
-    if (!dateStr) return filter==='all';
-    if (filter==='today') return dateStr <= tdStr;
-    if (filter==='week') return dateStr <= weekStr;
-    return true;
-  }
-
-  const myTasks = DB.tasks.filter(t=>t.owner===cu && t.status==='Pending' && inFilter(t.due));
-  const myMeetings = DB.activities.filter(a=>a.owner===cu && a.type==='Meeting' && inFilter(a.date));
-  const myCalls = DB.activities.filter(a=>a.owner===cu && a.type==='Call' && inFilter(a.date));
-  const myLeads = DB.leads.filter(l=>l.owner===cu && !['Won','Lost'].includes(l.stage));
-  const myContacts = DB.contacts.filter(c=>c.owner===cu||true); // all contacts for now
-  const myDeals = DB.deals.filter(d=>d.owner===cu && !['Closed Won','Closed Lost'].includes(d.stage));
-  const now3h = new Date(Date.now()-3*60*60*1000).toISOString();
-  const leadsRecent = DB.leads.filter(l=>l.createdAt && l.createdAt > now3h);
-  const contactsRecent = DB.contacts.filter(c=>c.createdAt && c.createdAt > now3h);
-  const closingMonth = new Date(); closingMonth.setDate(1); closingMonth.setMonth(closingMonth.getMonth()+1);
-  const dealsClosing = DB.deals.filter(d=>d.closeDate && d.closeDate <= closingMonth.toISOString().slice(0,10));
-
-  document.getElementById('wq-badge-tasks').textContent = myTasks.length;
-  document.getElementById('wq-badge-meetings').textContent = myMeetings.length;
-  document.getElementById('wq-badge-calls').textContent = myCalls.length;
-  document.getElementById('wq-badge-blueprint').textContent = 0;
-  document.getElementById('wq-badge-my-leads').textContent = myLeads.length;
-  document.getElementById('wq-badge-leads-recent').textContent = leadsRecent.length;
-  document.getElementById('wq-badge-my-contacts').textContent = myContacts.length;
-  document.getElementById('wq-badge-contacts-recent').textContent = contactsRecent.length;
-  document.getElementById('wq-badge-my-deals').textContent = myDeals.length;
-  document.getElementById('wq-badge-deals-closing').textContent = dealsClosing.length;
-
-  renderWQRight(wqActiveSection, {myTasks, myMeetings, myCalls, myLeads, myContacts, myDeals, leadsRecent, contactsRecent, dealsClosing});
-}
-
-function switchWQ(btn, section) {
-  document.querySelectorAll('.wq-nav-item').forEach(b=>b.classList.remove('wq-active'));
-  btn.classList.add('wq-active');
-  wqActiveSection = section;
-  renderWorkqueue();
-}
-
-function renderWQRight(section, data) {
-  const titleMap = {tasks:'Tasks', meetings:'Meetings', calls:'Calls', blueprint:'Blueprint',
-    'my-leads':'My Leads', 'leads-recent':'Leads (Last 3 hrs)', 'my-contacts':'My Contacts',
-    'contacts-recent':'Contacts (Last 3 hrs)', 'my-deals':'My Deals', 'deals-closing':'Deals Closing This Month'};
-  document.getElementById('wq-right-title').textContent = titleMap[section]||section;
-
-  let rows = [];
-  let headers = ['Subject','Due Date','Status','Priority'];
-
-  if (section==='tasks') {
-    rows = data.myTasks;
-    document.getElementById('wq-table-header').innerHTML = `
-      <div style="padding:9px 16px;font-size:11px;font-weight:600;color:var(--fg3);text-transform:uppercase;letter-spacing:0.6px">Subject</div>
-      <div style="padding:9px 12px;font-size:11px;font-weight:600;color:var(--fg3);text-transform:uppercase;letter-spacing:0.6px">Due Date</div>
-      <div style="padding:9px 12px;font-size:11px;font-weight:600;color:var(--fg3);text-transform:uppercase;letter-spacing:0.6px">Status</div>
-      <div style="padding:9px 12px;font-size:11px;font-weight:600;color:var(--fg3);text-transform:uppercase;letter-spacing:0.6px">Priority</div>`;
-    document.getElementById('wq-right-body').innerHTML = rows.length ? rows.map(t=>`
-      <div style="display:grid;grid-template-columns:1fr 160px 120px 100px;border-bottom:1px solid var(--border);align-items:center" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
-        <div style="padding:10px 16px;font-size:13px;color:var(--fg);font-weight:500">${t.title}</div>
-        <div style="padding:10px 12px;font-size:13px;color:${isOverdue(t.due)?'var(--red)':'var(--fg2)'}">${fmtDate(t.due)}</div>
-        <div style="padding:10px 12px">${badge(t.status)}</div>
-        <div style="padding:10px 12px;font-size:13px;color:var(--fg2)">${t.priority||'Normal'}</div>
-      </div>`).join('') : `<div style="text-align:center;padding:60px 20px;color:var(--fg3);font-size:13px">No Tasks found.</div>`;
-  } else if (section==='meetings' || section==='calls') {
-    const items = section==='meetings' ? data.myMeetings : data.myCalls;
-    document.getElementById('wq-table-header').innerHTML = `
-      <div style="padding:9px 16px;font-size:11px;font-weight:600;color:var(--fg3);text-transform:uppercase;letter-spacing:0.6px">Subject</div>
-      <div style="padding:9px 12px;font-size:11px;font-weight:600;color:var(--fg3);text-transform:uppercase;letter-spacing:0.6px">Date</div>
-      <div style="padding:9px 12px;font-size:11px;font-weight:600;color:var(--fg3);text-transform:uppercase;letter-spacing:0.6px">Contact</div>
-      <div style="padding:9px 12px;font-size:11px;font-weight:600;color:var(--fg3);text-transform:uppercase;letter-spacing:0.6px">Status</div>`;
-    document.getElementById('wq-right-body').innerHTML = items.length ? items.map(a=>`
-      <div style="display:grid;grid-template-columns:1fr 160px 120px 100px;border-bottom:1px solid var(--border);align-items:center" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
-        <div style="padding:10px 16px;font-size:13px;color:var(--fg);font-weight:500">${a.summary}</div>
-        <div style="padding:10px 12px;font-size:13px;color:var(--fg2)">${fmtDate(a.date)}</div>
-        <div style="padding:10px 12px;font-size:13px;color:var(--fg2)">${a.contact||'—'}</div>
-        <div style="padding:10px 12px">${badge('Scheduled')}</div>
-      </div>`).join('') : `<div style="text-align:center;padding:60px 20px;color:var(--fg3);font-size:13px">No ${section==='meetings'?'Meetings':'Calls'} found.</div>`;
-  } else if (section==='my-leads' || section==='leads-recent') {
-    const items = section==='my-leads' ? data.myLeads : data.leadsRecent;
-    document.getElementById('wq-table-header').innerHTML = `
-      <div style="padding:9px 16px;font-size:11px;font-weight:600;color:var(--fg3);text-transform:uppercase;letter-spacing:0.6px">Lead Name</div>
-      <div style="padding:9px 12px;font-size:11px;font-weight:600;color:var(--fg3);text-transform:uppercase;letter-spacing:0.6px">Company</div>
-      <div style="padding:9px 12px;font-size:11px;font-weight:600;color:var(--fg3);text-transform:uppercase;letter-spacing:0.6px">Stage</div>
-      <div style="padding:9px 12px;font-size:11px;font-weight:600;color:var(--fg3);text-transform:uppercase;letter-spacing:0.6px">Value</div>`;
-    document.getElementById('wq-right-body').innerHTML = items.length ? items.map(l=>`
-      <div style="display:grid;grid-template-columns:1fr 160px 120px 100px;border-bottom:1px solid var(--border);align-items:center" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
-        <div style="padding:10px 16px;font-size:13px;color:var(--fg);font-weight:500">${l.title}</div>
-        <div style="padding:10px 12px;font-size:13px;color:var(--fg2)">${getCompanyName(l.companyId)}</div>
-        <div style="padding:10px 12px">${badge(l.stage)}</div>
-        <div style="padding:10px 12px;font-size:13px;color:var(--fg2)">${l.value?fmt(l.value):'—'}</div>
-      </div>`).join('') : `<div style="text-align:center;padding:60px 20px;color:var(--fg3);font-size:13px">No Leads found.</div>`;
-  } else if (section==='my-deals' || section==='deals-closing') {
-    const items = section==='my-deals' ? data.myDeals : data.dealsClosing;
-    document.getElementById('wq-table-header').innerHTML = `
-      <div style="padding:9px 16px;font-size:11px;font-weight:600;color:var(--fg3);text-transform:uppercase;letter-spacing:0.6px">Deal Name</div>
-      <div style="padding:9px 12px;font-size:11px;font-weight:600;color:var(--fg3);text-transform:uppercase;letter-spacing:0.6px">Company</div>
-      <div style="padding:9px 12px;font-size:11px;font-weight:600;color:var(--fg3);text-transform:uppercase;letter-spacing:0.6px">Stage</div>
-      <div style="padding:9px 12px;font-size:11px;font-weight:600;color:var(--fg3);text-transform:uppercase;letter-spacing:0.6px">Amount</div>`;
-    document.getElementById('wq-right-body').innerHTML = items.length ? items.map(d=>`
-      <div style="display:grid;grid-template-columns:1fr 160px 120px 100px;border-bottom:1px solid var(--border);align-items:center" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
-        <div style="padding:10px 16px;font-size:13px;color:var(--fg);font-weight:500">${d.name}</div>
-        <div style="padding:10px 12px;font-size:13px;color:var(--fg2)">${d.companyName||getCompanyName(d.companyId)||'—'}</div>
-        <div style="padding:10px 12px">${badge(d.stage)}</div>
-        <div style="padding:10px 12px;font-size:13px;color:var(--fg2)">${d.amount?fmt(Number(d.amount)):'—'}</div>
-      </div>`).join('') : `<div style="text-align:center;padding:60px 20px;color:var(--fg3);font-size:13px">No Deals found.</div>`;
-  } else {
-    document.getElementById('wq-right-body').innerHTML = `<div style="text-align:center;padding:60px 20px;color:var(--fg3);font-size:13px">No records found.</div>`;
-  }
-
-  const countEl = document.getElementById('wq-total');
-  if (countEl) countEl.textContent = document.querySelectorAll('#wq-right-body > div').length;
-}
-
-function completeTask(id) {
-  const t = DB.tasks.find(x=>x.id===id);
-  if(t) { t.status='Done'; audit('Update','Tasks',t.title); save(); renderWorkqueue(); renderDashboard(); }
-}
-
-</script>
-<script>
-// ---- MY DAY ----
-// ---- WORKQUEUE ----
-let wqActiveSection = 'tasks';
+if (typeof wqActiveSection === 'undefined') var wqActiveSection = 'tasks';
 
 function renderWorkqueue() {
   const cu = getCurrentUser();
@@ -6121,8 +5296,9 @@ function renderCalendarGrid() {
   }
 }
 
-</script>
-<script>
+
+
+// ===== public/js/calendar.js =====
 // ---- CALENDAR ----
 let calYear = new Date().getFullYear();
 let calMonth = new Date().getMonth();
@@ -6612,8 +5788,9 @@ async function gcalCreateEvent(summary, dateStr, timeStr, description) {
 // END GOOGLE CALENDAR INTEGRATION
 // =====================================================
 
-</script>
-<script>
+
+
+// ===== public/js/tables.js =====
 // ---- GENERIC TABLE RENDERERS ----
 function getCompanyName(id) { return DB.companies.find(c=>c.id===id)?.name||''; }
 
@@ -6624,27 +5801,11 @@ function debounce(key, fn, ms=350) {
   _searchTimers[key] = setTimeout(fn, ms);
 }
 
-// Backend search: queries Supabase directly with ilike filters
-async function searchFromDB(type, q) {
-  const Q = (q||'').trim();
-  if (type === 'leads') {
-    let query = DB_CLIENT.from('leads').select('*').order('created_at',{ascending:false}).limit(200);
-    if (Q) query = query.or(`first_name.ilike.%${Q}%,last_name.ilike.%${Q}%,email.ilike.%${Q}%,company.ilike.%${Q}%,client_name.ilike.%${Q}%`);
-    const { data } = await query;
-    if (data) { DB.leads = data.map(norm); renderTableRows('leads'); }
-  } else if (type === 'contacts') {
-    let query = DB_CLIENT.from('contacts').select('*').order('created_at',{ascending:false}).limit(200);
-    if (Q) query = query.or(`name.ilike.%${Q}%,email.ilike.%${Q}%,company.ilike.%${Q}%`);
-    const { data } = await query;
-    if (data) { DB.contacts = data.map(norm).filter(r=>!r.stage||!LEAD_STAGES.includes(r.stage)); renderTableRows('contacts'); }
-  } else if (type === 'companies') {
-    let query = DB_CLIENT.from('companies').select('*').order('name',{ascending:true}).limit(200);
-    if (Q) query = query.or(`name.ilike.%${Q}%,city.ilike.%${Q}%`);
-    const { data } = await query;
-    if (data) { DB.companies = data.map(norm); renderTableRows('companies'); }
-  } else {
-    renderTable(type, q);
-  }
+// Search: purely client-side filter against the in-memory DB cache.
+// Never mutates DB — just re-renders the table with the query string.
+// This avoids async race conditions and keeps the full dataset intact.
+function searchFromDB(type, q) {
+  renderTable(type, q);
 }
 
 function renderTableRows(type) { renderTable(type, ''); }
@@ -6677,11 +5838,15 @@ function renderTable(type, q='') {
   }
 
   else if (type==='contacts') {
-    // Only show proper contacts (not lead records accidentally mixed in)
-    const rows = DB.contacts.filter(r=>
-      (!r.stage || !LEAD_STAGES.includes(r.stage)) &&
-      (!Q||(r.name||'').toLowerCase().includes(Q)||(r.email||'').toLowerCase().includes(Q))
-    );
+    const rows = DB.contacts.filter(r=>{
+      if (r.stage && LEAD_STAGES.includes(r.stage)) return false; // exclude lead records
+      if (!Q) return true;
+      return (r.name||'').toLowerCase().includes(Q)||
+             (r.email||'').toLowerCase().includes(Q)||
+             (r.phone||'').toLowerCase().includes(Q)||
+             (r.company||getCompanyName(r.companyId)||'').toLowerCase().includes(Q)||
+             (r.title||'').toLowerCase().includes(Q);
+    });
     const ctcount = document.getElementById('contacts-count'); if(ctcount) ctcount.textContent=rows.length;
     const ctpi = document.getElementById('contacts-page-info'); if(ctpi) ctpi.textContent=rows.length?`1 to ${Math.min(25,rows.length)}`:'0';
     document.getElementById('contacts-body').innerHTML = rows.length ? rows.map(r=>`<tr>
@@ -6697,7 +5862,17 @@ function renderTable(type, q='') {
   }
 
   else if (type==='leads') {
-    const rows = DB.leads.filter(r=>(!Q||(r.title||r.name||'').toLowerCase().includes(Q)||getCompanyName(r.companyId).toLowerCase().includes(Q)||(r.company||r.companyName||'').toLowerCase().includes(Q)));
+    const rows = DB.leads.filter(r=>{
+      if (!Q) return true;
+      const fullName = ((r.first_name||r.firstName||'') + ' ' + (r.last_name||r.lastName||'')).trim().toLowerCase();
+      const name = (r.name||'').toLowerCase();
+      const email = (r.email||'').toLowerCase();
+      const company = (r.company||r.companyName||getCompanyName(r.companyId)||'').toLowerCase();
+      const phone = (r.phone||'').toLowerCase();
+      const title = (r.title||'').toLowerCase();
+      const owner = (r.owner||'').toLowerCase();
+      return fullName.includes(Q)||name.includes(Q)||email.includes(Q)||company.includes(Q)||phone.includes(Q)||title.includes(Q)||owner.includes(Q);
+    });
     const lcount = document.getElementById('leads-count'); if(lcount) lcount.textContent=rows.length;
     const lpi = document.getElementById('leads-page-info'); if(lpi) lpi.textContent=rows.length?`1 to ${Math.min(25,rows.length)}`:'0';
     const stageColor = s=>({New:'#6366f1',Contacted:'#0ea5e9','Pre Qualified':'#f59e0b',Qualified:'#10b981','Not Qualified':'#ef4444','Junk Lead':'#9ca3af','Proposal Sent':'#8b5cf6',Negotiation:'#f97316','Follow Up':'#06b6d4',Won:'#22c55e',Lost:'#ef4444','Lost Lead':'#9ca3af'}[s]||'#9ca3af');
@@ -6718,7 +5893,14 @@ function renderTable(type, q='') {
   }
 
   else if (type==='deals') {
-    const rows = (DB.deals||[]).filter(r=>!Q||(r.name||'').toLowerCase().includes(Q)||(r.companyName||'').toLowerCase().includes(Q));
+    const rows = (DB.deals||[]).filter(r=>{
+      if (!Q) return true;
+      return (r.name||'').toLowerCase().includes(Q)||
+             (r.companyName||'').toLowerCase().includes(Q)||
+             (r.candidateName||'').toLowerCase().includes(Q)||
+             (r.stage||'').toLowerCase().includes(Q)||
+             (r.owner||'').toLowerCase().includes(Q);
+    });
     const dcount = document.getElementById('deals-count'); if(dcount) dcount.textContent=rows.length;
     const dpi = document.getElementById('deals-page-info'); if(dpi) dpi.textContent=rows.length?`1 to ${Math.min(25,rows.length)}`:'0';
     document.getElementById('deals-body').innerHTML = rows.length ? rows.map(r=>`<tr>
@@ -8880,8 +8062,9 @@ function switchTaskTab(filter, el) {
   renderTable('tasks','');
 }
 
-</script>
-<script>
+
+
+// ===== public/js/modals.js =====
 // ---- MODALS ----
 const MODAL_FORMS = {
   company: {
@@ -9044,14 +8227,29 @@ const MODAL_FORMS = {
         <div class="lf-field"><label>Mobile</label><input id="f-mobile" type="tel" value="${r.mobile||''}"></div>
         <div class="lf-field"><label>Fax</label><input id="f-fax" type="tel" value="${r.fax||''}"></div>
         <div class="lf-field"><label>Assistant</label><input id="f-assistant" type="text" value="${r.assistant||''}"></div>
-        <div class="lf-field"><label>Date of Birth</label><input id="f-dob" type="date" placeholder="DD/MM/YYYY" value="${r.dob||''}"></div>
-        <div class="lf-field"></div>
         <div class="lf-field"><label>Asst Phone</label><input id="f-asstPhone" type="tel" value="${r.asstPhone||''}"></div>
-        <div class="lf-field"></div>
-        <div class="lf-field" style="display:flex;align-items:center;gap:8px;padding-top:4px"><label style="text-align:right;padding-right:12px">Email Opt Out</label><input type="checkbox" id="f-emailOptOut" ${r.emailOptOut?'checked':''} style="accent-color:var(--accent);width:15px;height:15px;flex-shrink:0;margin:0"></div>
+        <div class="lf-field"><label>Date of Birth</label><input id="f-dob" type="date" placeholder="DD/MM/YYYY" value="${r.dob||''}"></div>
         <div class="lf-field"><label>Secondary Email</label><input id="f-email2" type="email" value="${r.email2||''}"></div>
         <div class="lf-field"><label>Reporting To</label><input id="f-reportingTo" type="text" value="${r.reportingTo||''}"></div>
+        <div class="lf-checkbox"><label for="f-emailOptOut">Email Opt Out</label><input type="checkbox" id="f-emailOptOut" ${r.emailOptOut?'checked':''}></div>
       </div>
+
+      <!-- Additional Contacts / Points of Contact -->
+      <div class="lf-section-title" style="margin-top:32px;display:flex;align-items:center;justify-content:space-between">
+        <span>Additional Contacts / POCs</span>
+        <button type="button" onclick="addPocRow()" class="btn btn-secondary btn-sm">+ Add POC</button>
+      </div>
+      <div id="poc-list" style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+        ${(r.pocs||[]).map((p,i)=>`
+        <div class="poc-row" style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:8px;align-items:center">
+          <input type="text" placeholder="Name" value="${p.name||''}" class="poc-name">
+          <input type="email" placeholder="Email" value="${p.email||''}" class="poc-email">
+          <input type="tel" placeholder="Phone" value="${p.phone||''}" class="poc-phone">
+          <input type="text" placeholder="Title / Role" value="${p.title||''}" class="poc-title">
+          <button type="button" onclick="this.closest('.poc-row').remove()" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:18px;line-height:1;padding:0 4px" title="Remove">×</button>
+        </div>`).join('')}
+      </div>
+      ${(r.pocs||[]).length===0?'<div id="poc-empty" style="color:var(--fg3);font-size:12px;padding:8px 0">No additional contacts added. Click "+ Add POC" to add one.</div>':''}
 
       <!-- Address Information -->
       <div class="lf-section-title" style="margin-top:32px;display:flex;align-items:center;justify-content:space-between">
@@ -9127,7 +8325,13 @@ const MODAL_FORMS = {
         city:v('city'), state:v('state'), zip:v('zip'), lat:v('lat'), lng:v('lng'),
         country2:v('country2'), addrLine2:v('addrLine2'), street2:v('street2'),
         city2:v('city2'), state2:v('state2'), zip2:v('zip2'), lat2:v('lat2'), lng2:v('lng2'),
-        description:v('description')
+        description:v('description'),
+        pocs: Array.from(document.querySelectorAll('#poc-list .poc-row')).map(row=>({
+          name:  row.querySelector('.poc-name')?.value?.trim()||'',
+          email: row.querySelector('.poc-email')?.value?.trim()||'',
+          phone: row.querySelector('.poc-phone')?.value?.trim()||'',
+          title: row.querySelector('.poc-title')?.value?.trim()||''
+        })).filter(p=>p.name||p.email||p.phone)
       };
       upsert('contacts', id, r);
     }
@@ -9158,9 +8362,10 @@ const MODAL_FORMS = {
         <div class="lf-field"><label>Date of Handover</label><input id="f-handoverDate" type="date" value="${r.handoverDate||''}"></div>
         <div class="lf-field"><label>Lane / Domain</label><select id="f-lane"><option value="">-None-</option>${['SaaS','AI','Healthtech','Logistics','Fintech','Ed Tech','Agri Tech','Travel Tech','Enterprise','E-commerce'].map(s=>`<option ${r.lane===s?'selected':''}>${s}</option>`).join('')}</select></div>
         <div class="lf-field"><label>Source – Sales / Delivery</label><select id="f-sourceSD"><option value="">-None-</option>${['Sales','Delivery'].map(s=>`<option ${r.sourceSD===s?'selected':''}>${s}</option>`).join('')}</select></div>
-        <div class="lf-checkbox"><label>Email Opt Out</label><input type="checkbox" id="f-emailOptOut" ${r.emailOptOut?'checked':''}></div>
-        <div class="lf-checkbox"><label>Handover Done</label><input type="checkbox" id="f-handoverDone" ${r.handoverDone?'checked':''}></div>
+        <div class="lf-checkbox"><label for="f-emailOptOut">Email Opt Out</label><input type="checkbox" id="f-emailOptOut" ${r.emailOptOut?'checked':''}></div>
+        <div class="lf-checkbox"><label for="f-handoverDone">Handover Done</label><input type="checkbox" id="f-handoverDone" ${r.handoverDone?'checked':''}></div>
         <div class="lf-field"><label>Client Type</label><select id="f-clientType"><option value="">-None-</option>${['New','Farming','Retention','Renew'].map(s=>`<option ${r.clientType===s?'selected':''}>${s}</option>`).join('')}</select></div>
+        <div class="lf-field"><label></label><div></div></div>
       </div>
 
       <!-- Follow Up Section -->
@@ -9468,40 +8673,60 @@ const MODAL_FORMS = {
   }
 };
 
+function addPocRow() {
+  const list = document.getElementById('poc-list');
+  if (!list) return;
+  // Hide the empty placeholder message if present
+  const empty = document.getElementById('poc-empty');
+  if (empty) empty.remove();
+  const row = document.createElement('div');
+  row.className = 'poc-row';
+  row.style.cssText = 'display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:8px;align-items:center';
+  row.innerHTML = `
+    <input type="text" placeholder="Name" class="poc-name">
+    <input type="email" placeholder="Email" class="poc-email">
+    <input type="tel" placeholder="Phone" class="poc-phone">
+    <input type="text" placeholder="Title / Role" class="poc-title">
+    <button type="button" onclick="this.closest('.poc-row').remove()" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:18px;line-height:1;padding:0 4px" title="Remove">×</button>
+  `;
+  list.appendChild(row);
+  row.querySelector('.poc-name')?.focus();
+}
+
 function handleTopbarSearch(q) {
-  q = q.trim().toLowerCase();
-  // Find which page is currently active and search within it
+  q = (q||'').trim().toLowerCase();
   const activePage = document.querySelector('.page.active');
   if (!activePage) return;
-  const pageId = activePage.id; // e.g. 'page-companies'
+  const pageId = activePage.id;
+
+  // Sync topbar query into the page's own search input
+  const syncInp = (selector) => {
+    const inp = activePage.querySelector(selector || '.search-bar input');
+    if (inp && inp.value !== q) inp.value = q;
+  };
 
   if (pageId === 'page-companies') {
     debounce('companies', () => searchFromDB('companies', q));
-    // also update the page search input
-    const inp = activePage.querySelector('.search-bar input');
-    if (inp && inp.value !== q) inp.value = q;
+    syncInp();
   } else if (pageId === 'page-leads') {
     debounce('leads', () => searchFromDB('leads', q));
-    const inp = activePage.querySelector('.search-bar input');
-    if (inp && inp.value !== q) inp.value = q;
+    syncInp();
   } else if (pageId === 'page-contacts') {
     debounce('contacts', () => searchFromDB('contacts', q));
-    const inp = activePage.querySelector('.search-bar input');
-    if (inp && inp.value !== q) inp.value = q;
+    syncInp();
   } else if (pageId === 'page-deals') {
-    renderTable('deals', q);
-    const inp = activePage.querySelector('.search-bar input');
-    if (inp && inp.value !== q) inp.value = q;
+    debounce('deals', () => renderTable('deals', q));
+    syncInp();
   } else if (pageId === 'page-activities') {
-    renderTable('activities', q);
-    const inp = activePage.querySelector('.search-bar input');
-    if (inp && inp.value !== q) inp.value = q;
+    debounce('activities', () => renderTable('activities', q));
+    syncInp();
   } else if (pageId === 'page-tasks') {
-    renderTable('tasks', q);
-    const inp = activePage.querySelector('.search-bar input');
-    if (inp && inp.value !== q) inp.value = q;
+    debounce('tasks', () => renderTable('tasks', q));
+    syncInp();
+  } else if (pageId === 'page-documents') {
+    const docInp = document.getElementById('doc-search');
+    if (docInp) { docInp.value = q; renderDocTable(); }
   } else {
-    // Try searching leads by default
     if (q) debounce('leads', () => searchFromDB('leads', q));
   }
 }
@@ -9983,8 +9208,9 @@ function renderDashboardView(view) {
   if (mgr && view !== 'manager') mgr.style.display = 'none';
 }
 
-</script>
-<script>
+
+
+// ===== public/js/supabase-init.js =====
 function switchAuthTab(tab) {
   document.getElementById('auth-signin').style.display   = tab === 'signin'   ? '' : 'none';
   document.getElementById('auth-register').style.display = tab === 'register' ? '' : 'none';
@@ -10055,8 +9281,9 @@ async function doVerifyOtp(e) {
     if (data.user) await onSignedIn(data.user);
   }
 }
-</script>
-<script>
+
+
+// ===== public/js/app.js =====
 // ---- GLOBAL SEARCH ----
 document.getElementById('global-search')?.addEventListener('keydown', (e) => {
   if (e.key==='Enter') {
@@ -10271,6 +9498,8 @@ async function onSignedIn(authUser) {
   showAppPage();
   // Load CRM data from Supabase
   await load();
+  // Load business onboarded data
+  await loadBusinessOnboarded();
   // Only seed if ALL tables are truly empty (first-time DB setup — no real data yet)
   if (!DB.companies.length && !DB.leads.length && !DB.deals.length && !DB.contacts.length) {
     seedData();
@@ -10285,6 +9514,7 @@ async function onSignedIn(authUser) {
   markLoginTime(); // record login time as badge baseline
   updateNavBadges();
   startRealtimeSync(); // live updates from other team members
+  gcalLoadState(); // restore Google Calendar connection from Supabase
   const page = getHashPage();
   if (page && page !== 'login') {
     history.replaceState({ page }, '', '#/' + page);
@@ -10327,6 +9557,15 @@ DB_CLIENT.auth.onAuthStateChange(async (event, session) => {
     whenDOMReady(showLoginPage);
   }
 });
-</script>
 
+</script>
+<script>
+// Register service worker for PWA / offline support
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .catch(e => console.log('SW registration failed:', e));
+  });
+}
+</script>
 </body></html>
