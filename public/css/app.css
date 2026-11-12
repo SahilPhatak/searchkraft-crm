@@ -553,6 +553,17 @@ tbody tr td.name-cell:hover { text-decoration: underline; }
   flex-direction: column;
   height: 100%;
 }
+/* Business Onboarded topbar (matches other CRM page topbars) */
+.crm-topbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
 
 /* ---- BUTTONS ---- */
 .btn {
@@ -1059,6 +1070,7 @@ textarea { min-height: 80px; resize: vertical; }
 .page { display: none; }
 .page.active { display: block; flex: 1; min-height: 0; }
 .page.active.page-flex { display: flex; flex: 1; min-height: 0; }
+.page.active.page-crm { display: flex !important; flex-direction: column; flex: 1; min-height: 0; }
 /* Setup page: fill the content area, flex column, no overflow on self */
 #page-setup {
   display: none;
