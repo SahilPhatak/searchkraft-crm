@@ -3682,26 +3682,37 @@ async function saveBORecord() {
     updated_at:     new Date().toISOString(),
   };
 
-  try {
-    let saved;
+  // Try save with all columns; if schema cache error on new columns, retry without them
+  async function attemptSave(pl) {
     if (_boEditId) {
-      const { data, error } = await DB_CLIENT.from('business_onboarded').update(payload).eq('id', _boEditId).select().single();
-      if (error) throw error;
-      saved = data;
+      return DB_CLIENT.from('business_onboarded').update(pl).eq('id', _boEditId).select().single();
+    } else {
+      return DB_CLIENT.from('business_onboarded').insert({...pl, created_at: new Date().toISOString()}).select().single();
+    }
+  }
+
+  try {
+    let result = await attemptSave(payload);
+    // If error mentions missing column, retry without those columns
+    if (result.error && /closure_month|start_date/.test(result.error.message)) {
+      const fallback = {...payload};
+      delete fallback.start_date;
+      delete fallback.closure_month;
+      result = await attemptSave(fallback);
+    }
+    if (result.error) throw result.error;
+    const saved = result.data;
+    if (_boEditId) {
       const idx = DB.businessOnboarded.findIndex(x=>x.id==_boEditId);
       if (idx>=0) DB.businessOnboarded[idx] = normBORecord(saved);
     } else {
-      payload.created_at = new Date().toISOString();
-      const { data, error } = await DB_CLIENT.from('business_onboarded').insert(payload).select().single();
-      if (error) throw error;
-      saved = data;
       DB.businessOnboarded.unshift(normBORecord(saved));
     }
     showToast(_boEditId ? 'Position updated!' : 'Position added!', '#16a34a');
   } catch(err) {
     console.error('Supabase BO save error:', err);
     showToast('Save failed: ' + (err.message || JSON.stringify(err)), '#dc2626');
-    return; // do NOT close form — let user see the error and retry
+    return;
   }
 
   closeBOForm();
