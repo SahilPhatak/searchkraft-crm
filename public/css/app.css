@@ -1166,12 +1166,15 @@ textarea { min-height: 80px; resize: vertical; }
 .lead-form-topbar {
   background: var(--bg);
   border-bottom: 1px solid var(--border);
-  padding: 14px 32px 14px 32px;
+  padding: 12px 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   flex-shrink: 0;
+  flex-wrap: nowrap;
+  min-height: 56px;
+  overflow: hidden;
 }
 .lead-form-topbar .lf-title { font-size: 20px; font-weight: 700; color: var(--fg); flex: 1; }
 .lead-form-body {

@@ -2335,12 +2335,12 @@
     <!-- BO FORM OVERLAY (full-page slide-in) -->
     <div id="bo-form-overlay" style="display:none;position:fixed;inset:0;z-index:600;background:var(--bg);flex-direction:column;overflow:hidden">
       <!-- Topbar -->
-      <div class="lead-form-topbar">
-        <div style="display:flex;align-items:center;gap:12px">
-          <button onclick="closeBOForm()" class="btn btn-ghost btn-sm" style="padding:6px 10px">← Back</button>
-          <span id="bo-form-title" style="font-size:17px;font-weight:700;color:var(--fg)">Add Position</span>
+      <div class="lead-form-topbar" style="justify-content:space-between;min-height:56px;flex-wrap:nowrap">
+        <div style="display:flex;align-items:center;gap:10px;min-width:0;flex:1">
+          <button onclick="closeBOForm()" class="btn btn-ghost btn-sm" style="padding:6px 10px;white-space:nowrap;flex-shrink:0">← Back</button>
+          <span id="bo-form-title" style="font-size:17px;font-weight:700;color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Add Position</span>
         </div>
-        <div style="display:flex;gap:8px">
+        <div style="display:flex;gap:8px;flex-shrink:0;margin-left:16px">
           <button onclick="closeBOForm()" class="btn btn-secondary btn-sm">Cancel</button>
           <button onclick="saveBORecord()" class="btn btn-primary btn-sm">Save</button>
         </div>
