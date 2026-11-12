@@ -4887,15 +4887,22 @@ function calDayClick(dateStr) {
   let html = `<div style="font-weight:600;margin-bottom:12px">${label}</div>`;
   dayActivities.forEach(a => {
     const time = a.time ? `<span style="color:var(--fg3);font-size:11px">${a.time.slice(0,5)} · </span>` : '';
+    const contact = a.contact ? `<span style="color:var(--fg3);font-size:11px"> · ${a.contact}</span>` : '';
     html += `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
-      <div>${time}<span style="font-size:13px">${a.summary||a.subject||'Activity'}</span><span style="font-size:11px;color:var(--fg3);margin-left:6px">${a.type||''}</span></div>
-      <button class="btn btn-sm" onclick="closeModal();openModal('activity','${a.id}')" style="padding:4px 10px;font-size:12px">Edit</button>
+      <div style="flex:1;min-width:0">${time}<span style="font-size:13px;font-weight:500">${a.summary||a.subject||'Activity'}</span><span style="font-size:11px;color:var(--fg3);margin-left:6px">${a.type||''}</span>${contact}</div>
+      <div style="display:flex;gap:6px;flex-shrink:0;margin-left:8px">
+        <button class="btn btn-sm" onclick="closeModal();openModal('activity','${a.id}')" style="padding:4px 10px;font-size:12px">Edit</button>
+        <button class="btn btn-sm" onclick="if(confirm('Delete this activity?')){closeModal();deleteCRMRecord('activities','${a.id}')}" style="padding:4px 10px;font-size:12px;background:#fee2e2;color:#dc2626;border:none">Delete</button>
+      </div>
     </div>`;
   });
   dayTasks.forEach(t => {
     html += `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
-      <div><span style="font-size:13px">${t.title||'Task'}</span><span style="font-size:11px;color:var(--fg3);margin-left:6px">Task</span></div>
-      <button class="btn btn-sm" onclick="closeModal();openModal('task','${t.id}')" style="padding:4px 10px;font-size:12px">Edit</button>
+      <div style="flex:1;min-width:0"><span style="font-size:13px;font-weight:500">${t.title||'Task'}</span><span style="font-size:11px;color:var(--fg3);margin-left:6px">Task · ${t.status||''}</span></div>
+      <div style="display:flex;gap:6px;flex-shrink:0;margin-left:8px">
+        <button class="btn btn-sm" onclick="closeModal();openModal('task','${t.id}')" style="padding:4px 10px;font-size:12px">Edit</button>
+        <button class="btn btn-sm" onclick="if(confirm('Delete this task?')){closeModal();deleteCRMRecord('tasks','${t.id}')}" style="padding:4px 10px;font-size:12px;background:#fee2e2;color:#dc2626;border:none">Delete</button>
+      </div>
     </div>`;
   });
   html += `<button class="btn btn-primary" style="margin-top:14px;width:100%" onclick="closeModal();openModal('activity',null,{date:'${dateStr}'})">+ Log New Activity</button>`;
@@ -7738,7 +7745,7 @@ const MODAL_FORMS = {
         <div class="lf-field"><label>Lead Source</label><select id="f-source"><option value="">-None-</option>${['Cold Call','Email','Existing Client','Partner','Public Relations','Direct Mail','Conference','Trade Show','Web Site','Internal Seminar','Employees','Google AdWords','LinkedIn','Marketing','Word of Mouth','Other'].map(s=>`<option ${r.source===s?'selected':''}>${s}</option>`).join('')}</select></div>
         <div class="lf-field"><label>Lead Status</label><select id="f-stage"><option value="">-None-</option>${LEAD_STAGES.map(s=>`<option ${r.stage===s?'selected':''}>${s}</option>`).join('')}</select></div>
         <div class="lf-field"><label>Lead Type</label><select id="f-leadType"><option value="">-None-</option>${['Inbound','Outbound'].map(s=>`<option ${r.leadType===s?'selected':''}>${s}</option>`).join('')}</select></div>
-        <div class="lf-field"><label>Lead Category</label><select id="f-rating"><option value="">-None-</option>${['Hot','Warm','Cold'].map(s=>`<option ${r.rating===s?'selected':''}>${s}</option>`).join('')}</select></div>
+        <div class="lf-field"><label>Lead Category</label><select id="f-leadCategory"><option value="">-None-</option>${['Hot','Warm','Cold'].map(s=>`<option ${(r.leadCategory||r.lead_category)===s?'selected':''}>${s}</option>`).join('')}</select></div>
         <div class="lf-field"><label>Industry</label><select id="f-industry"><option value="">-None-</option>${['IT Services','Banking & Finance','E-Commerce','Mobility Tech','Healthcare','Manufacturing','Retail','Media','Education','Real Estate','Other'].map(s=>`<option ${r.industry===s?'selected':''}>${s}</option>`).join('')}</select></div>
         <div class="lf-field"><label>No. of Employees</label><input id="f-numEmployees" type="number" value="${r.numEmployees||''}"></div>
         <div class="lf-field"><label>Secondary Email</label><input id="f-email2" type="email" value="${r.email2||''}"></div>
@@ -7781,7 +7788,8 @@ const MODAL_FORMS = {
         companyName:v('companyName'),
         email:v('email'), email2:v('email2'), phone:v('phone'),
         website:v('website'),
-        source:v('source'), industry:v('industry'), rating:v('rating'),
+        source:v('source'), industry:v('industry'),
+        leadCategory:v('leadCategory'),
         leadType:v('leadType'),
         numEmployees:Number(v('numEmployees')||0),
         value:Number(v('value')||0), lane:v('lane'), sourceSD:v('sourceSD'),
@@ -8944,10 +8952,10 @@ const SUPA_TABLE = {
 
 // Exact columns that exist in each Supabase table
 const SUPA_COLS = {
-  leads: ['id','name','email','phone','company','title','source','stage','rating','value','notes',
+  leads: ['id','name','email','phone','company','title','source','stage','value','notes',
     'owner','owner_id','created_at','updated_at','salutation','first_name','last_name','email2',
     'website','skype','twitter','industry','num_employees','annual_revenue','email_opt_out',
-    'handover_date','followup_date','lane','source_sd','lead_type','month','handover_done','client_name',
+    'handover_date','followup_date','lane','source_sd','lead_type','lead_category','month','handover_done','client_name',
     'compensation','client_type','delivery_poc','agreement','num_positions','commercials_signed',
     'followup_status','followup_notes',
     'country','addr_line1','street','city','state','zip','lat','lng','description'],

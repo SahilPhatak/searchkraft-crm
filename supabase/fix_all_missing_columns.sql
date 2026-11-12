@@ -6,6 +6,7 @@
 
 -- ─── LEADS: missing columns ──────────────────────────────────
 ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS lead_type          text;
+ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS lead_category      text;
 ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS month              text;
 ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS handover_done      boolean DEFAULT false;
 ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS client_name        text;
