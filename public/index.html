@@ -2224,27 +2224,64 @@
 
       <!-- Accessibility panel -->
       <div id="ps-accessibility" class="ps-panel" style="flex:1;overflow-y:auto;padding:32px 40px;display:none">
+
+        <!-- Theme -->
         <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px 28px;margin-bottom:22px">
-          <div style="font-size:16px;font-weight:700;color:var(--fg);margin-bottom:18px">Accessibility Settings</div>
+          <div style="font-size:16px;font-weight:700;color:var(--fg);margin-bottom:18px">Theme</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px" id="theme-picker">
+            <button onclick="setTheme('light')" id="theme-btn-light" style="padding:14px 10px;border-radius:12px;border:2px solid var(--border);background:var(--bg);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:8px;transition:border-color 0.2s">
+              <div style="width:48px;height:32px;border-radius:6px;background:#ffffff;border:1px solid #e5e7eb;display:flex;align-items:center;justify-content:center;gap:4px"><div style="width:10px;height:10px;border-radius:2px;background:#1a56db"></div><div style="width:16px;height:6px;border-radius:2px;background:#e5e7eb"></div></div>
+              <span style="font-size:12px;font-weight:600;color:var(--fg)">Light</span>
+            </button>
+            <button onclick="setTheme('dark')" id="theme-btn-dark" style="padding:14px 10px;border-radius:12px;border:2px solid var(--border);background:var(--bg);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:8px;transition:border-color 0.2s">
+              <div style="width:48px;height:32px;border-radius:6px;background:#0f1117;border:1px solid #374151;display:flex;align-items:center;justify-content:center;gap:4px"><div style="width:10px;height:10px;border-radius:2px;background:#3b82f6"></div><div style="width:16px;height:6px;border-radius:2px;background:#374151"></div></div>
+              <span style="font-size:12px;font-weight:600;color:var(--fg)">Dark</span>
+            </button>
+            <button onclick="setTheme('auto')" id="theme-btn-auto" style="padding:14px 10px;border-radius:12px;border:2px solid var(--border);background:var(--bg);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:8px;transition:border-color 0.2s">
+              <div style="width:48px;height:32px;border-radius:6px;background:linear-gradient(135deg,#ffffff 50%,#0f1117 50%);border:1px solid #9ca3af;display:flex;align-items:center;justify-content:center"></div>
+              <span style="font-size:12px;font-weight:600;color:var(--fg)">Auto</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Accessibility -->
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px 28px;margin-bottom:22px">
+          <div style="font-size:16px;font-weight:700;color:var(--fg);margin-bottom:18px">Accessibility</div>
           <div style="display:flex;flex-direction:column;gap:18px">
             <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:16px;border-bottom:1px solid var(--border)">
-              <div><div style="font-size:14px;font-weight:600;color:var(--fg)">High Contrast Mode</div><div style="font-size:12px;color:var(--fg2);margin-top:2px">Increase contrast for better visibility</div></div>
-              <label class="sk-toggle"><input type="checkbox"><span class="sk-toggle-slider"></span></label>
-            </div>
-            <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:16px;border-bottom:1px solid var(--border)">
-              <div><div style="font-size:14px;font-weight:600;color:var(--fg)">Reduce Motion</div><div style="font-size:12px;color:var(--fg2);margin-top:2px">Minimize animations and transitions</div></div>
-              <label class="sk-toggle"><input type="checkbox"><span class="sk-toggle-slider"></span></label>
+              <div><div style="font-size:14px;font-weight:600;color:var(--fg)">Compact View</div><div style="font-size:12px;color:var(--fg2);margin-top:2px">Show more records per screen with smaller row heights</div></div>
+              <label class="sk-toggle"><input type="checkbox" id="pref-compact" onchange="savePref('compact',this.checked);document.documentElement.classList.toggle('compact',this.checked)"><span class="sk-toggle-slider"></span></label>
             </div>
             <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:16px;border-bottom:1px solid var(--border)">
               <div><div style="font-size:14px;font-weight:600;color:var(--fg)">Large Text</div><div style="font-size:12px;color:var(--fg2);margin-top:2px">Increase default font size across the app</div></div>
-              <label class="sk-toggle"><input type="checkbox"><span class="sk-toggle-slider"></span></label>
+              <label class="sk-toggle"><input type="checkbox" id="pref-largetext" onchange="savePref('largeText',this.checked);document.documentElement.classList.toggle('large-text',this.checked)"><span class="sk-toggle-slider"></span></label>
             </div>
             <div style="display:flex;align-items:center;justify-content:space-between">
-              <div><div style="font-size:14px;font-weight:600;color:var(--fg)">Screen Reader Support</div><div style="font-size:12px;color:var(--fg2);margin-top:2px">Optimize for screen reader compatibility</div></div>
-              <label class="sk-toggle"><input type="checkbox" checked><span class="sk-toggle-slider"></span></label>
+              <div><div style="font-size:14px;font-weight:600;color:var(--fg)">Reduce Motion</div><div style="font-size:12px;color:var(--fg2);margin-top:2px">Minimize animations and transitions</div></div>
+              <label class="sk-toggle"><input type="checkbox" id="pref-reducemotion" onchange="savePref('reduceMotion',this.checked);document.documentElement.classList.toggle('reduce-motion',this.checked)"><span class="sk-toggle-slider"></span></label>
             </div>
           </div>
         </div>
+
+        <!-- Notifications -->
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px 28px;margin-bottom:22px">
+          <div style="font-size:16px;font-weight:700;color:var(--fg);margin-bottom:18px">Notifications</div>
+          <div style="display:flex;flex-direction:column;gap:18px">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:16px;border-bottom:1px solid var(--border)">
+              <div><div style="font-size:14px;font-weight:600;color:var(--fg)">Follow-up Reminders</div><div style="font-size:12px;color:var(--fg2);margin-top:2px">Notify when a follow-up is due today</div></div>
+              <label class="sk-toggle"><input type="checkbox" checked id="pref-followup-notif" onchange="savePref('followupNotif',this.checked)"><span class="sk-toggle-slider"></span></label>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:16px;border-bottom:1px solid var(--border)">
+              <div><div style="font-size:14px;font-weight:600;color:var(--fg)">Deal Stage Updates</div><div style="font-size:12px;color:var(--fg2);margin-top:2px">Alert when a deal stage changes</div></div>
+              <label class="sk-toggle"><input type="checkbox" checked id="pref-deal-notif" onchange="savePref('dealNotif',this.checked)"><span class="sk-toggle-slider"></span></label>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div><div style="font-size:14px;font-weight:600;color:var(--fg)">Sound on New Record</div><div style="font-size:12px;color:var(--fg2);margin-top:2px">Play a soft chime when a record is saved</div></div>
+              <label class="sk-toggle"><input type="checkbox" id="pref-sound" onchange="savePref('sound',this.checked)"><span class="sk-toggle-slider"></span></label>
+            </div>
+          </div>
+        </div>
+
       </div><!-- /ps-accessibility -->
 
       <!-- Permissions summary — visible to all users -->
@@ -3118,6 +3155,11 @@ function stopRealtimeSync() {
 // ---- PERSONAL SETTINGS PAGE ----
 function openPersonalSettings() {
   closeUserPanel();
+  // Close any open modals/overlays first
+  const overlay = document.getElementById('modal-overlay');
+  if (overlay) overlay.style.display = 'none';
+  const userOverlay = document.getElementById('user-modal-overlay');
+  if (userOverlay) userOverlay.style.display = 'none';
   history.pushState({ page: 'personal-settings' }, '', '#/personal-settings');
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
@@ -3194,8 +3236,68 @@ function switchPsTab(btn, tabId) {
   btn.style.color = 'var(--accent)'; btn.style.borderBottomColor = 'var(--accent)'; btn.style.fontWeight = '600';
   document.querySelectorAll('.ps-panel').forEach(p => p.style.display = 'none');
   const panel = document.getElementById(tabId);
-  if (panel) panel.style.display = 'block';
+  if (panel) { panel.style.display = 'flex'; panel.style.flexDirection = 'column'; }
+  if (tabId === 'ps-accessibility') initAccessibilityPanel();
 }
+
+// ---- THEME + PREFERENCES ----
+function setTheme(mode) {
+  localStorage.setItem('sk-theme', mode);
+  applyTheme(mode);
+  document.querySelectorAll('[id^="theme-btn-"]').forEach(b => {
+    b.style.borderColor = 'var(--border)';
+    b.style.boxShadow = 'none';
+  });
+  const btn = document.getElementById('theme-btn-' + mode);
+  if (btn) { btn.style.borderColor = 'var(--accent)'; btn.style.boxShadow = '0 0 0 3px var(--accent-bg)'; }
+}
+
+function applyTheme(mode) {
+  const root = document.documentElement;
+  if (mode === 'dark') {
+    root.setAttribute('data-theme', 'dark');
+  } else if (mode === 'light') {
+    root.setAttribute('data-theme', 'light');
+  } else {
+    // auto — follow system
+    root.removeAttribute('data-theme');
+  }
+}
+
+function savePref(key, val) {
+  const prefs = JSON.parse(localStorage.getItem('sk-prefs') || '{}');
+  prefs[key] = val;
+  localStorage.setItem('sk-prefs', JSON.stringify(prefs));
+}
+
+function loadPrefs() {
+  try {
+    const theme = localStorage.getItem('sk-theme') || 'auto';
+    applyTheme(theme);
+    const prefs = JSON.parse(localStorage.getItem('sk-prefs') || '{}');
+    if (prefs.compact) document.documentElement.classList.add('compact');
+    if (prefs.largeText) document.documentElement.classList.add('large-text');
+    if (prefs.reduceMotion) document.documentElement.classList.add('reduce-motion');
+  } catch(e) {}
+}
+
+function initAccessibilityPanel() {
+  try {
+    const theme = localStorage.getItem('sk-theme') || 'auto';
+    setTheme(theme);
+    const prefs = JSON.parse(localStorage.getItem('sk-prefs') || '{}');
+    const setChk = (id, val) => { const el = document.getElementById(id); if(el) el.checked = !!val; };
+    setChk('pref-compact', prefs.compact);
+    setChk('pref-largetext', prefs.largeText);
+    setChk('pref-reducemotion', prefs.reduceMotion);
+    setChk('pref-followup-notif', prefs.followupNotif !== false);
+    setChk('pref-deal-notif', prefs.dealNotif !== false);
+    setChk('pref-sound', prefs.sound);
+  } catch(e) {}
+}
+
+// Load prefs on startup
+document.addEventListener('DOMContentLoaded', loadPrefs);
 
 function togglePsDetails() {
   const body = document.getElementById('ps-details-body');
