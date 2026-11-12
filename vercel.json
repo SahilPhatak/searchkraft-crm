@@ -1,7 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "mkdir -p public && cp -r frontend/index.html frontend/css frontend/js frontend/assets public/",
-  "outputDirectory": "public",
+  "outputDirectory": "frontend",
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
   "framework": null
 }
