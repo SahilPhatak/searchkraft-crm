@@ -1170,6 +1170,9 @@ textarea { min-height: 80px; resize: vertical; }
   width: 100%;
   min-height: 100%;
   background: var(--bg);
+  position: relative;
+  z-index: 10;
+  isolation: isolate;
 }
 .lead-form-topbar {
   background: var(--bg);
@@ -8839,8 +8842,8 @@ function openModal(type, id, defaults) {
     // Inject form into content-area (Zoho-style: sidebar + topbar stay, content replaced)
     const saveAndNewFn = type === 'contact' ? 'saveContactAndNew()' : type === 'company' ? 'saveAccountAndNew()' : type === 'deal' ? 'saveDealAndNew()' : 'saveLeadAndNew()';
     const contentArea = document.getElementById('content-area');
-    // Hide all pages
-    contentArea.querySelectorAll('.page').forEach(p => p.style.display = 'none');
+    // Hide all pages completely so their buttons don't bleed through
+    contentArea.querySelectorAll('.page').forEach(p => { p.style.display = 'none'; p.style.visibility = 'hidden'; });
     // Inject or reuse form container
     let overlay = document.getElementById('lead-form-overlay');
     if (!overlay) {
@@ -8883,6 +8886,8 @@ function closeModal() {
   document.getElementById('modal-overlay').style.display = 'none';
   const fp = document.getElementById('lead-form-overlay');
   if (fp) fp.style.display = 'none';
+  // Restore hidden pages visibility
+  document.querySelectorAll('#content-area .page').forEach(p => { p.style.visibility = ''; });
   // Restore the current page (only show the active one)
   const hash = window.location.hash.replace('#/','') || 'dashboard';
   renderPage(hash);
