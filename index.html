@@ -5300,8 +5300,8 @@ function renderCalendarGrid() {
 
 // ===== public/js/calendar.js =====
 // ---- CALENDAR ----
-let calYear = new Date().getFullYear();
-let calMonth = new Date().getMonth();
+calYear = new Date().getFullYear();
+calMonth = new Date().getMonth();
 
 function calNav(dir) {
   calMonth += dir;
@@ -5435,9 +5435,9 @@ function switchCalView(view, btn) {
   btn.classList.add('cal-view-active');
 }
 
-let calView = 'month'; // 'day' | 'week' | 'month'
-let calWeekStart = null; // Monday of current week for week view
-let calDayDate = null;   // date string for day view
+calView = 'month'; // 'day' | 'week' | 'month'
+calWeekStart = null; // Monday of current week for week view
+calDayDate = null;   // date string for day view
 
 function switchMainCalView(view, btn) {
   document.querySelectorAll('.cal-tab-btn').forEach(b=>{
