@@ -8,30 +8,11 @@ function debounce(key, fn, ms=350) {
   _searchTimers[key] = setTimeout(fn, ms);
 }
 
-// Backend search: queries Supabase directly with ilike filters
-async function searchFromDB(type, q) {
-  const Q = (q||'').trim();
-  if (type === 'leads') {
-    let query = DB_CLIENT.from('leads').select('*').order('created_at',{ascending:false}).limit(500);
-    if (Q) query = query.or(`first_name.ilike.%${Q}%,last_name.ilike.%${Q}%,name.ilike.%${Q}%,email.ilike.%${Q}%,company.ilike.%${Q}%,phone.ilike.%${Q}%,stage.ilike.%${Q}%`);
-    const { data } = await query;
-    if (data) { DB.leads = data.map(normRecord); }
-    renderTable('leads', q);
-  } else if (type === 'contacts') {
-    let query = DB_CLIENT.from('contacts').select('*').order('created_at',{ascending:false}).limit(500);
-    if (Q) query = query.or(`name.ilike.%${Q}%,email.ilike.%${Q}%,company.ilike.%${Q}%,phone.ilike.%${Q}%,title.ilike.%${Q}%`);
-    const { data } = await query;
-    if (data) { DB.contacts = data.map(normRecord).filter(r=>!r.stage||!LEAD_STAGES.includes(r.stage)); }
-    renderTable('contacts', q);
-  } else if (type === 'companies') {
-    let query = DB_CLIENT.from('companies').select('*').order('name',{ascending:true}).limit(500);
-    if (Q) query = query.or(`name.ilike.%${Q}%,city.ilike.%${Q}%,lane.ilike.%${Q}%`);
-    const { data } = await query;
-    if (data) { DB.companies = data.map(normRecord); }
-    renderTable('companies', q);
-  } else {
-    renderTable(type, q);
-  }
+// Search: purely client-side filter against the in-memory DB cache.
+// Never mutates DB — just re-renders the table with the query string.
+// This avoids async race conditions and keeps the full dataset intact.
+function searchFromDB(type, q) {
+  renderTable(type, q);
 }
 
 function renderTableRows(type) { renderTable(type, ''); }
@@ -90,14 +71,14 @@ function renderTable(type, q='') {
   else if (type==='leads') {
     const rows = DB.leads.filter(r=>{
       if (!Q) return true;
-      const fullName = ((r.first_name||'') + ' ' + (r.last_name||'')).trim().toLowerCase();
-      const name = (r.name||r.title||'').toLowerCase();
+      const fullName = ((r.first_name||r.firstName||'') + ' ' + (r.last_name||r.lastName||'')).trim().toLowerCase();
+      const name = (r.name||'').toLowerCase();
       const email = (r.email||'').toLowerCase();
       const company = (r.company||r.companyName||getCompanyName(r.companyId)||'').toLowerCase();
       const phone = (r.phone||'').toLowerCase();
-      const stage = (r.stage||'').toLowerCase();
+      const title = (r.title||'').toLowerCase();
       const owner = (r.owner||'').toLowerCase();
-      return fullName.includes(Q)||name.includes(Q)||email.includes(Q)||company.includes(Q)||phone.includes(Q)||stage.includes(Q)||owner.includes(Q);
+      return fullName.includes(Q)||name.includes(Q)||email.includes(Q)||company.includes(Q)||phone.includes(Q)||title.includes(Q)||owner.includes(Q);
     });
     const lcount = document.getElementById('leads-count'); if(lcount) lcount.textContent=rows.length;
     const lpi = document.getElementById('leads-page-info'); if(lpi) lpi.textContent=rows.length?`1 to ${Math.min(25,rows.length)}`:'0';
