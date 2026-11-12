@@ -7533,6 +7533,7 @@ const MODAL_FORMS = {
         <div class="lf-field"><label>Employees</label><input id="f-employees" type="number" min="0" value="${r.employees||''}"></div>
         <div class="lf-field"><label>Annual Revenue</label><div style="display:flex;align-items:center;gap:6px"><span style="font-size:13px;color:var(--fg2);white-space:nowrap">Rs.</span><input id="f-annualRevenue" type="number" min="0" style="flex:1" value="${r.annualRevenue||''}"></div></div>
         <div class="lf-field"><label>SIC Code</label><input id="f-sicCode" type="text" value="${r.sicCode||''}"></div>
+        <div class="lf-field"><label>Delivery Pillar</label><select id="f-deliveryPillar"><option value="">-None-</option>${['Samyadeep','Vikram'].map(s=>`<option ${(r.deliveryPillar||r.delivery_pillar)===s?'selected':''}>${s}</option>`).join('')}</select></div>
       </div>
 
       <!-- Address Information -->
@@ -7562,7 +7563,13 @@ const MODAL_FORMS = {
           </div>
         </div>
         <div class="lf-addr-box">
-          <div class="lf-addr-label">Shipping Address</div>
+          <div class="lf-addr-label" style="display:flex;align-items:center;justify-content:space-between">
+            <span>Shipping Address</span>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;color:var(--fg2);cursor:pointer">
+              <input type="checkbox" id="f-sameAsBilling" onchange="if(this.checked)copyBillingToShipping()" style="cursor:pointer">
+              Same as Billing
+            </label>
+          </div>
           <div style="display:grid;grid-template-columns:160px 1fr;gap:10px 8px;align-items:start;margin-top:8px">
             <label style="text-align:right;padding-right:8px;padding-top:8px;font-size:12px;font-weight:500;color:var(--fg2)">Country / Region</label>
             <select id="f-shippingCountry"><option value="">-None-</option>${['India','USA','UK','UAE','Singapore','Canada','Australia','Germany','Other'].map(s=>`<option ${r.shippingCountry===s?'selected':''}>${s}</option>`).join('')}</select>
@@ -7589,18 +7596,19 @@ const MODAL_FORMS = {
         <label style="text-align:right;padding-right:8px;padding-top:8px;font-size:12px;font-weight:500;color:var(--fg2)">Description</label>
         <textarea id="f-description" rows="4">${r.description||''}</textarea>
       </div>`,
-    save: (id) => {
+    save: async (id) => {
       const existing = id ? (DB.companies.find(c=>c.id===id)||{}) : {};
+      const prevDeliveryPillar = existing.deliveryPillar || existing.delivery_pillar || '';
       const r = {
-        name:v('name'), bdOwner:v('bdOwner'), rating:v('rating'),
-        // preserve existing status or default to Active
+        name:v('name'), bdOwner:v('bdOwner'),
         status: existing.status || 'Active',
         phone:v('phone'), fax:v('fax'), accountSite:v('accountSite'),
         website:v('website'), parentAccount:v('parentAccount'),
         accountNumber:v('accountNumber'), tickerSymbol:v('tickerSymbol'),
         accountType:v('accountType'), ownership:v('ownership'),
-        industry:v('industry'), employees:v('employees'),
-        annualRevenue:v('annualRevenue'), sicCode:v('sicCode'),
+        industry:v('industry'), employees:Number(v('employees')||0),
+        annualRevenue:Number(v('annualRevenue')||0), sicCode:v('sicCode'),
+        deliveryPillar:v('deliveryPillar'),
         billingCountry:v('billingCountry'), billingFlat:v('billingFlat'),
         billingStreet:v('billingStreet'), billingCity:v('billingCity'),
         billingState:v('billingState'), billingZip:v('billingZip'),
@@ -7609,10 +7617,27 @@ const MODAL_FORMS = {
         shippingStreet:v('shippingStreet'), shippingCity:v('shippingCity'),
         shippingState:v('shippingState'), shippingZip:v('shippingZip'),
         shippingLat:v('shippingLat'), shippingLng:v('shippingLng'),
+        // also map to simple city/state/country for trigger compatibility
+        city:v('billingCity'), state:v('billingState'), country:v('billingCountry'),
         description:v('description')
       };
       if (!r.name) return alert('Account Name required');
       upsert('companies', id, r);
+      // Notify delivery pillar if newly assigned or changed
+      const newPillar = r.deliveryPillar;
+      if (newPillar && newPillar !== prevDeliveryPillar) {
+        showToast(`📬 ${newPillar} has been notified as Delivery Pillar for ${r.name}`, 'success');
+        // Log an activity as notification record
+        const notifActivity = {
+          type: 'Email', subject: `Delivery Pillar Assignment: ${r.name}`,
+          summary: `${newPillar} assigned as Delivery Pillar for account "${r.name}". Please ensure smooth delivery handover.`,
+          date: new Date().toISOString().slice(0,10), owner: newPillar,
+          company: r.name
+        };
+        try {
+          await DB_CLIENT.from('activities').insert([snakeCaseKeys(notifActivity, SUPA_COLS.activities)]);
+        } catch(e) { console.warn('Notification activity insert failed', e); }
+      }
     }
   },
   contact: {
@@ -8960,7 +8985,10 @@ const SUPA_COLS = {
     'followup_status','followup_notes',
     'country','addr_line1','street','city','state','zip','lat','lng','description'],
   contacts: ['id','name','email','phone','title','dept','company','company_id','owner','owner_id','created_at','updated_at'],
-  companies: ['id','name','industry','website','phone','employees','revenue','address','city','state','country','status','bd_owner','owner_id','created_at','updated_at'],
+  companies: ['id','name','industry','website','phone','employees','revenue','address','city','state','country','status','bd_owner','owner_id','created_at','updated_at',
+    'fax','account_site','parent_account','account_number','ticker_symbol','account_type','ownership','annual_revenue','sic_code','delivery_pillar',
+    'billing_country','billing_flat','billing_street','billing_city','billing_state','billing_zip','billing_lat','billing_lng',
+    'shipping_country','shipping_flat','shipping_street','shipping_city','shipping_state','shipping_zip','shipping_lat','shipping_lng','description'],
   deals: ['id','name','stage','amount','value','expected_revenue','currency','close_date','probability','source','notes','contact','contact_id','company','company_id','owner','owner_id','won_at','lost_at','lost_reason','candidate_name','contact_name','next_step','campaign','deal_type','created_at','updated_at'],
   tasks: ['id','title','type','description','due_date','status','priority','owner','owner_id','lead_id','contact_id','deal_id','related_to','completed_at','created_at','updated_at'],
   activities: ['id','type','subject','summary','description','date','time','duration','outcome','owner','owner_id','contact','lead_id','contact_id','deal_id','created_at','updated_at'],

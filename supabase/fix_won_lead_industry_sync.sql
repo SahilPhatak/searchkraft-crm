@@ -11,7 +11,11 @@ DECLARE
   v_now          timestamptz := now();
 BEGIN
   IF new.stage <> 'Won' THEN RETURN new; END IF;
-  IF tg_op = 'UPDATE' AND old.stage = 'Won' THEN RETURN new; END IF;
+  -- Allow re-sync when industry or city is updated on an already-won lead
+  IF tg_op = 'UPDATE' AND old.stage = 'Won'
+     AND (new.industry IS NOT DISTINCT FROM old.industry)
+     AND (new.city IS NOT DISTINCT FROM old.city)
+  THEN RETURN new; END IF;
 
   -- Build contact full name
   v_full_name := trim(
