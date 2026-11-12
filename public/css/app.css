@@ -1213,10 +1213,30 @@ textarea { min-height: 80px; resize: vertical; }
 .lf-full { grid-column: 1 / -1; display: grid; grid-template-columns: 200px 1fr; gap: 12px; }
 .lf-full label { text-align: right; font-size: 12px; font-weight: 500; color: var(--fg2); padding: 8px 10px 0 0; }
 .lf-addr-box .lf-grid { grid-template-columns: 200px 1fr 200px 1fr; }
-/* Checkbox fields: label on left, checkbox inline with it */
-.lf-checkbox { display: contents; }
-.lf-checkbox label { text-align: right; font-size: 12px; font-weight: 500; color: var(--fg2); padding: 6px 10px 0 0; align-self: center; }
-.lf-checkbox input[type="checkbox"] { margin-top: 0; width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; justify-self: start; align-self: center; }
+/* Checkbox fields: spans label-col + input-col, flex row inside */
+.lf-checkbox {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  align-items: center;
+  gap: 0 12px;
+}
+.lf-checkbox label {
+  text-align: right;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--fg2);
+  padding-right: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+.lf-checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+  justify-self: start;
+  margin: 0;
+}
 @media (max-width: 760px) {
   .lead-form-body { padding: 16px; }
   .lf-grid { grid-template-columns: 1fr 1fr !important; gap: 12px 8px; }

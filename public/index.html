@@ -7787,7 +7787,7 @@ const MODAL_FORMS = {
         <div class="lf-field"><label>Date of Birth</label><input id="f-dob" type="date" placeholder="DD/MM/YYYY" value="${r.dob||''}"></div>
         <div class="lf-field"><label>Secondary Email</label><input id="f-email2" type="email" value="${r.email2||''}"></div>
         <div class="lf-field"><label>Reporting To</label><input id="f-reportingTo" type="text" value="${r.reportingTo||''}"></div>
-        <div class="lf-checkbox"><label>Email Opt Out</label><input type="checkbox" id="f-emailOptOut" ${r.emailOptOut?'checked':''}></div>
+        <div class="lf-checkbox"><label for="f-emailOptOut">Email Opt Out</label><input type="checkbox" id="f-emailOptOut" ${r.emailOptOut?'checked':''}></div>
       </div>
 
       <!-- Additional Contacts / Points of Contact -->
@@ -7918,9 +7918,10 @@ const MODAL_FORMS = {
         <div class="lf-field"><label>Date of Handover</label><input id="f-handoverDate" type="date" value="${r.handoverDate||''}"></div>
         <div class="lf-field"><label>Lane / Domain</label><select id="f-lane"><option value="">-None-</option>${['SaaS','AI','Healthtech','Logistics','Fintech','Ed Tech','Agri Tech','Travel Tech','Enterprise','E-commerce'].map(s=>`<option ${r.lane===s?'selected':''}>${s}</option>`).join('')}</select></div>
         <div class="lf-field"><label>Source – Sales / Delivery</label><select id="f-sourceSD"><option value="">-None-</option>${['Sales','Delivery'].map(s=>`<option ${r.sourceSD===s?'selected':''}>${s}</option>`).join('')}</select></div>
-        <div class="lf-checkbox"><label>Email Opt Out</label><input type="checkbox" id="f-emailOptOut" ${r.emailOptOut?'checked':''}></div>
-        <div class="lf-checkbox"><label>Handover Done</label><input type="checkbox" id="f-handoverDone" ${r.handoverDone?'checked':''}></div>
+        <div class="lf-checkbox"><label for="f-emailOptOut">Email Opt Out</label><input type="checkbox" id="f-emailOptOut" ${r.emailOptOut?'checked':''}></div>
+        <div class="lf-checkbox"><label for="f-handoverDone">Handover Done</label><input type="checkbox" id="f-handoverDone" ${r.handoverDone?'checked':''}></div>
         <div class="lf-field"><label>Client Type</label><select id="f-clientType"><option value="">-None-</option>${['New','Farming','Retention','Renew'].map(s=>`<option ${r.clientType===s?'selected':''}>${s}</option>`).join('')}</select></div>
+        <div class="lf-field"><label></label><div></div></div>
       </div>
 
       <!-- Follow Up Section -->
