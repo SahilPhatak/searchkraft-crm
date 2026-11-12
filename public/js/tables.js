@@ -23,7 +23,7 @@ async function searchFromDB(type, q) {
     if (data) { DB.contacts = data.map(norm).filter(r=>!r.stage||!LEAD_STAGES.includes(r.stage)); renderTableRows('contacts'); }
   } else if (type === 'companies') {
     let query = DB_CLIENT.from('companies').select('*').order('name',{ascending:true}).limit(200);
-    if (Q) query = query.or(`name.ilike.%${Q}%,industry.ilike.%${Q}%,city.ilike.%${Q}%`);
+    if (Q) query = query.or(`name.ilike.%${Q}%,city.ilike.%${Q}%`);
     const { data } = await query;
     if (data) { DB.companies = data.map(norm); renderTableRows('companies'); }
   } else {
@@ -38,13 +38,20 @@ function renderTable(type, q='') {
   const tbody = document.getElementById(type.replace('team','team')+'-body') || document.getElementById(type==='team'?'team-body':type+'-body');
 
   if (type==='companies') {
-    const rows = DB.companies.filter(r=>!Q||r.name.toLowerCase().includes(Q)||r.industry?.toLowerCase().includes(Q));
+    // Get lane/domain from most recent linked lead for each company
+    const companyLaneMap = {};
+    (DB.leads||[]).forEach(l => {
+      const cname = (l.company||'').toLowerCase();
+      if (cname && l.lane) companyLaneMap[cname] = l.lane;
+    });
+    const getLane = (r) => r.lane || companyLaneMap[(r.name||'').toLowerCase()] || '—';
+    const rows = DB.companies.filter(r=>!Q||r.name.toLowerCase().includes(Q)||getLane(r).toLowerCase().includes(Q)||r.city?.toLowerCase().includes(Q));
     const ccount = document.getElementById('companies-count'); if(ccount) ccount.textContent=rows.length;
     const cpi = document.getElementById('companies-page-info'); if(cpi) cpi.textContent=rows.length?`1 to ${Math.min(25,rows.length)}`:'0';
     document.getElementById('companies-body').innerHTML = rows.length ? rows.map(r=>`<tr>
       <td><input type="checkbox" style="accent-color:var(--accent)"></td>
       <td class="name-cell" onclick="openModal('company','${r.id}')">${r.name}</td>
-      <td>${r.industry||'—'}</td><td>${r.city||'—'}</td>
+      <td>${getLane(r)}</td><td>${r.city||'—'}</td>
       <td>${badge(r.status)}</td><td>${r.bdOwner||'—'}</td>
       <td style="white-space:nowrap">
         ${canDo('accounts','edit')?`<button class="btn btn-ghost btn-sm" title="Edit" onclick="openModal('company','${r.id}')" style="padding:4px 7px">${ICON_EDIT}</button>`:''}
@@ -115,7 +122,8 @@ function renderTable(type, q='') {
   }
 
   else if (type==='tasks') {
-    const rows = DB.tasks.filter(t=>taskFilter==='all'||taskFilter==='pending'&&t.status!=='Done'||taskFilter==='done'&&t.status==='Done');
+    let rows = DB.tasks.filter(t=>taskFilter==='all'||taskFilter==='pending'&&t.status!=='Done'||taskFilter==='done'&&t.status==='Done');
+    if (Q) rows = rows.filter(t=>(t.title||'').toLowerCase().includes(Q)||(t.relatedTo||'').toLowerCase().includes(Q)||(t.owner||'').toLowerCase().includes(Q));
     document.getElementById('tasks-body').innerHTML = rows.length ? rows.map(r=>`<tr>
       <td><div class="primary">${r.title}</div></td>
       <td><span class="badge badge-gray">${r.type||'General'}</span></td>
@@ -128,6 +136,35 @@ function renderTable(type, q='') {
         <button class="btn btn-ghost btn-sm" title="Delete" onclick="deleteCRMRecord('tasks','${r.id}')" style="padding:4px 7px;color:#ef4444">${ICON_TRASH}</button>
       </td>
     </tr>`).join('') : '<tr><td colspan="7" class="empty-state">No tasks</td></tr>';
+  }
+
+  else if (type==='activities') {
+    const el = document.getElementById('activities-list');
+    if (!el) return;
+    let acts = _actTypeFilter === 'all' ? DB.activities : DB.activities.filter(a => a.type === _actTypeFilter);
+    if (Q) acts = acts.filter(a =>
+      (a.summary||'').toLowerCase().includes(Q) ||
+      (a.contact||'').toLowerCase().includes(Q) ||
+      (a.company||'').toLowerCase().includes(Q) ||
+      (a.owner||'').toLowerCase().includes(Q) ||
+      (a.type||'').toLowerCase().includes(Q)
+    );
+    if (!acts.length) {
+      el.innerHTML = `<div class="empty-state"><div class="icon">📭</div><p>No activities found</p></div>`;
+      return;
+    }
+    el.innerHTML = acts.map(a=>`
+    <div class="activity-item">
+      <div class="activity-dot" style="background:${a.type==='Call'?'var(--green)':a.type==='Email'?'var(--accent)':a.type==='Meeting'?'var(--amber)':'var(--purple)'}"></div>
+      <div class="activity-content" style="flex:1">
+        <div class="flex-row">
+          <span class="badge ${a.type==='Call'?'badge-green':a.type==='Email'?'badge-blue':'badge-amber'}">${a.type}</span>
+          <div class="act-text">${a.summary}</div>
+          <button class="btn btn-ghost btn-sm ml-auto" onclick="deleteCRMRecord('activities','${a.id}')" title="Delete">${ICON_TRASH}</button>
+        </div>
+        <div class="act-time" style="margin-top:4px">${a.contact||''} · ${a.company||''} · ${a.owner} · ${fmtDate(a.date)}</div>
+      </div>
+    </div>`).join('');
   }
 
   else if (type==='team') {

@@ -416,7 +416,7 @@ const SUPA_COLS = {
     'country','addr_line1','street','city','state','zip','lat','lng','description'],
   contacts: ['id','name','email','phone','title','dept','company','company_id','owner','owner_id','created_at','updated_at'],
   companies: ['id','name','industry','website','phone','employees','revenue','address','city','state','country','status','bd_owner','owner_id','created_at','updated_at',
-    'fax','account_site','parent_account','account_number','ticker_symbol','account_type','ownership','annual_revenue','sic_code','delivery_pillar',
+    'fax','account_site','parent_account','account_number','ticker_symbol','account_type','ownership','annual_revenue','sic_code','delivery_pillar','lane',
     'billing_country','billing_flat','billing_street','billing_city','billing_state','billing_zip','billing_lat','billing_lng',
     'shipping_country','shipping_flat','shipping_street','shipping_city','shipping_state','shipping_zip','shipping_lat','shipping_lng','description'],
   deals: ['id','name','stage','amount','value','expected_revenue','currency','close_date','probability','source','notes','contact','contact_id','company','company_id','owner','owner_id','won_at','lost_at','lost_reason','candidate_name','contact_name','next_step','campaign','deal_type','created_at','updated_at'],

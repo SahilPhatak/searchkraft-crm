@@ -856,7 +856,7 @@
             <table>
               <thead><tr>
                 <th style="width:36px"><input type="checkbox" style="accent-color:var(--accent)" onchange="selectAll('companies-body',this)"></th>
-                <th>Account Name</th><th>Industry</th><th>City</th><th>Status</th><th>BD Owner</th><th>Actions</th>
+                <th>Account Name</th><th>Lane / Domain</th><th>City</th><th>Status</th><th>BD Owner</th><th>Actions</th>
               </tr></thead>
               <tbody id="companies-body"></tbody>
             </table>
@@ -1421,7 +1421,7 @@
         <button class="crm-toolbar-btn" onclick="toggleFilter('activities-filter')">⊟ Filter</button>
         <button class="crm-toolbar-btn">↕ Sort</button>
         <div style="flex:1"></div>
-        <div class="search-bar" style="max-width:200px"><input type="text" placeholder="Search activities…"></div>
+        <div class="search-bar" style="max-width:200px"><input type="text" placeholder="Search activities…" oninput="renderTable('activities',this.value)"></div>
         <button class="btn btn-primary btn-sm" onclick="openModal('activity')">+ Log Activity</button>
       </div>
       <!-- Body: filter + list -->

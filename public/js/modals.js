@@ -272,7 +272,7 @@ const MODAL_FORMS = {
         <div class="lf-field"><label>No. of Employees</label><input id="f-numEmployees" type="number" value="${r.numEmployees||''}"></div>
         <div class="lf-field"><label>Secondary Email</label><input id="f-email2" type="email" value="${r.email2||''}"></div>
         <div class="lf-field"><label>Date of Handover</label><input id="f-handoverDate" type="date" value="${r.handoverDate||''}"></div>
-        <div class="lf-field"><label>Lane / Domain</label><input id="f-lane" type="text" value="${r.lane||''}"></div>
+        <div class="lf-field"><label>Lane / Domain</label><select id="f-lane"><option value="">-None-</option>${['SaaS','AI','Healthtech','Logistics','Fintech','Ed Tech','Agri Tech','Travel Tech','Enterprise','E-commerce'].map(s=>`<option ${r.lane===s?'selected':''}>${s}</option>`).join('')}</select></div>
         <div class="lf-field"><label>Source – Sales / Delivery</label><select id="f-sourceSD"><option value="">-None-</option>${['Sales','Delivery'].map(s=>`<option ${r.sourceSD===s?'selected':''}>${s}</option>`).join('')}</select></div>
         <div class="lf-checkbox"><label>Email Opt Out</label><input type="checkbox" id="f-emailOptOut" ${r.emailOptOut?'checked':''}></div>
         <div class="lf-checkbox"><label>Handover Done</label><input type="checkbox" id="f-handoverDone" ${r.handoverDone?'checked':''}></div>
@@ -585,9 +585,41 @@ const MODAL_FORMS = {
 };
 
 function handleTopbarSearch(q) {
-  // Global search — highlight matches across modules (future: show dropdown)
   q = q.trim().toLowerCase();
-  if (!q) return;
+  // Find which page is currently active and search within it
+  const activePage = document.querySelector('.page.active');
+  if (!activePage) return;
+  const pageId = activePage.id; // e.g. 'page-companies'
+
+  if (pageId === 'page-companies') {
+    debounce('companies', () => searchFromDB('companies', q));
+    // also update the page search input
+    const inp = activePage.querySelector('.search-bar input');
+    if (inp && inp.value !== q) inp.value = q;
+  } else if (pageId === 'page-leads') {
+    debounce('leads', () => searchFromDB('leads', q));
+    const inp = activePage.querySelector('.search-bar input');
+    if (inp && inp.value !== q) inp.value = q;
+  } else if (pageId === 'page-contacts') {
+    debounce('contacts', () => searchFromDB('contacts', q));
+    const inp = activePage.querySelector('.search-bar input');
+    if (inp && inp.value !== q) inp.value = q;
+  } else if (pageId === 'page-deals') {
+    renderTable('deals', q);
+    const inp = activePage.querySelector('.search-bar input');
+    if (inp && inp.value !== q) inp.value = q;
+  } else if (pageId === 'page-activities') {
+    renderTable('activities', q);
+    const inp = activePage.querySelector('.search-bar input');
+    if (inp && inp.value !== q) inp.value = q;
+  } else if (pageId === 'page-tasks') {
+    renderTable('tasks', q);
+    const inp = activePage.querySelector('.search-bar input');
+    if (inp && inp.value !== q) inp.value = q;
+  } else {
+    // Try searching leads by default
+    if (q) debounce('leads', () => searchFromDB('leads', q));
+  }
 }
 
 function toggleSidebar() {
