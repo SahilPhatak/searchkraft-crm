@@ -51,16 +51,34 @@ function renderDashboard() {
   const todayStr = today();
   const openTasks = DB.tasks.filter(t => t.status === 'Pending' || t.status === 'In Progress');
   const overdueTasks = openTasks.filter(t => (t.dueDate||t.due) && (t.dueDate||t.due) < todayStr);
-  // Last quarter metrics
-  const q = Math.floor(thisMonth/3);
-  const lqMonths = [0,1,2].map(i=>{ const m=(q-1)*3+i; return `${thisYear}-${String(m+1).padStart(2,'0')}`; });
-  const lqDeals = DB.deals.filter(d => lqMonths.some(m=>(d.createdAt||'').startsWith(m)));
-  const lqWon = lqDeals.filter(d=>isWon(d));
+  // Current quarter metrics — Indian FY: Q1=Apr-Jun, Q2=Jul-Sep, Q3=Oct-Dec, Q4=Jan-Mar
+  // Map calendar month (0=Jan) → FY quarter index (0=Q1)
+  const fyQMap = [3,3,3,0,0,0,1,1,1,2,2,2]; // Jan-Mar→Q4(3), Apr-Jun→Q1(0), Jul-Sep→Q2(1), Oct-Dec→Q3(2)
+  const cqIdx = fyQMap[thisMonth]; // current FY quarter index (0-3)
+  // FY quarter month ranges (calendar months, 0-based): Q1=Apr(3)-Jun(5), Q2=Jul(6)-Sep(8), Q3=Oct(9)-Dec(11), Q4=Jan(0)-Mar(2)
+  const fyQMonths = [[3,4,5],[6,7,8],[9,10,11],[0,1,2]];
+  const cqCalMonths = fyQMonths[cqIdx]; // calendar months in this quarter
+  // Build YYYY-MM strings for each month in current quarter
+  const cqYearFor = (m) => (cqIdx === 3 && m <= 2) ? thisYear : thisYear; // Q4 Jan-Mar stays in same year for display
+  const lqMonths = cqCalMonths.map(m => `${thisYear}-${String(m+1).padStart(2,'0')}`);
+  // All deals active or closed in current quarter (created OR won in this quarter)
+  const lqDeals = DB.deals.filter(d => {
+    const dateStr = d.createdAt || '';
+    return lqMonths.some(m => dateStr.startsWith(m));
+  });
+  // Won deals: check wonAt or closeDate falling in this quarter (not just created)
+  const lqWon = DB.deals.filter(d => {
+    if (!isWon(d)) return false;
+    const dateStr = d.wonAt || d.closeDate || d.createdAt || '';
+    return lqMonths.some(m => dateStr.startsWith(m));
+  });
   const lqRevenue = lqWon.reduce((a,d)=>a+Number(d.expectedRevenue||d.amount||d.value||0),0);
   const lqWinRate = lqDeals.length ? Math.round(lqWon.length/lqDeals.length*100) : 0;
   const lqLeads = DB.leads.filter(l=>lqMonths.some(m=>(l.createdAt||'').startsWith(m)));
   const qNames = ['Q1','Q2','Q3','Q4'];
-  const lqLabel = `${qNames[(q-1+4)%4]} ${(q===0)?thisYear-1:thisYear}`;
+  // FY year label: Q1-Q3 use current year FY, Q4 (Jan-Mar) is end of previous FY
+  const fyLabelYear = cqIdx === 3 ? thisYear : thisYear;
+  const lqLabel = `${qNames[cqIdx]} FY${String(fyLabelYear+1).slice(2)}`; // e.g. "Q3 FY27"
 
   const setEl = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
   setEl('stat-leads-month', leadsThisMonth.length);

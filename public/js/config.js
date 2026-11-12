@@ -333,9 +333,9 @@ function isOverdue(d) { return d && d.slice(0,10) < today(); }
 const LEAD_STAGES = ['New','Contacted','Pre Qualified','Qualified','Not Qualified','Junk Lead','Proposal Sent','Negotiation','Follow Up','Won','Lost','Lost Lead'];
 const DEAL_STAGES = ['Offered','Joined','Absconded','Declined'];
 // Stages that count as "won" for revenue calculations
-const WON_STAGES  = new Set(['Joined']);
+const WON_STAGES  = new Set(['Joined','Won','Closed Won','Placed']);
 // Stages that count as "lost"
-const LOST_STAGES = new Set(['Absconded','Declined']);
+const LOST_STAGES = new Set(['Absconded','Declined','Lost','Closed Lost']);
 // Active pipeline stages (not won, not lost)
 function isWon(d)    { return WON_STAGES.has(d.stage); }
 function isLost(d)   { return LOST_STAGES.has(d.stage); }
