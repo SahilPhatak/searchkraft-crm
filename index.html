@@ -2284,7 +2284,7 @@
       <div class="crm-topbar">
         <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">
           <div class="search-bar" style="max-width:220px">
-            <input type="text" placeholder="Search clients…" oninput="searchBO(this.value)" id="bo-search-input">
+            <input type="text" placeholder="Search customers…" oninput="searchBO(this.value)" id="bo-search-input">
           </div>
           <!-- Status filter pills -->
           <div style="display:flex;gap:6px;flex-wrap:wrap" id="bo-filter-pills">
@@ -2311,7 +2311,7 @@
         <table class="crm-table" id="bo-table">
           <thead>
             <tr>
-              <th>Client</th>
+              <th>Customer</th>
               <th>Position</th>
               <th># Pos</th>
               <th>Fixed CTC</th>
@@ -2353,9 +2353,9 @@
         <div class="lf-section-title">Position Details</div>
         <div class="lf-grid">
           <div class="lf-field">
-            <label>Client Name <span style="color:#dc2626">*</span></label>
+            <label>Customer Name <span style="color:#dc2626">*</span></label>
             <select id="bo-clientName">
-              <option value="">— Select Client —</option>
+              <option value="">— Select Customer —</option>
             </select>
           </div>
           <div class="lf-field">
@@ -3477,19 +3477,25 @@ document.addEventListener('DOMContentLoaded', loadPrefs);
 // ============================================================
 
 function renderBusinessOnboarded() {
-  renderBOTable();
-  updateBOKpis();
+  const rows = getFilteredBORows();
+  renderBOTable(rows);
+  updateBOKpis(rows);
   updateNavBadges();
 }
 
-function renderBOTable() {
+function getFilteredBORows() {
   const Q = (_boQuery || '').toLowerCase().trim();
-  const rows = DB.businessOnboarded.filter(r => {
+  return DB.businessOnboarded.filter(r => {
     if (_boFilter !== 'all' && r.status !== _boFilter) return false;
     if (!Q) return true;
     return [r.clientName, r.positionDesc, r.source, r.status, r.deliveryPoc, r.salesPoc]
       .some(v => (v||'').toLowerCase().includes(Q));
   });
+}
+
+function renderBOTable(rows) {
+  if (!rows) rows = getFilteredBORows();
+  updateBOKpis(rows);
 
   const statusStyle = {
     'Active':              { bg:'#dcfce7', color:'#166534' },
@@ -3502,7 +3508,7 @@ function renderBOTable() {
   if (!tbody) return;
 
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="13" style="text-align:center;padding:40px;color:var(--fg3)">
+    tbody.innerHTML = `<tr><td colspan="14" style="text-align:center;padding:40px;color:var(--fg3)">
       No positions found. <button class="btn btn-primary btn-sm" onclick="openBOForm()" style="margin-left:10px">+ Add Position</button>
     </td></tr>`;
     return;
@@ -3516,7 +3522,7 @@ function renderBOTable() {
     const ageDays = ageBase ? Math.floor((Date.now() - ageBase.getTime()) / 86400000) : null;
     const ageColor = ageDays === null ? 'var(--fg3)' : ageDays > 60 ? '#dc2626' : ageDays > 30 ? '#d97706' : '#16a34a';
     return `<tr>
-      <td style="font-weight:600;color:var(--fg)">${esc(r.clientName||'—')}</td>
+      <td style="font-weight:600;color:var(--fg)">${esc(r.clientName||r.client_name||'—')}</td>
       <td>${esc(r.positionDesc||'—')}</td>
       <td style="text-align:center;font-weight:600">${r.numPositions||1}</td>
       <td>${r.fixedCtc ? '₹'+Number(r.fixedCtc).toLocaleString('en-IN') : '—'}</td>
@@ -3539,20 +3545,21 @@ function renderBOTable() {
   }).join('');
 }
 
-function updateBOKpis() {
-  const all = DB.businessOnboarded;
-  const active = all.filter(r => r.status === 'Active').length;
-  const hold   = all.filter(r => r.status === 'Hold').length;
+function updateBOKpis(filtered) {
+  // If filtered rows passed (search/filter active), use those for KPIs; else use all
+  const rows = filtered !== undefined ? filtered : DB.businessOnboarded;
+  const active = rows.filter(r => r.status === 'Active').length;
+  const hold   = rows.filter(r => r.status === 'Hold').length;
   let totalRev = 0;
-  all.forEach(r => { totalRev += boCalcRevenue(r.fixedCtc, r.pct, r.numPositions).total; });
+  rows.forEach(r => { totalRev += boCalcRevenue(r.fixedCtc, r.pct, r.numPositions).total; });
 
   const $n = id => document.getElementById(id);
-  if ($n('bo-kpi-total-n')) $n('bo-kpi-total-n').textContent = all.length;
+  if ($n('bo-kpi-total-n')) $n('bo-kpi-total-n').textContent = rows.length;
   if ($n('bo-kpi-active-n')) $n('bo-kpi-active-n').textContent = active;
   if ($n('bo-kpi-hold-n'))   $n('bo-kpi-hold-n').textContent = hold;
   if ($n('bo-kpi-rev-n'))    $n('bo-kpi-rev-n').textContent = '₹' + totalRev.toLocaleString('en-IN');
   const nb = document.getElementById('nb-business-onboarded');
-  if (nb) { nb.textContent = all.length || ''; nb.style.display = all.length ? '' : 'none'; }
+  if (nb) { nb.textContent = DB.businessOnboarded.length || ''; nb.style.display = DB.businessOnboarded.length ? '' : 'none'; }
 }
 
 function boCalcRevenue(ctc, pct, num) {
@@ -3610,7 +3617,7 @@ function openBOForm(id) {
       [...DB.companies.map(c => c.name||c.companyName), ...DB.businessOnboarded.map(r=>r.clientName)]
       .filter(Boolean).sort()
     ));
-    clientSel.innerHTML = '<option value="">— Select Client —</option>' +
+    clientSel.innerHTML = '<option value="">— Select Customer —</option>' +
       existing.map(n => `<option>${esc(n)}</option>`).join('');
   }
 
@@ -3663,7 +3670,7 @@ function closeBOForm() {
 async function saveBORecord() {
   const clientName  = document.getElementById('bo-clientName')?.value?.trim();
   const positionDesc = document.getElementById('bo-positionDesc')?.value?.trim();
-  if (!clientName)   { showToast('Please select a client name.', '#dc2626'); return; }
+  if (!clientName)   { showToast('Please select a customer name.', '#dc2626'); return; }
   if (!positionDesc) { showToast('Please enter a position description.', '#dc2626'); return; }
 
   const numPos = parseInt(document.getElementById('bo-numPositions')?.value)||1;
