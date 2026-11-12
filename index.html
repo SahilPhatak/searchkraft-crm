@@ -2407,11 +2407,11 @@
           </div>
           <div class="lf-field">
             <label>Calculated Revenue per Position (₹)</label>
-            <input id="bo-revenuePerPos" type="text" readonly style="background:var(--surface2);font-weight:700;color:#16a34a;font-size:15px" placeholder="Auto-calculated">
+            <div id="bo-revenuePerPos" class="bo-calc-field">Auto-calculated</div>
           </div>
           <div class="lf-field">
             <label>Total Estimated Revenue (₹)</label>
-            <input id="bo-totalRevenue" type="text" readonly style="background:var(--surface2);font-weight:700;color:#16a34a;font-size:15px" placeholder="Auto-calculated">
+            <div id="bo-totalRevenue" class="bo-calc-field">Auto-calculated</div>
           </div>
         </div>
 
@@ -3564,8 +3564,16 @@ function calcBORevenue() {
   const fmt = n => n > 0 ? '₹' + n.toLocaleString('en-IN') : '';
   const rpp = document.getElementById('bo-revenuePerPos');
   const rtt = document.getElementById('bo-totalRevenue');
-  if (rpp) rpp.value = fmt(perPos);
-  if (rtt) rtt.value = fmt(total);
+  if (rpp) {
+    const v = fmt(perPos);
+    rpp.textContent = v || 'Auto-calculated';
+    rpp.classList.toggle('has-value', !!v);
+  }
+  if (rtt) {
+    const v = fmt(total);
+    rtt.textContent = v || 'Auto-calculated';
+    rtt.classList.toggle('has-value', !!v);
+  }
 }
 
 function boSetFilter(btn, val) {
@@ -3625,10 +3633,14 @@ function openBOForm(id) {
     calcBORevenue();
   } else {
     ['bo-clientName','bo-positionDesc','bo-source','bo-fixedCtc','bo-pct',
-     'bo-deliveryPoc','bo-salesPoc','bo-notes','bo-revenuePerPos','bo-totalRevenue',
+     'bo-deliveryPoc','bo-salesPoc','bo-notes',
      'bo-startDate','bo-closureMonth'].forEach(id => setVal(id,''));
     setVal('bo-numPositions', 1);
     setVal('bo-status','Active');
+    ['bo-revenuePerPos','bo-totalRevenue'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) { el.textContent = 'Auto-calculated'; el.classList.remove('has-value'); }
+    });
   }
   document.getElementById('bo-numPositions').addEventListener('input', calcBORevenue);
 }
