@@ -563,8 +563,8 @@
     </div>
 
     <!-- ===================== WORKQUEUE ===================== -->
-    <div class="page" id="page-my-day" style="display:none">
-      <div style="display:flex;gap:0;height:calc(100vh - 54px);overflow:hidden;margin:0;padding:0">
+    <div class="page page-crm" id="page-my-day">
+      <div style="display:flex;gap:0;flex:1;overflow:hidden;margin:0;padding:0">
         <!-- Left Panel -->
         <div style="width:270px;min-width:270px;background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;padding:0 0 20px 0">
           <!-- User tab -->
@@ -672,8 +672,8 @@
     </div>
 
     <!-- ===================== CALENDAR ===================== -->
-    <div class="page" id="page-calendar" style="display:none">
-      <div style="display:flex;gap:0;height:calc(100vh - 54px);overflow:hidden;margin:0;padding:0">
+    <div class="page page-crm" id="page-calendar">
+      <div style="display:flex;gap:0;flex:1;overflow:hidden;margin:0;padding:0">
         <!-- Left mini calendar panel -->
         <div style="width:260px;min-width:260px;background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;padding:16px">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
@@ -860,7 +860,7 @@
           </div>
         </div>
         <div style="flex:1;min-width:0;display:flex;flex-direction:column">
-          <div class="table-wrap" style="border-radius:0;border-left:none;border-right:none;border-top:none;flex:1">
+          <div class="table-wrap" style="border-radius:0;border-left:none;border-right:none;border-top:none;flex:1;min-height:0;overflow-y:auto">
             <table>
               <thead><tr>
                 <th style="width:36px"><input type="checkbox" style="accent-color:var(--accent)" onchange="selectAll('companies-body',this)"></th>
@@ -1012,7 +1012,7 @@
           </div>
         </div>
         <div style="flex:1;min-width:0;display:flex;flex-direction:column">
-          <div class="table-wrap" style="border-radius:0;border-left:none;border-right:none;border-top:none;flex:1">
+          <div class="table-wrap" style="border-radius:0;border-left:none;border-right:none;border-top:none;flex:1;min-height:0;overflow-y:auto">
             <table>
               <thead><tr>
                 <th style="width:36px"><input type="checkbox" style="accent-color:var(--accent)" onchange="selectAll('contacts-body',this)"></th>
@@ -1221,8 +1221,8 @@
           </div>
         </div>
         <div style="flex:1;min-width:0;display:flex;flex-direction:column">
-          <div id="leads-list" style="flex:1">
-            <div class="table-wrap" style="border-radius:0;border-left:none;border-right:none;border-top:none">
+          <div id="leads-list" style="flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden">
+            <div class="table-wrap" style="border-radius:0;border-left:none;border-right:none;border-top:none;flex:1;min-height:0;overflow-y:auto">
               <table>
                 <thead><tr>
                   <th style="width:36px"><input type="checkbox" style="accent-color:var(--accent)" onchange="selectAll('leads-body',this)"></th>
@@ -1365,8 +1365,8 @@
           </div>
         </div>
         <div style="flex:1;min-width:0;display:flex;flex-direction:column">
-          <div id="deals-list" style="flex:1">
-            <div class="table-wrap" style="border-radius:0;border-left:none;border-right:none;border-top:none">
+          <div id="deals-list" style="flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden">
+            <div class="table-wrap" style="border-radius:0;border-left:none;border-right:none;border-top:none;flex:1;min-height:0;overflow-y:auto">
               <table>
                 <thead><tr>
                   <th style="width:36px"><input type="checkbox" style="accent-color:var(--accent)"></th>
@@ -1386,7 +1386,7 @@
     </div>
 
     <!-- ===================== ACTIVITIES ===================== -->
-    <div class="page" id="page-activities" style="display:none;flex-direction:column">
+    <div class="page page-crm" id="page-activities">
       <!-- Subtab bar -->
       <div style="display:flex;align-items:center;gap:0;border-bottom:1px solid var(--border);padding:0 24px;background:var(--surface)">
         <div class="crm-subtab active-subtab" onclick="switchActTab('all',this)">All Activities</div>
@@ -1492,7 +1492,7 @@
 
     <!-- ===================== COMMERCIAL ===================== -->
     <!-- ===================== DOCUMENTS ===================== -->
-    <div class="page" id="page-documents" style="display:none;flex-direction:column;height:100%;overflow:hidden">
+    <div class="page page-crm" id="page-documents">
       <!-- Sub-nav tabs -->
       <div style="display:flex;align-items:center;gap:0;border-bottom:1px solid var(--border);background:var(--surface);padding:0 24px;flex-shrink:0">
         <div class="crm-subtab active-subtab" id="doc-tab-dashboard" onclick="switchDocTab('dashboard',this)">Dashboard</div>
@@ -2307,7 +2307,7 @@
       </div>
 
       <!-- Table -->
-      <div class="table-wrap" style="flex:1;overflow:auto;padding:14px 20px 20px">
+      <div class="table-wrap" style="flex:1;min-height:0;overflow:auto;padding:14px 20px 20px">
         <table class="crm-table" id="bo-table">
           <thead>
             <tr>

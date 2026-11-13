@@ -804,7 +804,7 @@ h1,h2,h3,h4,h5,h6,
 .section-title { font-size: 13px; font-weight: 600; color: var(--fg); margin-bottom: 12px; }
 
 /* ---- TABLES ---- */
-.table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); }
+.table-wrap { overflow-x: auto; overflow-y: auto; border-radius: 10px; border: 1px solid var(--border); }
 table { width: 100%; border-collapse: collapse; min-width: 0; }
 th {
   background: var(--surface2);
@@ -817,6 +817,9 @@ th {
   text-align: left;
   white-space: nowrap;
   border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 2;
 }
 td {
   padding: 11px 14px;
@@ -1068,9 +1071,11 @@ textarea { min-height: 80px; resize: vertical; }
 
 /* ---- PAGES (hidden/shown) ---- */
 .page { display: none; }
+/* page-pad / plain pages scroll via the .content wrapper */
 .page.active { display: block; flex: 1; min-height: 0; }
 .page.active.page-flex { display: flex; flex: 1; min-height: 0; }
-.page.active.page-crm { display: flex !important; flex-direction: column; flex: 1; min-height: 0; }
+/* CRM list pages fill the content area and scroll internally */
+.page.active.page-crm { display: flex !important; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
 /* Setup page: fill the content area, flex column, no overflow on self */
 #page-setup {
   display: none;
