@@ -375,7 +375,7 @@
           <div class="kpi-label">Total Positions</div>
           <div class="kpi-value" id="stat-bo-total" style="color:#0d9488">—</div>
           <div class="kpi-sub">
-            <span id="stat-bo-active-n" style="color:#16a34a;font-weight:700">—</span>&nbsp;<span style="color:var(--fg3)">active</span>&nbsp;·&nbsp;<span id="stat-bo-hold-n" style="color:#ca8a04;font-weight:700">—</span>&nbsp;<span style="color:var(--fg3)">on hold</span>
+            <span id="stat-bo-active-n" style="color:#16a34a;font-weight:700">—</span>&nbsp;<span style="color:var(--fg3)">active</span>&nbsp;·&nbsp;<span id="stat-bo-hold-n" style="color:#ca8a04;font-weight:700">—</span>&nbsp;<span style="color:var(--fg3)">hold</span>&nbsp;·&nbsp;<span id="stat-bo-closed-int-n" style="color:#6366f1;font-weight:700">—</span>&nbsp;<span style="color:var(--fg3)">closed</span>
           </div>
         </div>
 
@@ -2316,6 +2316,7 @@
         <div class="bo-kpi" id="bo-kpi-total"><span class="bo-kpi-num" id="bo-kpi-total-n">0</span><span class="bo-kpi-lbl">Total Positions</span></div>
         <div class="bo-kpi" id="bo-kpi-active"><span class="bo-kpi-num" id="bo-kpi-active-n">0</span><span class="bo-kpi-lbl">Active</span></div>
         <div class="bo-kpi" id="bo-kpi-hold"><span class="bo-kpi-num" id="bo-kpi-hold-n">0</span><span class="bo-kpi-lbl">On Hold</span></div>
+        <div class="bo-kpi" id="bo-kpi-closed-int"><span class="bo-kpi-num" id="bo-kpi-closed-int-n" style="color:#6366f1">0</span><span class="bo-kpi-lbl">Closed Internally</span></div>
         <div class="bo-kpi" id="bo-kpi-rev"><span class="bo-kpi-num" id="bo-kpi-rev-n">₹0</span><span class="bo-kpi-lbl">Est. Revenue</span></div>
       </div>
 
@@ -3626,19 +3627,21 @@ function renderBOTable(rows) {
 function updateBOKpis(filtered) {
   // If filtered rows passed (search/filter active), use those for KPIs; else use all
   const rows = filtered !== undefined ? filtered : DB.businessOnboarded;
-  // Sum numPositions (not count of records) for total/active/hold
+  // Sum numPositions (not count of records) for total/active/hold/closed-internally
   const sumPos = arr => arr.reduce((sum, r) => sum + (parseInt(r.numPositions) || 1), 0);
-  const totalPos = sumPos(rows);
-  const active   = sumPos(rows.filter(r => r.status === 'Active'));
-  const hold     = sumPos(rows.filter(r => r.status === 'Hold'));
+  const totalPos   = sumPos(rows);
+  const active     = sumPos(rows.filter(r => r.status === 'Active'));
+  const hold       = sumPos(rows.filter(r => r.status === 'Hold'));
+  const closedInt  = sumPos(rows.filter(r => r.status === 'Closed Internally'));
   let totalRev = 0;
   rows.forEach(r => { totalRev += boCalcRevenue(r.fixedCtc, r.pct, r.numPositions).total; });
 
   const $n = id => document.getElementById(id);
-  if ($n('bo-kpi-total-n')) $n('bo-kpi-total-n').textContent = totalPos;
-  if ($n('bo-kpi-active-n')) $n('bo-kpi-active-n').textContent = active;
-  if ($n('bo-kpi-hold-n'))   $n('bo-kpi-hold-n').textContent = hold;
-  if ($n('bo-kpi-rev-n'))    $n('bo-kpi-rev-n').textContent = '₹' + totalRev.toLocaleString('en-IN');
+  if ($n('bo-kpi-total-n'))      $n('bo-kpi-total-n').textContent = totalPos;
+  if ($n('bo-kpi-active-n'))     $n('bo-kpi-active-n').textContent = active;
+  if ($n('bo-kpi-hold-n'))       $n('bo-kpi-hold-n').textContent = hold;
+  if ($n('bo-kpi-closed-int-n')) $n('bo-kpi-closed-int-n').textContent = closedInt;
+  if ($n('bo-kpi-rev-n'))        $n('bo-kpi-rev-n').textContent = '₹' + totalRev.toLocaleString('en-IN');
   const nb = document.getElementById('nb-business-onboarded');
   if (nb) { nb.textContent = DB.businessOnboarded.length || ''; nb.style.display = DB.businessOnboarded.length ? '' : 'none'; }
 }
@@ -4652,8 +4655,10 @@ function renderDashboard() {
   setEl('stat-bo-total', sumBoPos(boAll));
   const boActiveEl = document.getElementById('stat-bo-active-n');
   const boHoldEl   = document.getElementById('stat-bo-hold-n');
-  if (boActiveEl) boActiveEl.textContent = sumBoPos(boAll.filter(r=>r.status==='Active'));
-  if (boHoldEl)   boHoldEl.textContent   = sumBoPos(boAll.filter(r=>r.status==='Hold'));
+  const boClosedIntEl = document.getElementById('stat-bo-closed-int-n');
+  if (boActiveEl)    boActiveEl.textContent    = sumBoPos(boAll.filter(r=>r.status==='Active'));
+  if (boHoldEl)      boHoldEl.textContent      = sumBoPos(boAll.filter(r=>r.status==='Hold'));
+  if (boClosedIntEl) boClosedIntEl.textContent = sumBoPos(boAll.filter(r=>r.status==='Closed Internally'));
 
   setEl('stat-leads-month', leadsThisMonth.length);
   setEl('stat-deals-month', dealsThisMonth.length);
