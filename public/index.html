@@ -367,6 +367,18 @@
           </div>
         </div>
 
+        <!-- Business Onboarded — Teal -->
+        <div class="dash-kpi-card" onclick="navigateTo('business-onboarded')" style="--kpi-color:#0d9488;cursor:pointer">
+          <div class="kpi-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2.2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+          <div class="kpi-label">Total Positions</div>
+          <div class="kpi-value" id="stat-bo-total" style="color:#0d9488">—</div>
+          <div class="kpi-sub">
+            <span id="stat-bo-active-n" style="color:#16a34a;font-weight:700">—</span>&nbsp;<span style="color:var(--fg3)">active</span>&nbsp;·&nbsp;<span id="stat-bo-hold-n" style="color:#ca8a04;font-weight:700">—</span>&nbsp;<span style="color:var(--fg3)">on hold</span>
+          </div>
+        </div>
+
       </div>
 
 
@@ -3045,7 +3057,7 @@ const ICON_TRASH = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" 
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function fmt(n) { const num = Number(n)||0; return '₹' + num.toLocaleString('en-IN', {maximumFractionDigits:2}); }
 function fmtDate(d) { if(!d) return '—'; try { return new Date(d).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}); } catch(e) { return d; } }
-function today() { return new Date().toISOString().slice(0,10); }
+function today() { const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function isToday(d) { return d && d.slice(0,10) === today(); }
 function isOverdue(d) { return d && d.slice(0,10) < today(); }
 
@@ -3614,13 +3626,16 @@ function renderBOTable(rows) {
 function updateBOKpis(filtered) {
   // If filtered rows passed (search/filter active), use those for KPIs; else use all
   const rows = filtered !== undefined ? filtered : DB.businessOnboarded;
-  const active = rows.filter(r => r.status === 'Active').length;
-  const hold   = rows.filter(r => r.status === 'Hold').length;
+  // Sum numPositions (not count of records) for total/active/hold
+  const sumPos = arr => arr.reduce((sum, r) => sum + (parseInt(r.numPositions) || 1), 0);
+  const totalPos = sumPos(rows);
+  const active   = sumPos(rows.filter(r => r.status === 'Active'));
+  const hold     = sumPos(rows.filter(r => r.status === 'Hold'));
   let totalRev = 0;
   rows.forEach(r => { totalRev += boCalcRevenue(r.fixedCtc, r.pct, r.numPositions).total; });
 
   const $n = id => document.getElementById(id);
-  if ($n('bo-kpi-total-n')) $n('bo-kpi-total-n').textContent = rows.length;
+  if ($n('bo-kpi-total-n')) $n('bo-kpi-total-n').textContent = totalPos;
   if ($n('bo-kpi-active-n')) $n('bo-kpi-active-n').textContent = active;
   if ($n('bo-kpi-hold-n'))   $n('bo-kpi-hold-n').textContent = hold;
   if ($n('bo-kpi-rev-n'))    $n('bo-kpi-rev-n').textContent = '₹' + totalRev.toLocaleString('en-IN');
@@ -4631,6 +4646,15 @@ function renderDashboard() {
   const lqLabel = `${qNames[cqIdx]} FY${String(fyLabelYear+1).slice(2)}`; // e.g. "Q3 FY27"
 
   const setEl = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
+  // Business Onboarded KPI on dashboard
+  const boAll = DB.businessOnboarded || [];
+  const sumBoPos = arr => arr.reduce((s,r) => s + (parseInt(r.numPositions)||1), 0);
+  setEl('stat-bo-total', sumBoPos(boAll));
+  const boActiveEl = document.getElementById('stat-bo-active-n');
+  const boHoldEl   = document.getElementById('stat-bo-hold-n');
+  if (boActiveEl) boActiveEl.textContent = sumBoPos(boAll.filter(r=>r.status==='Active'));
+  if (boHoldEl)   boHoldEl.textContent   = sumBoPos(boAll.filter(r=>r.status==='Hold'));
+
   setEl('stat-leads-month', leadsThisMonth.length);
   setEl('stat-deals-month', dealsThisMonth.length);
   setEl('stat-month-name', monthNames[thisMonth]);
@@ -5862,14 +5886,20 @@ async function gcalFetchEvents() {
     const r = await fetch(url, { headers: { Authorization: 'Bearer ' + gcalAccessToken } });
     if (r.status === 401) { disconnectGoogleCalendar(); return; }
     const data = await r.json();
-    gcalEvents = (data.items || []).map(ev => ({
-      id: ev.id,
-      label: ev.summary && ev.summary.trim() ? ev.summary.trim() : '(No title)',
-      date: (ev.start?.date || ev.start?.dateTime || '').slice(0, 10),
-      time: ev.start?.dateTime ? ev.start.dateTime.slice(11, 16) : '',
-      link: ev.htmlLink || '',
-      isGcal: true
-    })).filter(e => e.date && e.date.length === 10);
+    gcalEvents = (data.items || []).map(ev => {
+      // For all-day events: ev.start.date is already YYYY-MM-DD local date
+      // For timed events: ev.start.dateTime is an ISO string with tz offset — parse via Date to get local date
+      let date = '';
+      let time = '';
+      if (ev.start?.date) {
+        date = ev.start.date; // already local date
+      } else if (ev.start?.dateTime) {
+        const d = new Date(ev.start.dateTime);
+        date = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+        time = String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+      }
+      return { id: ev.id, label: ev.summary && ev.summary.trim() ? ev.summary.trim() : '(No title)', date, time, link: ev.htmlLink||'', isGcal: true };
+    }).filter(e => e.date && e.date.length === 10);
     renderCalendarGrid(); // Re-render immediately after gcal events load
   } catch(e) {
     console.error('gcalFetchEvents error', e);
