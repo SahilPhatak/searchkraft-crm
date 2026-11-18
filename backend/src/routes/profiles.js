@@ -23,9 +23,10 @@ router.get('/:id', requireAuth, async (req, res) => {
 });
 
 router.post('/', requireAuth, async (req, res) => {
+  // Use upsert so creating a profile that already exists doesn't fail
   const { data, error } = await supabase
     .from('profiles')
-    .insert(req.body)
+    .upsert(req.body, { onConflict: 'id' })
     .select()
     .single();
   if (error) return res.status(400).json({ error: error.message });
