@@ -4470,20 +4470,14 @@ async function syncWonLeadToContactAndAccount(lead) {
     const merged = { ...existingContact, ...contactData, id: existingContact.id, updatedAt: now, updated_at: now };
     const idx = DB.contacts.findIndex(c => c.id === existingContact.id);
     if (idx >= 0) DB.contacts[idx] = merged;
-    const tbl = SUPA_TABLE['contacts'];
-    if (tbl) {
-      const { error } = await DB_CLIENT.from(tbl).upsert(toSupabase('contacts', merged), { onConflict: 'id' });
-      if (error) console.warn('Won lead→Contact update failed:', error.message);
-    }
+    apiFetch('/api/contacts/' + existingContact.id, { method: 'PUT', body: JSON.stringify(toSupabase('contacts', merged)) })
+      .catch(e => console.warn('Won lead→Contact update failed:', e.message));
   } else {
     const newId      = uid();
     const newContact = { id: newId, createdAt: now, created_at: now, updatedAt: now, updated_at: now, ...contactData };
     DB.contacts.unshift(newContact);
-    const tbl = SUPA_TABLE['contacts'];
-    if (tbl) {
-      const { error } = await DB_CLIENT.from(tbl).upsert(toSupabase('contacts', newContact), { onConflict: 'id' });
-      if (error) console.warn('Won lead→Contact create failed:', error.message);
-    }
+    apiFetch('/api/contacts', { method: 'POST', body: JSON.stringify(toSupabase('contacts', newContact)) })
+      .catch(e => console.warn('Won lead→Contact create failed:', e.message));
   }
 
   // ── 2. ACCOUNT (Company) sync ─────────────────────────────────────
