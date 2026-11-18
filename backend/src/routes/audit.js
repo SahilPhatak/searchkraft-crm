@@ -26,4 +26,14 @@ router.post('/', requireAuth, async (req, res) => {
   res.status(201).json(data);
 });
 
+// DELETE /api/audit/user/:userId — delete all audit logs for a user (used before deleting a user)
+router.delete('/user/:userId', requireAuth, async (req, res) => {
+  const { error } = await supabase
+    .from('audit_logs')
+    .delete()
+    .eq('user_id', req.params.userId);
+  if (error) return res.status(400).json({ error: error.message });
+  res.json({ success: true });
+});
+
 module.exports = router;
