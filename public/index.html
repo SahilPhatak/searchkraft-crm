@@ -2732,6 +2732,42 @@ const SUPA_URL  = 'https://yeidlmkdwyiqavkxnlhs.supabase.co';
 const SUPA_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InllaWRsbWtkd3lpcWF2a3hubGhzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM0MjE0OTAsImV4cCI6MjEwODk5NzQ5MH0.7yBHL273FCl9oQYmhxET5QKn3AbW44yh7Zxr2nrb2LE';
 const DB_CLIENT = window.supabase.createClient(SUPA_URL, SUPA_KEY);
 
+// ---- BACKEND API HELPER ----
+// All CRM data reads/writes go through the Express backend on Render.
+// Auth, realtime, storage, and profile/gcal calls stay on Supabase directly.
+const BACKEND_URL = 'https://searchkraft-crm.onrender.com';
+
+// Map Supabase table names → backend route paths
+const TABLE_TO_ROUTE = {
+  leads:              '/api/leads',
+  contacts:           '/api/contacts',
+  companies:          '/api/companies',
+  deals:              '/api/deals',
+  tasks:              '/api/tasks',
+  activities:         '/api/activities',
+  profiles:           '/api/profiles',
+  documents:          '/api/documents',
+  audit_logs:         '/api/audit',
+  business_onboarded: '/api/business-onboarded',
+};
+
+async function _apiToken() {
+  const { data: { session } } = await DB_CLIENT.auth.getSession();
+  return session ? session.access_token : null;
+}
+
+async function apiFetch(path, options = {}) {
+  const token = await _apiToken();
+  const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+  if (token) headers['Authorization'] = 'Bearer ' + token;
+  const res = await fetch(BACKEND_URL + path, { ...options, headers });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(err.error || res.statusText);
+  }
+  return res.json();
+}
+
 // ---- DATA STORE (local cache, synced from Supabase) ----
 let DB = {
   companies: [], contacts: [], leads: [], deals: [], activities: [],
@@ -2952,50 +2988,64 @@ function deliveryField(fieldId, currentVal) {
   return `<select id="f-${fieldId}">${names.map(m=>`<option ${(currentVal||cu)===m?'selected':''}>${m}</option>`).join('')}</select>`;
 }
 
-// ---- SUPABASE DATA SYNC ----
-// save() — upserts a single record into Supabase, then updates local DB cache
+// ---- BACKEND DATA SYNC ----
+// saveRecord() — upserts a single record via backend API
 async function saveRecord(table, record) {
   try {
-    const { error } = await DB_CLIENT.from(table).upsert(record, { onConflict: 'id' });
-    if (error) console.error('Supabase save error:', error.message);
-  } catch(e) { console.error('saveRecord failed:', e); }
+    const route = TABLE_TO_ROUTE[table];
+    if (!route) {
+      // Fallback to Supabase direct for unmapped tables
+      const { error } = await DB_CLIENT.from(table).upsert(record, { onConflict: 'id' });
+      if (error) console.error('Supabase save error:', error.message);
+      return;
+    }
+    if (record.id) {
+      await apiFetch(route + '/' + record.id, { method: 'PUT', body: JSON.stringify(record) });
+    } else {
+      await apiFetch(route, { method: 'POST', body: JSON.stringify(record) });
+    }
+  } catch(e) { console.error('saveRecord failed:', e.message); }
 }
 
 async function deleteRecord(table, id) {
   try {
-    const { error } = await DB_CLIENT.from(table).delete().eq('id', id);
-    if (error) console.error('Supabase delete error:', error.message);
-  } catch(e) { console.error('deleteRecord failed:', e); }
+    const route = TABLE_TO_ROUTE[table];
+    if (!route) {
+      // Fallback to Supabase direct for unmapped tables
+      const { error } = await DB_CLIENT.from(table).delete().eq('id', id);
+      if (error) console.error('Supabase delete error:', error.message);
+      return;
+    }
+    await apiFetch(route + '/' + id, { method: 'DELETE' });
+  } catch(e) { console.error('deleteRecord failed:', e.message); }
 }
 
-// load() — fetches all CRM data from Supabase into local DB cache
-// Graceful: if a table doesn't exist yet, that collection stays empty
+// load() — fetches all CRM data via backend API into local DB cache
+// Graceful: if a request fails, that collection stays as-is
 async function load() {
-  const safe = async (query, label) => {
+  const safe = async (path, label) => {
     try {
-      const r = await query;
-      if (r.error) {
-        console.error(`load() failed for [${label}]:`, r.error.message);
-        return null; // null = failed, don't overwrite existing DB cache
-      }
-      return r.data || [];
+      const data = await apiFetch(path);
+      return Array.isArray(data) ? data : [];
+    } catch(e) {
+      console.error(`load() failed for [${label}]:`, e.message);
+      return null; // null = failed, don't overwrite existing DB cache
     }
-    catch(e) { console.error(`load() exception [${label}]:`, e); return null; }
   };
   const [leads, contacts, companies, deals, tasks, activities, users, documents, auditRows] = await Promise.all([
-    safe(DB_CLIENT.from('leads').select('*').order('created_at', { ascending: false }), 'leads'),
-    safe(DB_CLIENT.from('contacts').select('*').order('created_at', { ascending: false }), 'contacts'),
-    safe(DB_CLIENT.from('companies').select('*').order('created_at', { ascending: false }), 'companies'),
-    safe(DB_CLIENT.from('deals').select('*').order('created_at', { ascending: false }), 'deals'),
-    safe(DB_CLIENT.from('tasks').select('*').order('created_at', { ascending: false }), 'tasks'),
-    safe(DB_CLIENT.from('activities').select('*').order('created_at', { ascending: false }), 'activities'),
-    safe(DB_CLIENT.from('profiles').select('*').order('created_at', { ascending: true }), 'profiles'),
-    safe(DB_CLIENT.from('documents').select('*').order('created_at', { ascending: false }), 'documents'),
-    safe(DB_CLIENT.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(200), 'audit_logs'),
+    safe('/api/leads',              'leads'),
+    safe('/api/contacts',           'contacts'),
+    safe('/api/companies',          'companies'),
+    safe('/api/deals',              'deals'),
+    safe('/api/tasks',              'tasks'),
+    safe('/api/activities',         'activities'),
+    safe('/api/profiles',           'profiles'),
+    safe('/api/documents',          'documents'),
+    safe('/api/audit',              'audit_logs'),
   ]);
   // Use the global normRecord function (defined at top of config.js)
   const norm = normRecord;
-  // Only overwrite DB cache if Supabase returned data (null = query failed, keep existing cache)
+  // Only overwrite DB cache if backend returned data (null = request failed, keep existing cache)
   if (leads      !== null) DB.leads      = leads.map(norm);
   if (contacts   !== null) DB.contacts   = contacts.map(norm);
   if (companies  !== null) DB.companies  = companies.map(norm);
@@ -3004,7 +3054,7 @@ async function load() {
   if (activities !== null) DB.activities = activities.map(norm);
   if (users      !== null) DB.users      = users.map(norm);
   if (documents  !== null) DB.documents  = documents.map(norm);
-  // Load audit log from Supabase (merge with any in-memory entries from this session)
+  // Load audit log from backend (merge with any in-memory entries from this session)
   const auditFromDB = (auditRows||[]).map(r => ({
     id: r.id, ts: r.created_at, user: r.user_name, action: r.action, module: r.module, record: r.record_name
   }));
@@ -3031,9 +3081,9 @@ async function audit(action, module, record) {
   };
   DB.audit.unshift(entry);
   if (DB.audit.length > 500) DB.audit = DB.audit.slice(0, 500);
-  // Persist to Supabase audit_logs table
+  // Persist to backend audit_logs
   try {
-    DB_CLIENT.from('audit_logs').insert({
+    apiFetch('/api/audit', { method: 'POST', body: JSON.stringify({
       id: entry.id,
       user_name: entry.user,
       user_id: entry.user_id,
@@ -3041,7 +3091,7 @@ async function audit(action, module, record) {
       module: entry.module,
       record_name: entry.record,
       created_at: entry.ts
-    }).then(({ error }) => { if (error) console.warn('Audit log write:', error.message); });
+    }) }).catch(e => console.warn('Audit log write:', e.message));
   } catch(e) { /* silent — audit is best-effort */ }
 }
 function uid() {
@@ -3819,24 +3869,17 @@ async function saveBORecord() {
   try {
     let saved;
     if (_boEditId) {
-      const { data, error } = await DB_CLIENT.from('business_onboarded').update(payload).eq('id', _boEditId).select().single();
-      if (error) throw error;
-      saved = data;
+      saved = await apiFetch('/api/business-onboarded/' + _boEditId, { method: 'PUT', body: JSON.stringify(payload) });
       const idx = DB.businessOnboarded.findIndex(x=>x.id==_boEditId);
       if (idx>=0) DB.businessOnboarded[idx] = normBORecord(saved);
     } else {
-      const { data, error } = await DB_CLIENT.from('business_onboarded').insert({...payload, created_at: new Date().toISOString()}).select().single();
-      if (error) throw error;
-      saved = data;
+      saved = await apiFetch('/api/business-onboarded', { method: 'POST', body: JSON.stringify({...payload, created_at: new Date().toISOString()}) });
       DB.businessOnboarded.unshift(normBORecord(saved));
     }
-    // Try to also save start_date / closure_month (columns added via migration)
-    // Silently ignore if columns don't exist yet in schema cache
+    // Try to also save start_date / closure_month
     if (saved && (startDateVal || closureMonthVal)) {
       try {
-        await DB_CLIENT.from('business_onboarded')
-          .update({ start_date: startDateVal, closure_month: closureMonthVal, updated_at: new Date().toISOString() })
-          .eq('id', saved.id);
+        await apiFetch('/api/business-onboarded/' + saved.id, { method: 'PUT', body: JSON.stringify({ start_date: startDateVal, closure_month: closureMonthVal, updated_at: new Date().toISOString() }) });
       } catch(e2) { /* columns not migrated yet — ignore */ }
     }
     showToast(_boEditId ? 'Position updated!' : 'Position added!', '#16a34a');
@@ -3853,8 +3896,8 @@ async function saveBORecord() {
 async function deleteBORecord(id) {
   if (!confirm('Delete this position?')) return;
   try {
-    await DB_CLIENT.from('business_onboarded').delete().eq('id', id);
-  } catch(e) { console.warn('DB delete failed:', e.message); }
+    await apiFetch('/api/business-onboarded/' + id, { method: 'DELETE' });
+  } catch(e) { console.warn('API delete failed:', e.message); }
   DB.businessOnboarded = DB.businessOnboarded.filter(x => x.id != id);
   renderBOTable(getFilteredBORows());
   showToast('Position deleted', '#dc2626');
@@ -3878,12 +3921,11 @@ function normBORecord(r) {
   };
 }
 
-// Load business_onboarded from Supabase on startup
+// Load business_onboarded from backend on startup
 async function loadBusinessOnboarded() {
   try {
-    const { data, error } = await DB_CLIENT.from('business_onboarded').select('*').order('created_at', { ascending: false });
-    if (error) throw error;
-    if (data) DB.businessOnboarded = data.map(normBORecord);
+    const data = await apiFetch('/api/business-onboarded');
+    if (Array.isArray(data)) DB.businessOnboarded = data.map(normBORecord);
   } catch(e) {
     console.error('business_onboarded load error:', e.message, e);
     showToast('Business Onboarded load failed: ' + e.message, '#dc2626');
@@ -4299,14 +4341,27 @@ async function upsert(collection, id, data) {
     audit('Create', collection, data.name||data.title||newId);
     id = newId;
   }
-  // Persist to Supabase — await so errors surface immediately
+  // Persist via backend API — await so errors surface immediately
   const tbl = SUPA_TABLE[collection];
   if (tbl) {
+    const route = TABLE_TO_ROUTE[tbl];
     const payload = toSupabase(collection, mergedData);
-    const { error } = await DB_CLIENT.from(tbl).upsert(payload, { onConflict: 'id' });
-    if (error) {
-      console.error('Supabase upsert error:', error.message, payload);
-      if (typeof showToast === 'function') showToast('⚠️ Save failed: ' + error.message, '#dc2626');
+    try {
+      if (route) {
+        // Use backend API
+        if (data.id || mergedData.id) {
+          await apiFetch(route + '/' + (data.id || mergedData.id), { method: 'PUT', body: JSON.stringify(payload) });
+        } else {
+          await apiFetch(route, { method: 'POST', body: JSON.stringify(payload) });
+        }
+      } else {
+        // Fallback to Supabase direct for unmapped tables
+        const { error } = await DB_CLIENT.from(tbl).upsert(payload, { onConflict: 'id' });
+        if (error) throw new Error(error.message);
+      }
+    } catch(err) {
+      console.error('API upsert error:', err.message, payload);
+      if (typeof showToast === 'function') showToast('⚠️ Save failed: ' + err.message, '#dc2626');
       // DO NOT close modal — let user retry
       return;
     }
@@ -4361,24 +4416,18 @@ async function syncLeadToContact(lead) {
     const merged = { ...existing, ...contactData, id: existing.id, updatedAt: now, updated_at: now };
     const idx = DB.contacts.findIndex(c => c.id === existing.id);
     if (idx >= 0) DB.contacts[idx] = merged;
-    // Persist to Supabase
-    const tbl = SUPA_TABLE['contacts'];
-    if (tbl) {
-      const payload = toSupabase('contacts', merged);
-      const { error } = await DB_CLIENT.from(tbl).upsert(payload, { onConflict: 'id' });
-      if (error) console.warn('Lead→Contact sync update failed:', error.message);
-    }
+    // Persist via backend
+    const payload = toSupabase('contacts', merged);
+    apiFetch('/api/contacts/' + existing.id, { method: 'PUT', body: JSON.stringify(payload) })
+      .catch(e => console.warn('Lead→Contact sync update failed:', e.message));
   } else {
     // Create new contact
     const newId = uid();
     const newContact = { id: newId, createdAt: now, created_at: now, updatedAt: now, updated_at: now, ...contactData };
     DB.contacts.unshift(newContact);
-    const tbl = SUPA_TABLE['contacts'];
-    if (tbl) {
-      const payload = toSupabase('contacts', newContact);
-      const { error } = await DB_CLIENT.from(tbl).upsert(payload, { onConflict: 'id' });
-      if (error) console.warn('Lead→Contact sync create failed:', error.message);
-    }
+    const payload = toSupabase('contacts', newContact);
+    apiFetch('/api/contacts', { method: 'POST', body: JSON.stringify(payload) })
+      .catch(e => console.warn('Lead→Contact sync create failed:', e.message));
   }
 }
 
@@ -4477,20 +4526,14 @@ async function syncWonLeadToContactAndAccount(lead) {
       };
       const idx = DB.companies.findIndex(c => c.id === existingCompany.id);
       if (idx >= 0) DB.companies[idx] = merged;
-      const tbl = SUPA_TABLE['companies'];
-      if (tbl) {
-        const { error } = await DB_CLIENT.from(tbl).upsert(toSupabase('companies', merged), { onConflict: 'id' });
-        if (error) console.warn('Won lead→Account update failed:', error.message);
-      }
+      apiFetch('/api/companies/' + existingCompany.id, { method: 'PUT', body: JSON.stringify(toSupabase('companies', merged)) })
+        .catch(e => console.warn('Won lead→Account update failed:', e.message));
     } else {
       const newId      = uid();
       const newCompany = { id: newId, createdAt: now, created_at: now, updatedAt: now, updated_at: now, ...accountData };
       DB.companies.unshift(newCompany);
-      const tbl = SUPA_TABLE['companies'];
-      if (tbl) {
-        const { error } = await DB_CLIENT.from(tbl).upsert(toSupabase('companies', newCompany), { onConflict: 'id' });
-        if (error) console.warn('Won lead→Account create failed:', error.message);
-      }
+      apiFetch('/api/companies', { method: 'POST', body: JSON.stringify(toSupabase('companies', newCompany)) })
+        .catch(e => console.warn('Won lead→Account create failed:', e.message));
     }
   }
 }
@@ -4510,8 +4553,14 @@ async function deleteCRMRecord(collection, id) {
   audit('Delete', collection, label);
   const tbl = SUPA_TABLE[collection];
   if (tbl) {
-    DB_CLIENT.from(tbl).delete().eq('id', id)
-      .then(({ error }) => { if (error) console.error('Supabase delete error:', error.message); });
+    const route = TABLE_TO_ROUTE[tbl];
+    if (route) {
+      apiFetch(route + '/' + id, { method: 'DELETE' })
+        .catch(e => console.error('API delete error:', e.message));
+    } else {
+      DB_CLIENT.from(tbl).delete().eq('id', id)
+        .then(({ error }) => { if (error) console.error('Supabase delete error:', error.message); });
+    }
   }
   refreshCurrentPage();
 }
@@ -6216,8 +6265,8 @@ async function dropLeadCard(e, newStage) {
   const lead = DB.leads.find(l=>l.id===_dragLeadId);
   if (!lead || lead.stage===newStage) { _dragLeadId=null; return; }
   lead.stage = newStage;
-  // Persist to Supabase
-  await DB_CLIENT.from('leads').update({ stage: newStage, updated_at: new Date().toISOString() }).eq('id', lead.id);
+  // Persist via backend
+  await apiFetch('/api/leads/' + lead.id, { method: 'PUT', body: JSON.stringify({ stage: newStage, updated_at: new Date().toISOString() }) });
   audit('Update', 'Leads', lead.title||'Lead', `Stage → ${newStage}`);
   _dragLeadId = null;
   renderLeadsBoard();
@@ -7702,6 +7751,7 @@ async function deleteUser(userId) {
   try {
     if (dbUser) {
       // Step 1: Delete audit_logs for this user first (foreign key constraint)
+      // Uses Supabase direct — backend /api/audit only supports full delete by id
       await DB_CLIENT.from('audit_logs').delete().eq('user_id', dbUser.id);
       // Step 2: Delete the profile row
       const { data, error, status, statusText } = await DB_CLIENT
@@ -8247,7 +8297,7 @@ async function dropDealCard(e, newStage) {
     deal.lostAt = deal.closeDate || new Date().toISOString().slice(0,10);
     update.lost_at = deal.lostAt;
   }
-  await DB_CLIENT.from('deals').update(update).eq('id', deal.id);
+  await apiFetch('/api/deals/' + deal.id, { method: 'PUT', body: JSON.stringify(update) });
   audit('Update', 'Deals', deal.name||'Deal', `Stage → ${newStage}`);
   _dragDealId = null;
   renderDealsBoard();
@@ -8397,7 +8447,7 @@ const MODAL_FORMS = {
           company: r.name
         };
         try {
-          await DB_CLIENT.from('activities').insert([snakeCaseKeys(notifActivity, SUPA_COLS.activities)]);
+          await apiFetch('/api/activities', { method: 'POST', body: JSON.stringify(snakeCaseKeys(notifActivity, SUPA_COLS.activities)) });
         } catch(e) { console.warn('Notification activity insert failed', e); }
       }
     }
