@@ -1,0 +1,29 @@
+name: Deploy Frontend to Vercel
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'public/**'
+      - 'index.html'
+      - '.github/workflows/deploy-frontend.yml'
+
+jobs:
+  deploy:
+    name: Deploy to Vercel
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
+
+      - name: Deploy to Vercel Production
+        run: vercel --prod --token=${{ secrets.VERCEL_TOKEN }} --yes
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        # Set these secrets in GitHub repo → Settings → Secrets:
+        # VERCEL_TOKEN     → Vercel dashboard → Settings → Tokens
+        # VERCEL_ORG_ID    → run `vercel whoami` or check .vercel/project.json
+        # VERCEL_PROJECT_ID→ same .vercel/project.json file
