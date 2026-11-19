@@ -2,26 +2,32 @@ import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/authStore'
+import { useUiStore } from '@/store/uiStore'
 import { AppLayout } from '@/components/layout/AppLayout'
+
+// Pages (mix of named + default exports)
 import { Login } from '@/pages/Login'
 import { Dashboard } from '@/pages/Dashboard'
-import { Leads } from '@/pages/Leads'
 import { Contacts } from '@/pages/Contacts'
 import { Companies } from '@/pages/Companies'
-import { Deals } from '@/pages/Deals'
 import { Tasks } from '@/pages/Tasks'
 import { Activities } from '@/pages/Activities'
 import { Documents } from '@/pages/Documents'
 import { Business } from '@/pages/Business'
 import { Calendar } from '@/pages/Calendar'
-import { Setup } from '@/pages/Setup'
+
+// New pages (default exports)
+import Leads from '@/pages/Leads'
+import Deals from '@/pages/Deals'
+import Setup from '@/pages/Setup'
+import Reports from '@/pages/Reports'
+import AuditLog from '@/pages/AuditLog'
+import Team from '@/pages/Team'
+import PersonalSettings from '@/pages/PersonalSettings'
 
 const queryClient = new QueryClient({
   defaultOptions: {
-    queries: {
-      staleTime: 1000 * 30,
-      retry: 1,
-    },
+    queries: { staleTime: 1000 * 30, retry: 1 },
   },
 })
 
@@ -38,7 +44,21 @@ function ProtectedRoute({ children }) {
 
 function AppInitializer({ children }) {
   const { initialize } = useAuthStore()
-  useEffect(() => { initialize() }, [])
+  const { theme } = useUiStore()
+
+  useEffect(() => {
+    initialize()
+  }, [])
+
+  // Apply theme on mount
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
+  }, [theme])
+
   return children
 }
 
@@ -49,14 +69,7 @@ export default function App() {
         <AppInitializer>
           <Routes>
             <Route path="/login" element={<Login />} />
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <AppLayout />
-                </ProtectedRoute>
-              }
-            >
+            <Route path="/" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
               <Route index element={<Navigate to="/dashboard" replace />} />
               <Route path="dashboard"  element={<Dashboard />} />
               <Route path="leads"      element={<Leads />} />
@@ -69,6 +82,10 @@ export default function App() {
               <Route path="business"   element={<Business />} />
               <Route path="calendar"   element={<Calendar />} />
               <Route path="setup"      element={<Setup />} />
+              <Route path="reports"    element={<Reports />} />
+              <Route path="audit"      element={<AuditLog />} />
+              <Route path="team"       element={<Team />} />
+              <Route path="settings"   element={<PersonalSettings />} />
             </Route>
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>

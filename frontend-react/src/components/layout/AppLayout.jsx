@@ -2,6 +2,8 @@ import { Outlet } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { Header } from './Header'
 import { Toaster } from '@/components/ui/toaster'
+import { GlobalSearch } from '@/components/GlobalSearch'
+import { CreatePanel } from '@/components/CreatePanel'
 
 export function AppLayout() {
   return (
@@ -9,11 +11,13 @@ export function AppLayout() {
       <Sidebar />
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header />
-        <main className="flex-1 overflow-y-auto p-4 md:p-6">
+        <main className="flex-1 overflow-y-auto">
           <Outlet />
         </main>
       </div>
       <Toaster />
+      <GlobalSearch />
+      <CreatePanel />
     </div>
   )
 }
