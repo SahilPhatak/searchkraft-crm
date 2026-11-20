@@ -92,18 +92,18 @@ function dealCreatedHtml(deal) {
       <p style="color:#6b7280;">A new deal has been created in SearchKraft CRM. Please find the details below.</p>
       <table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;margin-top:16px;">
         ${section('DEAL INFORMATION')}
-        ${row('Deal Name', deal.name || deal.title)}
-        ${row('Company / Account', deal.company || deal.company_name)}
-        ${row('Deal Owner', deal.owner || deal.deal_owner)}
-        ${row('Amount', fmt(deal.amount || deal.value))}
+        ${row('Deal Name', deal.title)}
+        ${row('Company / Account', deal.company_name)}
+        ${row('Deal Owner', deal.deal_owner)}
+        ${row('Amount', fmt(deal.amount))}
         ${row('Closing Date', deal.close_date)}
         ${row('Stage', deal.stage)}
-        ${row('Type', deal.deal_type || deal.type)}
+        ${row('Type', deal.type)}
         ${row('Probability (%)', deal.probability != null ? deal.probability + '%' : null)}
         ${row('Expected Revenue', fmt(deal.expected_revenue))}
         ${row('Next Step', deal.next_step)}
-        ${row('Source', deal.source || deal.lead_source)}
-        ${row('Campaign', deal.campaign || deal.campaign_source)}
+        ${row('Lead Source', deal.lead_source)}
+        ${row('Campaign Source', deal.campaign_source)}
         ${row('Contact Name', deal.contact_name)}
         ${row('Candidate Name', deal.candidate_name)}
         ${section('RECRUITMENT DETAILS')}
@@ -111,7 +111,7 @@ function dealCreatedHtml(deal) {
         ${row('Client SPOC', deal.client_spoc)}
         ${row('Sourcer', deal.sourcer)}
         ${row('Credit Sharing (%)', deal.credit_sharing != null ? deal.credit_sharing + '%' : null)}
-        ${row('Candidate Management', deal.candidate_mgmt || deal.candidate_management)}
+        ${row('Candidate Management', deal.candidate_management)}
         ${section('DESCRIPTION INFORMATION')}
         ${row('Description', deal.description || deal.notes)}
       </table>
@@ -163,29 +163,28 @@ function dealWonHtml(deal, deliveryName) {
  */
 async function sendDealCreatedEmail(deal) {
   const RECIPIENTS = ['vikram@searchkraft.in', 'finance@searchkraft.in'];
-  const TO = RECIPIENTS.join(', ');
-  const subject = `New Deal Created – ${deal.company || deal.company_name || deal.name || deal.title} | SearchKraft CRM`;
+  const subject = `New Deal Created – ${deal.company_name || deal.title} | SearchKraft CRM`;
+  const html = dealCreatedHtml(deal);
 
-  // Log pending first
-  const { data: log } = await supabase.from('email_notifications').insert({
-    deal_id: deal.id,
-    notification_type: 'deal_created',
-    recipient_email: TO,
-    subject,
-    status: 'pending',
-  }).select().single();
+  // Log + send for each recipient
+  for (const recipient of RECIPIENTS) {
+    const { data: log } = await supabase.from('email_notifications').insert({
+      deal_id: deal.id,
+      notification_type: 'deal_created',
+      recipient_email: recipient,
+      subject,
+      status: 'pending',
+    }).select().single();
 
-  try {
-    const transporter = createTransporter();
-    await transporter.sendMail({
-      from: FROM(), to: TO, subject,
-      html: dealCreatedHtml(deal),
-    });
-    if (log) await updateNotificationStatus(log.id, 'sent');
-    console.log(`[Email] deal_created sent to ${TO} for deal ${deal.id}`);
-  } catch (err) {
-    console.error(`[Email] deal_created failed for deal ${deal.id}:`, err.message);
-    if (log) await updateNotificationStatus(log.id, 'failed', err.message);
+    try {
+      const transporter = createTransporter();
+      await transporter.sendMail({ from: FROM(), to: recipient, subject, html });
+      if (log) await updateNotificationStatus(log.id, 'sent');
+      console.log(`[Email] deal_created sent to ${recipient} for deal ${deal.id}`);
+    } catch (err) {
+      console.error(`[Email] deal_created failed for ${recipient} deal ${deal.id}:`, err.message);
+      if (log) await updateNotificationStatus(log.id, 'failed', err.message);
+    }
   }
 }
 
@@ -272,7 +271,7 @@ async function retryNotification(notificationId) {
   if (!deal) throw new Error('Deal not found');
 
   if (notif.notification_type === 'deal_created') {
-    await supabase.from('email_notifications').update({ status: 'pending', recipient_email: 'vikram@searchkraft.in, finance@searchkraft.in' }).eq('id', notificationId);
+    await supabase.from('email_notifications').update({ status: 'pending' }).eq('id', notificationId);
     await sendDealCreatedEmail(deal);
   } else if (notif.notification_type === 'deal_won_delivery') {
     // Reset idempotency by deleting old sent record if exists
@@ -281,109 +280,4 @@ async function retryNotification(notificationId) {
   }
 }
 
-// ── Account Assigned Email Template ───────────────────────────
-function accountAssignedHtml(company, deliveryName) {
-  const row = (label, value) => `
-    <tr>
-      <td style="padding:8px 12px;background:#f9fafb;font-weight:600;color:#374151;width:40%;border-bottom:1px solid #e5e7eb;">${label}</td>
-      <td style="padding:8px 12px;color:#111827;border-bottom:1px solid #e5e7eb;">${esc(value)}</td>
-    </tr>`;
-
-  return `<!DOCTYPE html>
-<html><head><meta charset="UTF-8"></head>
-<body style="font-family:Arial,sans-serif;background:#f3f4f6;margin:0;padding:20px;">
-  <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
-    <div style="background:#1e3a5f;padding:24px;text-align:center;">
-      <h1 style="color:#fff;margin:0;font-size:22px;">SearchKraft CRM</h1>
-      <p style="color:#93c5fd;margin:6px 0 0;">New Account Assigned to You 🏢</p>
-    </div>
-    <div style="padding:24px;">
-      <p style="color:#374151;font-size:15px;">Hi ${esc(deliveryName)},</p>
-      <p style="color:#6b7280;">A new account has been created in SearchKraft CRM and assigned to you as the Delivery Pillar. Please review the client details below and begin onboarding.</p>
-      <table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;margin-top:16px;">
-        <tr><td colspan="2" style="padding:12px;background:#1e3a5f;color:#fff;font-weight:700;font-size:14px;letter-spacing:0.5px;">ACCOUNT DETAILS</td></tr>
-        ${row('Company Name', company.name)}
-        ${row('Industry', company.industry)}
-        ${row('Website', company.website)}
-        ${row('Phone', company.phone)}
-        ${row('Email', company.email)}
-        ${row('City', company.city)}
-        ${row('State', company.state)}
-        ${row('Country', company.country)}
-        ${row('Account Type', company.type)}
-        ${row('Description', company.description)}
-      </table>
-      <p style="color:#1e3a5f;font-weight:600;margin-top:20px;">You have been assigned as the Delivery Pillar for this account. Please initiate the client onboarding process.</p>
-    </div>
-    <div style="padding:16px;background:#f9fafb;text-align:center;color:#9ca3af;font-size:12px;">
-      SearchKraft CRM · This is an automated notification
-    </div>
-  </div>
-</body></html>`;
-}
-
-/**
- * Send "new account assigned" email to delivery pillar.
- * Fire-and-forget — never throws, always logs.
- * Uses company_id as the reference in email_notifications (stored in deal_id column).
- */
-async function sendAccountAssignedEmail(company) {
-  if (!company.delivery_pillar_id && !company.delivery_pillar) return;
-
-  // Fetch delivery pillar user's email from profiles
-  let recipientEmail = null;
-  let deliveryName = company.delivery_pillar || 'Delivery Team';
-
-  if (company.delivery_pillar_id) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('email, full_name')
-      .eq('id', company.delivery_pillar_id)
-      .maybeSingle();
-    if (profile) {
-      recipientEmail = profile.email;
-      deliveryName = profile.full_name || deliveryName;
-    }
-  }
-
-  // Fallback: try to find by name string
-  if (!recipientEmail && company.delivery_pillar) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('email, full_name')
-      .ilike('full_name', company.delivery_pillar)
-      .maybeSingle();
-    if (profile) recipientEmail = profile.email;
-  }
-
-  if (!recipientEmail) {
-    console.warn(`[Email] account_assigned: no email found for delivery pillar on company ${company.id}`);
-    return;
-  }
-
-  const subject = `New Account Assigned – ${company.name} | SearchKraft CRM`;
-
-  // Log pending
-  const { data: log } = await supabase.from('email_notifications').insert({
-    deal_id: company.id,           // reuse deal_id column to store company id as reference
-    notification_type: 'account_assigned',
-    recipient_email: recipientEmail,
-    subject,
-    status: 'pending',
-  }).select().single();
-
-  try {
-    const transporter = createTransporter();
-    await transporter.sendMail({
-      from: FROM(), to: recipientEmail, subject,
-      html: accountAssignedHtml(company, deliveryName),
-    });
-    if (log) await updateNotificationStatus(log.id, 'sent');
-    console.log(`[Email] account_assigned sent to ${recipientEmail} for company ${company.id}`);
-  } catch (err) {
-    console.error(`[Email] account_assigned failed for company ${company.id}:`, err.message);
-    if (log) await updateNotificationStatus(log.id, 'failed', err.message);
-  }
-}
-
-module.exports = { sendDealCreatedEmail, sendDealWonEmail, sendAccountAssignedEmail, retryNotification };
+module.exports = { sendDealCreatedEmail, sendDealWonEmail, retryNotification };
