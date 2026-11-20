@@ -3435,7 +3435,14 @@ function startRealtimeSync() {
 
   // Fallback: poll every 30 seconds in case Supabase Realtime replication is not enabled
   window._pollInterval = setInterval(async () => {
-    try { await load(); await loadBusinessOnboarded(); refreshCurrentPage(); } catch(e) {}
+    try {
+      await load();
+      await loadBusinessOnboarded();
+      // Only re-render if NOT currently on business-onboarded page (avoids KPI flicker)
+      const activePage = document.querySelector('.nav-item.active')?.dataset?.page;
+      if (activePage !== 'business-onboarded') refreshCurrentPage();
+      else updateBOKpis(); // just update KPI numbers silently
+    } catch(e) {}
   }, 30000);
 }
 
@@ -6056,8 +6063,8 @@ function renderTable(type, q='') {
     const rows = allRows.slice((companiesPage-1)*PAGE_SIZE, companiesPage*PAGE_SIZE);
     const ccount = document.getElementById('companies-count'); if(ccount) ccount.textContent=allRows.length;
     const cpi = document.getElementById('companies-page-info'); if(cpi) cpi.textContent=allRows.length?`${(companiesPage-1)*PAGE_SIZE+1}–${Math.min(companiesPage*PAGE_SIZE,allRows.length)} of ${allRows.length}`:'0';
-    document.getElementById('companies-body').innerHTML = rows.length ? rows.map(r=>`<tr>
-      <td><input type="checkbox" style="accent-color:var(--accent)"></td>
+    document.getElementById('companies-body').innerHTML = rows.length ? rows.map(r=>`<tr data-id="${r.id}">
+      <td><input type="checkbox" style="accent-color:var(--accent)" onchange="updateBulkBar('companies-body')"></td>
       <td class="name-cell" onclick="openModal('company','${r.id}')">${r.name}</td>
       <td>${getLane(r)}</td><td>${r.city||'—'}</td>
       <td>${badge(r.status)}</td><td>${r.bdOwner||'—'}</td>
@@ -6083,8 +6090,8 @@ function renderTable(type, q='') {
     const rows = allRows.slice((contactsPage-1)*PAGE_SIZE, contactsPage*PAGE_SIZE);
     const ctcount = document.getElementById('contacts-count'); if(ctcount) ctcount.textContent=allRows.length;
     const ctpi = document.getElementById('contacts-page-info'); if(ctpi) ctpi.textContent=allRows.length?`${(contactsPage-1)*PAGE_SIZE+1}–${Math.min(contactsPage*PAGE_SIZE,allRows.length)} of ${allRows.length}`:'0';
-    document.getElementById('contacts-body').innerHTML = rows.length ? rows.map(r=>`<tr>
-      <td><input type="checkbox" style="accent-color:var(--accent)"></td>
+    document.getElementById('contacts-body').innerHTML = rows.length ? rows.map(r=>`<tr data-id="${r.id}">
+      <td><input type="checkbox" style="accent-color:var(--accent)" onchange="updateBulkBar('contacts-body')"></td>
       <td class="name-cell" onclick="openModal('contact','${r.id}')">${r.name}</td>
       <td>${r.title||'—'}</td><td>${r.company||getCompanyName(r.companyId)||'—'}</td>
       <td style="font-family:'Inter',system-ui,sans-serif;color:var(--fg2)">${r.email||'—'}</td>
@@ -6113,8 +6120,8 @@ function renderTable(type, q='') {
     const lcount = document.getElementById('leads-count'); if(lcount) lcount.textContent=allRows.length;
     const lpi = document.getElementById('leads-page-info'); if(lpi) lpi.textContent=allRows.length?`${(leadsPage-1)*PAGE_SIZE+1}–${Math.min(leadsPage*PAGE_SIZE,allRows.length)} of ${allRows.length}`:'0';
     const stageColor = s=>({New:'#6366f1',Contacted:'#0ea5e9','Pre Qualified':'#f59e0b',Qualified:'#10b981','Not Qualified':'#ef4444','Junk Lead':'#9ca3af','Proposal Sent':'#8b5cf6',Negotiation:'#f97316','Follow Up':'#06b6d4',Won:'#22c55e',Lost:'#ef4444','Lost Lead':'#9ca3af'}[s]||'#9ca3af');
-    document.getElementById('leads-body').innerHTML = rows.length ? rows.map(r=>`<tr>
-      <td><input type="checkbox" style="accent-color:var(--accent)"></td>
+    document.getElementById('leads-body').innerHTML = rows.length ? rows.map(r=>`<tr data-id="${r.id}">
+      <td><input type="checkbox" style="accent-color:var(--accent)" onchange="updateBulkBar('leads-body')"></td>
       <td class="name-cell" onclick="openModal('lead','${r.id}')">${r.name||r.title||'—'}</td>
       <td>${r.title||'—'}</td>
       <td>${r.company||r.companyName||getCompanyName(r.companyId)||'—'}</td>
@@ -6143,8 +6150,8 @@ function renderTable(type, q='') {
     const rows = allRows.slice((dealsPage-1)*PAGE_SIZE, dealsPage*PAGE_SIZE);
     const dcount = document.getElementById('deals-count'); if(dcount) dcount.textContent=allRows.length;
     const dpi = document.getElementById('deals-page-info'); if(dpi) dpi.textContent=allRows.length?`${(dealsPage-1)*PAGE_SIZE+1}–${Math.min(dealsPage*PAGE_SIZE,allRows.length)} of ${allRows.length}`:'0';
-    document.getElementById('deals-body').innerHTML = rows.length ? rows.map(r=>`<tr>
-      <td><input type="checkbox" style="accent-color:var(--accent)"></td>
+    document.getElementById('deals-body').innerHTML = rows.length ? rows.map(r=>`<tr data-id="${r.id}">
+      <td><input type="checkbox" style="accent-color:var(--accent)" onchange="updateBulkBar('deals-body')"></td>
       <td class="name-cell" onclick="openModal('deal','${r.id}')">${r.name||'—'}</td>
       <td>${r.companyName||'—'}</td>
       <td>${r.candidateName||'—'}</td>
@@ -8206,6 +8213,75 @@ function selectAll(tbodyId, masterCb) {
   const tbody = document.getElementById(tbodyId);
   if (!tbody) return;
   tbody.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = masterCb.checked);
+  updateBulkBar(tbodyId);
+}
+
+function updateBulkBar(tbodyId) {
+  const tbody = document.getElementById(tbodyId);
+  if (!tbody) return;
+  const checked = [...tbody.querySelectorAll('input[type="checkbox"]:checked')];
+  const count = checked.length;
+  // find or create bulk bar above the table
+  const table = tbody.closest('table');
+  if (!table) return;
+  let bar = table.parentElement.querySelector('.bulk-action-bar');
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.className = 'bulk-action-bar';
+    bar.style.cssText = 'display:none;align-items:center;gap:10px;padding:8px 14px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;margin-bottom:8px;';
+    table.parentElement.insertBefore(bar, table);
+  }
+  if (count > 0) {
+    bar.style.display = 'flex';
+    bar.innerHTML = `<span style="font-size:13px;color:#374151;font-weight:600;">${count} record${count>1?'s':''} selected</span>
+      <button onclick="deleteSelectedRows('${tbodyId}')" style="margin-left:auto;background:#ef4444;color:#fff;border:none;border-radius:7px;padding:6px 16px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;">🗑 Delete Selected</button>
+      <button onclick="clearSelection('${tbodyId}')" style="background:#f3f4f6;color:#374151;border:1px solid #d1d5db;border-radius:7px;padding:6px 12px;font-size:13px;cursor:pointer;">Cancel</button>`;
+  } else {
+    bar.style.display = 'none';
+  }
+}
+
+function clearSelection(tbodyId) {
+  const tbody = document.getElementById(tbodyId);
+  if (!tbody) return;
+  tbody.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+  // uncheck master checkbox
+  const table = tbody.closest('table');
+  if (table) { const master = table.querySelector('thead input[type="checkbox"]'); if (master) master.checked = false; }
+  updateBulkBar(tbodyId);
+}
+
+async function deleteSelectedRows(tbodyId) {
+  const tbody = document.getElementById(tbodyId);
+  if (!tbody) return;
+  const checked = [...tbody.querySelectorAll('input[type="checkbox"]:checked')];
+  if (!checked.length) return;
+  if (!confirm(`Delete ${checked.length} selected record${checked.length>1?'s':''}? This cannot be undone.`)) return;
+  // determine collection from tbodyId e.g. 'leads-body' -> 'leads'
+  const col = tbodyId.replace('-body','');
+  const colMap = {'companies':'companies','contacts':'contacts','leads':'leads','deals':'deals','tasks':'tasks','activities':'activities','documents':'documents'};
+  const collection = colMap[col];
+  if (!collection) return;
+  const routeMap = {'companies':'/api/companies','contacts':'/api/contacts','leads':'/api/leads','deals':'/api/deals','tasks':'/api/tasks','activities':'/api/activities','documents':'/api/documents'};
+  const route = routeMap[collection];
+  let failed = 0;
+  for (const cb of checked) {
+    const row = cb.closest('tr');
+    const id = row?.dataset?.id;
+    if (!id) continue;
+    try {
+      await apiFetch(route + '/' + id, { method: 'DELETE' });
+      DB[collection] = DB[collection].filter(r => r.id !== id);
+      row.remove();
+    } catch(e) { failed++; }
+  }
+  updateBulkBar(tbodyId);
+  // uncheck master
+  const table = tbody.closest('table');
+  if (table) { const master = table.querySelector('thead input[type="checkbox"]'); if (master) master.checked = false; }
+  if (failed) showToast(`${failed} deletion(s) failed`, '#dc2626');
+  else showToast('Deleted successfully', '#10b981');
+  updateBadges();
 }
 
 function addDescEntry() {
