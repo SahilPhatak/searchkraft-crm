@@ -45,7 +45,7 @@ router.post('/', requireAuth, async (req, res) => {
   res.status(201).json(data);
 
   // Fire-and-forget emails (after response sent)
-  sendDealCreatedEmail(data).catch(() => {});
+  sendDealCreatedEmail(data).catch(err => console.error('[Email] sendDealCreatedEmail uncaught:', err.message, err.stack));
   if (data.stage === 'Won' && (data.delivery_pillar_id || data.delivery_pillar)) {
     sendDealWonEmail(data).catch(() => {});
   }
