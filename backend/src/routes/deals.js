@@ -35,11 +35,12 @@ router.get('/:id/notifications', requireAuth, async (req, res) => {
 });
 
 router.post('/', requireAuth, async (req, res) => {
-  const { data, error } = await supabase
-    .from('deals')
-    .upsert(req.body, { onConflict: 'id' })
-    .select()
-    .single();
+  const body = { ...req.body }
+  // If no id provided, use insert not upsert to avoid multi-row issues
+  const query = body.id
+    ? supabase.from('deals').upsert(body, { onConflict: 'id' }).select().single()
+    : supabase.from('deals').insert(body).select().single()
+  const { data, error } = await query;
   if (error) return res.status(400).json({ error: error.message });
   res.status(201).json(data);
 
