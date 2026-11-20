@@ -1,18 +1,15 @@
-import { Menu, Bell, Search, Sun, Moon, Plus } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useUiStore } from '@/store/uiStore'
-import { useQuery } from '@tanstack/react-query'
-import { api } from '@/lib/api'
+import { useAuthStore } from '@/store/authStore'
 
-const pageTitles = {
-  '/dashboard':  'Dashboard',
+const PAGE_TITLES = {
+  '/dashboard':  'Home',
   '/leads':      'Leads',
   '/contacts':   'Contacts',
-  '/companies':  'Companies',
+  '/companies':  'Accounts',
   '/deals':      'Deals',
   '/tasks':      'Tasks',
-  '/activities': 'Activities',
+  '/activities': 'Calls & Meetings',
   '/documents':  'Documents',
   '/business':   'Business Onboarded',
   '/calendar':   'Calendar',
@@ -24,63 +21,97 @@ const pageTitles = {
 }
 
 export function Header() {
-  const { toggleSidebar, openGlobalSearch, openCreatePanel, toggleTheme, theme } = useUiStore()
+  const { toggleSidebar, openGlobalSearch, openCreatePanel } = useUiStore()
+  const { profile } = useAuthStore()
+  const navigate = useNavigate()
   const location = useLocation()
-  const title = pageTitles[location.pathname] || 'SearchKraft CRM'
+  const title = PAGE_TITLES[location.pathname] || 'SearchKraft CRM'
 
-  // Notification count — tasks overdue
-  const { data: tasks = [] } = useQuery({
-    queryKey: ['tasks-notif'],
-    queryFn: () => api.get('/api/tasks'),
-    staleTime: 60000,
-  })
-  const overdueTasks = tasks.filter(t => t.due_date && new Date(t.due_date) < new Date() && t.status !== 'completed').length
+  const userInitial = profile?.full_name?.[0]?.toUpperCase() || '?'
 
   return (
-    <header className="sticky top-0 z-10 flex h-14 items-center gap-3 border-b bg-background px-4 md:px-5">
-      <Button variant="ghost" size="icon" className="md:hidden h-8 w-8" onClick={toggleSidebar}>
-        <Menu className="h-4 w-4" />
-      </Button>
+    <div className="topbar">
+      {/* Desktop sidebar toggle */}
+      <button
+        className="tb-btn"
+        style={{ display: 'flex' }}
+        onClick={toggleSidebar}
+        title="Toggle sidebar"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <line x1="3" y1="12" x2="21" y2="12"/>
+          <line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
 
-      <h1 className="text-base font-semibold">{title}</h1>
+      {/* Mobile hamburger */}
+      <button className="mob-hamburger" onClick={toggleSidebar} title="Menu">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <line x1="3" y1="12" x2="21" y2="12"/>
+          <line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
 
-      <div className="ml-auto flex items-center gap-1">
-        {/* Search trigger */}
-        <button
-          onClick={openGlobalSearch}
-          className="hidden md:flex items-center gap-2 h-8 px-3 rounded-md border bg-muted/40 text-sm text-muted-foreground hover:bg-muted transition-colors min-w-[180px]"
-        >
-          <Search className="w-3.5 h-3.5" />
-          <span>Search…</span>
-          <kbd className="ml-auto text-[10px] font-mono opacity-60 hidden lg:inline">⌘K</kbd>
+      {/* Title */}
+      <div className="topbar-title">{title}</div>
+
+      {/* Right actions */}
+      <div className="topbar-actions">
+        {/* Search */}
+        <div className="topbar-search" onClick={openGlobalSearch} style={{ cursor: 'pointer' }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" style={{ opacity: 0.5 }}>
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input
+            type="text"
+            placeholder="Search records"
+            readOnly
+            onClick={openGlobalSearch}
+            style={{ cursor: 'pointer' }}
+          />
+        </div>
+
+        {/* + Create */}
+        <button className="tb-btn-plus" title="Create new record" onClick={openCreatePanel}>+</button>
+
+        {/* Calendar */}
+        <button className="tb-btn" title="Calendar" onClick={() => navigate('/calendar')}>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+            <rect x="3" y="4" width="18" height="18" rx="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
         </button>
-        <Button variant="ghost" size="icon" className="h-8 w-8 md:hidden" onClick={openGlobalSearch}>
-          <Search className="h-4 w-4" />
-        </Button>
 
-        {/* Quick Create */}
-        <Button variant="outline" size="sm" className="h-8 gap-1.5 hidden sm:flex" onClick={openCreatePanel}>
-          <Plus className="w-3.5 h-3.5" /> Create
-        </Button>
-        <Button variant="ghost" size="icon" className="h-8 w-8 sm:hidden" onClick={openCreatePanel}>
-          <Plus className="h-4 w-4" />
-        </Button>
+        {/* Settings */}
+        <button className="tb-btn" title="Settings" onClick={() => navigate('/settings')}>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
 
-        {/* Theme toggle */}
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={toggleTheme} title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}>
-          {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
-        </Button>
+        <div className="tb-divider" />
 
-        {/* Notifications */}
-        <Button variant="ghost" size="icon" className="h-8 w-8 relative">
-          <Bell className="h-4 w-4" />
-          {overdueTasks > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-red-500 text-[9px] font-bold text-white flex items-center justify-center">
-              {overdueTasks > 9 ? '9+' : overdueTasks}
-            </span>
-          )}
-        </Button>
+        {/* User avatar */}
+        <div className="tb-avatar" onClick={() => navigate('/settings')} title="Profile settings">
+          {userInitial}
+          <div className="tb-avatar-badge" />
+        </div>
+
+        {/* Apps grid */}
+        <button className="tb-btn" title="Apps">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+            <rect x="3" y="3" width="7" height="7" rx="1"/>
+            <rect x="14" y="3" width="7" height="7" rx="1"/>
+            <rect x="3" y="14" width="7" height="7" rx="1"/>
+            <rect x="14" y="14" width="7" height="7" rx="1"/>
+          </svg>
+        </button>
       </div>
-    </header>
+    </div>
   )
 }

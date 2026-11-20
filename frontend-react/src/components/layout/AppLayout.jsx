@@ -7,11 +7,11 @@ import { CreatePanel } from '@/components/CreatePanel'
 
 export function AppLayout() {
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--bg)', color: 'var(--fg)' }}>
       <Sidebar />
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="main-wrap">
         <Header />
-        <main className="flex-1 overflow-y-auto">
+        <main className="content">
           <Outlet />
         </main>
       </div>
