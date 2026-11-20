@@ -1,6 +1,16 @@
 const nodemailer = require('nodemailer');
 const supabase = require('../config/supabase');
 
+// ── Startup SMTP check ─────────────────────────────────────────
+(function checkSmtpEnv() {
+  const { SMTP_HOST, SMTP_USERNAME, SMTP_PASSWORD } = process.env;
+  if (!SMTP_HOST || !SMTP_USERNAME || !SMTP_PASSWORD) {
+    console.error('[Email] ⚠️  SMTP env vars MISSING at startup — emails will fail. Set SMTP_HOST, SMTP_USERNAME, SMTP_PASSWORD');
+  } else {
+    console.log(`[Email] ✅ SMTP configured: host=${SMTP_HOST} user=${SMTP_USERNAME}`);
+  }
+})();
+
 // ── Transporter ────────────────────────────────────────────────
 function createTransporter() {
   const { SMTP_HOST, SMTP_PORT, SMTP_USERNAME, SMTP_PASSWORD, SMTP_FROM_EMAIL, SMTP_FROM_NAME } = process.env;
