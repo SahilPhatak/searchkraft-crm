@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { Users, Building2, Handshake, CheckSquare, TrendingUp, Clock, AlertCircle } from 'lucide-react'
+import { Users, Building2, CheckSquare, TrendingUp, Clock, AlertCircle } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { api } from '@/lib/api'
@@ -53,7 +53,7 @@ export function Dashboard() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard title="Total Leads" value={leads.length} icon={Users} description={`${newLeads} new`} color="blue" />
         <StatCard title="Contacts" value={contacts.length} icon={Building2} color="green" />
-        <StatCard title="Open Deals" value={openDeals.length} icon={Handshake} description={formatCurrency(totalDealValue)} color="purple" />
+        <StatCard title="Open Deals" value={openDeals.length} icon={TrendingUp} description={formatCurrency(totalDealValue)} color="purple" />
         <StatCard title="Pending Tasks" value={pendingTasks.length} icon={CheckSquare} color="orange" />
       </div>
 
