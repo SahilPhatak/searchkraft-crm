@@ -4348,9 +4348,10 @@ async function upsert(collection, id, data) {
     const payload = toSupabase(collection, mergedData);
     try {
       if (route) {
-        // Use backend API
-        if (data.id || mergedData.id) {
-          await apiFetch(route + '/' + (data.id || mergedData.id), { method: 'PUT', body: JSON.stringify(payload) });
+        // Use backend API — use the original `id` param (null for creates) to decide PUT vs POST
+        // mergedData.id is always set (even for new records) so we must NOT use it here
+        if (id) {
+          await apiFetch(route + '/' + id, { method: 'PUT', body: JSON.stringify(payload) });
         } else {
           await apiFetch(route, { method: 'POST', body: JSON.stringify(payload) });
         }
