@@ -8680,25 +8680,25 @@ const MODAL_FORMS = {
       <!-- Client Contact Details -->
       <div class="lf-section-title" style="margin-top:32px">Client Contact Details</div>
       <div class="lf-grid">
-        <div class="lf-field"><label>Client POC</label><input id="f-clientPoc" type="text" value="${r.clientPoc||''}"></div>
-        <div class="lf-field"><label>Email ID</label><input id="f-clientPocEmail" type="email" value="${r.clientPocEmail||''}"></div>
-        <div class="lf-field" style="grid-column:1/-1"><label>Designation</label><input id="f-clientPocDesignation" type="text" value="${r.clientPocDesignation||''}"></div>
+        <div class="lf-field"><label>Client POC</label><input id="f-clientPoc" type="text" value="${r.clientPoc||r.client_poc||''}"></div>
+        <div class="lf-field"><label>Email ID</label><input id="f-clientPocEmail" type="email" value="${r.clientPocEmail||r.client_poc_email||''}"></div>
+        <div class="lf-field" style="grid-column:1/-1"><label>Designation</label><input id="f-clientPocDesignation" type="text" value="${r.clientPocDesignation||r.client_poc_designation||''}"></div>
       </div>
 
       <!-- Recruitment Details -->
       <div class="lf-section-title" style="margin-top:32px">Recruitment Details</div>
       <div class="lf-grid">
         <div class="lf-field"><label>Recruiter Name</label>
-          <input id="f-recruiterName" type="text" list="recruiter-list" placeholder="Type or select…" value="${r.recruiterName||''}" autocomplete="off">
+          <input id="f-recruiterName" type="text" list="recruiter-list" placeholder="Type or select…" value="${r.recruiterName||r.recruiter_name||''}" autocomplete="off">
           <datalist id="recruiter-list">
             ${['Urmila','Samyadeep','Sahil'].map(m=>`<option value="${m}">`).join('')}
             ${(typeof TEAM_MEMBERS!=='undefined'?TEAM_MEMBERS:[]).filter(m=>!['Urmila','Samyadeep','Sahil'].includes(m)).map(m=>`<option value="${m}">`).join('')}
           </datalist>
         </div>
-        <div class="lf-field"><label>Client SPOC</label><select id="f-clientSpoc"><option value="">-None-</option>${['Vikram','Samyadeep'].map(m=>`<option ${r.clientSpoc===m?'selected':''}>${m}</option>`).join('')}</select></div>
+        <div class="lf-field"><label>Client SPOC</label><select id="f-clientSpoc"><option value="">-None-</option>${['Vikram','Samyadeep'].map(m=>`<option ${(r.clientSpoc||r.client_spoc)===m?'selected':''}>${m}</option>`).join('')}</select></div>
         <div class="lf-field"><label>Sourcer</label><select id="f-sourcer"><option value="">-None-</option>${['Samyadeep','Sahil','Urmila'].map(m=>`<option ${r.sourcer===m?'selected':''}>${m}</option>`).join('')}</select></div>
-        <div class="lf-field"><label>Credit Sharing (%)</label><input id="f-creditSharing" type="number" min="0" max="100" step="1" placeholder="e.g. 50" value="${r.creditSharing!==undefined&&r.creditSharing!==''?r.creditSharing:''}"></div>
-        <div class="lf-field" style="grid-column:1/-1"><label>Candidate Management</label><select id="f-candidateMgmt"><option value="">-None-</option>${['Urmila','Sahil','Samyadeep'].map(m=>`<option ${r.candidateMgmt===m?'selected':''}>${m}</option>`).join('')}</select></div>
+        <div class="lf-field"><label>Credit Sharing (%)</label><input id="f-creditSharing" type="number" min="0" max="100" step="1" placeholder="e.g. 50" value="${r.creditSharing!==undefined&&r.creditSharing!==''?r.creditSharing:(r.credit_sharing!==undefined&&r.credit_sharing!==''?r.credit_sharing:'')}"></div>
+        <div class="lf-field" style="grid-column:1/-1"><label>Candidate Management</label><select id="f-candidateMgmt"><option value="">-None-</option>${['Urmila','Sahil','Samyadeep'].map(m=>`<option ${(r.candidateMgmt||r.candidate_mgmt)===m?'selected':''}>${m}</option>`).join('')}</select></div>
       </div>
 
       <!-- Description Information -->
@@ -8707,7 +8707,7 @@ const MODAL_FORMS = {
         <label style="text-align:right;padding-right:8px;padding-top:8px;font-size:12px;font-weight:500;color:var(--fg2)">Description</label>
         <textarea id="f-description" rows="4">${r.description||''}</textarea>
       </div>`,
-    save: (id) => {
+    save: async (id) => {
       const amt = Number(v('amount')||0);
       const prob = parseFloat(v('probability')||0);
       // Preserve existing wonAt/lostAt from the record being edited
@@ -8734,7 +8734,7 @@ const MODAL_FORMS = {
       if (LOST_STAGES.has(stage)) {
         r.lostAt = (existing && existing.lostAt) || r.closeDate || new Date().toISOString().slice(0,10);
       }
-      upsert('deals', id, r);
+      await upsert('deals', id, r);
     }
   },
   task: {
