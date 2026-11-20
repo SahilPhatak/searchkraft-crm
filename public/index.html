@@ -4244,9 +4244,18 @@ function clearShippingAddr() {
   });
 }
 
-function saveRecord() {
+async function saveRecord() {
   if (!currentModal) return;
-  MODAL_FORMS[currentModal].save(editId);
+  const btn = document.getElementById('modal-save');
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+  try {
+    await MODAL_FORMS[currentModal].save(editId);
+  } catch(e) {
+    console.error('saveRecord error:', e);
+    alert('Save failed: ' + e.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Save'; }
+  }
 }
 
 function pluralize(t) {
