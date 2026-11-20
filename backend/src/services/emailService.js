@@ -1,31 +1,27 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 const supabase = require('../config/supabase');
 
-// ── Startup SMTP check ─────────────────────────────────────────
-(function checkSmtpEnv() {
-  const { SMTP_HOST, SMTP_USERNAME, SMTP_PASSWORD } = process.env;
-  if (!SMTP_HOST || !SMTP_USERNAME || !SMTP_PASSWORD) {
-    console.error('[Email] ⚠️  SMTP env vars MISSING at startup — emails will fail. Set SMTP_HOST, SMTP_USERNAME, SMTP_PASSWORD');
+// ── Startup check ──────────────────────────────────────────────
+(function checkEmailEnv() {
+  if (!process.env.RESEND_API_KEY) {
+    console.error('[Email] ⚠️  RESEND_API_KEY missing — emails will fail');
   } else {
-    console.log(`[Email] ✅ SMTP configured: host=${SMTP_HOST} user=${SMTP_USERNAME}`);
+    console.log('[Email] ✅ Resend configured');
   }
 })();
 
-// ── Transporter ────────────────────────────────────────────────
-function createTransporter() {
-  const { SMTP_HOST, SMTP_PORT, SMTP_USERNAME, SMTP_PASSWORD, SMTP_FROM_EMAIL, SMTP_FROM_NAME } = process.env;
-  if (!SMTP_HOST || !SMTP_USERNAME || !SMTP_PASSWORD) {
-    throw new Error('SMTP credentials not configured. Set SMTP_HOST, SMTP_USERNAME, SMTP_PASSWORD env vars.');
-  }
-  return nodemailer.createTransport({
-    host: SMTP_HOST,
-    port: parseInt(SMTP_PORT || '587'),
-    secure: parseInt(SMTP_PORT || '587') === 465,
-    auth: { user: SMTP_USERNAME, pass: SMTP_PASSWORD },
-  });
+// ── Resend client ──────────────────────────────────────────────
+function getResend() {
+  if (!process.env.RESEND_API_KEY) throw new Error('RESEND_API_KEY not set');
+  return new Resend(process.env.RESEND_API_KEY);
 }
 
-const FROM = () => `"${process.env.SMTP_FROM_NAME || 'SearchKraft CRM'}" <${process.env.SMTP_FROM_EMAIL || process.env.SMTP_USERNAME}>`;
+// From address: use verified domain if available, else resend's shared domain
+const FROM_ADDR = () => {
+  const name = process.env.SMTP_FROM_NAME || 'SearchKraft CRM';
+  const email = process.env.SMTP_FROM_EMAIL || 'onboarding@resend.dev';
+  return `${name} <${email}>`;
+};
 
 // ── Helpers ────────────────────────────────────────────────────
 function esc(v) {
@@ -249,8 +245,9 @@ async function sendDealCreatedEmail(deal) {
     }).select().single();
 
     try {
-      const transporter = createTransporter();
-      await transporter.sendMail({ from: FROM(), to: recipient, subject, html });
+      const resend = getResend();
+      const { error: sendErr } = await resend.emails.send({ from: FROM_ADDR(), to: recipient, subject, html });
+      if (sendErr) throw new Error(sendErr.message || JSON.stringify(sendErr));
       if (log) await updateNotificationStatus(log.id, 'sent');
       console.log(`[Email] deal_created sent to ${recipient} for deal ${deal.id}`);
     } catch (err) {
@@ -314,11 +311,12 @@ async function sendDealWonEmail(deal) {
   }).select().single();
 
   try {
-    const transporter = createTransporter();
-    await transporter.sendMail({
-      from: FROM(), to: recipientEmail, subject,
+    const resend = getResend();
+    const { error: sendErr } = await resend.emails.send({
+      from: FROM_ADDR(), to: recipientEmail, subject,
       html: dealWonHtml(deal, deliveryName),
     });
+    if (sendErr) throw new Error(sendErr.message || JSON.stringify(sendErr));
     if (log) await updateNotificationStatus(log.id, 'sent');
     console.log(`[Email] deal_won_delivery sent to ${recipientEmail} for deal ${deal.id}`);
   } catch (err) {
