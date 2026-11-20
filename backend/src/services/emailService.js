@@ -82,18 +82,18 @@ function dealCreatedHtml(deal) {
       <p style="color:#6b7280;">A new deal has been created in SearchKraft CRM. Please find the details below.</p>
       <table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;margin-top:16px;">
         ${section('DEAL INFORMATION')}
-        ${row('Deal Name', deal.title)}
-        ${row('Company / Account', deal.company_name)}
-        ${row('Deal Owner', deal.deal_owner)}
-        ${row('Amount', fmt(deal.amount))}
+        ${row('Deal Name', deal.name || deal.title)}
+        ${row('Company / Account', deal.company || deal.company_name)}
+        ${row('Deal Owner', deal.owner || deal.deal_owner)}
+        ${row('Amount', fmt(deal.amount || deal.value))}
         ${row('Closing Date', deal.close_date)}
         ${row('Stage', deal.stage)}
-        ${row('Type', deal.type)}
+        ${row('Type', deal.deal_type || deal.type)}
         ${row('Probability (%)', deal.probability != null ? deal.probability + '%' : null)}
         ${row('Expected Revenue', fmt(deal.expected_revenue))}
         ${row('Next Step', deal.next_step)}
-        ${row('Lead Source', deal.lead_source)}
-        ${row('Campaign Source', deal.campaign_source)}
+        ${row('Source', deal.source || deal.lead_source)}
+        ${row('Campaign', deal.campaign || deal.campaign_source)}
         ${row('Contact Name', deal.contact_name)}
         ${row('Candidate Name', deal.candidate_name)}
         ${section('RECRUITMENT DETAILS')}
@@ -101,7 +101,7 @@ function dealCreatedHtml(deal) {
         ${row('Client SPOC', deal.client_spoc)}
         ${row('Sourcer', deal.sourcer)}
         ${row('Credit Sharing (%)', deal.credit_sharing != null ? deal.credit_sharing + '%' : null)}
-        ${row('Candidate Management', deal.candidate_management)}
+        ${row('Candidate Management', deal.candidate_mgmt || deal.candidate_management)}
         ${section('DESCRIPTION INFORMATION')}
         ${row('Description', deal.description || deal.notes)}
       </table>
@@ -153,7 +153,7 @@ function dealWonHtml(deal, deliveryName) {
  */
 async function sendDealCreatedEmail(deal) {
   const ACCOUNTS_EMAIL = 'vikram@searchkraft.in';
-  const subject = `New Deal Created – ${deal.company_name || deal.title} | SearchKraft CRM`;
+  const subject = `New Deal Created – ${deal.company || deal.company_name || deal.name || deal.title} | SearchKraft CRM`;
 
   // Log pending first
   const { data: log } = await supabase.from('email_notifications').insert({
