@@ -1,6 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
-  LayoutDashboard, Tags, Users, Building2, Handshake, CheckSquare,
+  LayoutDashboard, Tags, Users, Building2, DollarSign, CheckSquare,
   Activity, FileText, Briefcase, Settings, Calendar, LogOut, X,
   BarChart2, Shield, UserCircle, Sun, Moon, ChevronRight,
 } from 'lucide-react'
@@ -33,7 +33,7 @@ export function Sidebar() {
     { label: 'Leads',       icon: Tags,            to: '/leads' },
     { label: 'Contacts',    icon: Users,           to: '/contacts' },
     { label: 'Companies',   icon: Building2,       to: '/companies' },
-    { label: 'Deals',       icon: Handshake,       to: '/deals' },
+    { label: 'Deals',       icon: DollarSign,      to: '/deals' },
     { label: 'Tasks',       icon: CheckSquare,     to: '/tasks' },
     { label: 'Activities',  icon: Activity,        to: '/activities' },
     { label: 'Documents',   icon: FileText,        to: '/documents' },
