@@ -23,6 +23,7 @@ router.get('/:id', requireAuth, async (req, res) => {
   res.json(data);
 });
 
+// GET email notifications for a deal
 router.get('/:id/notifications', requireAuth, async (req, res) => {
   const { data, error } = await supabase
     .from('email_notifications')
@@ -41,6 +42,8 @@ router.post('/', requireAuth, async (req, res) => {
     .single();
   if (error) return res.status(400).json({ error: error.message });
   res.status(201).json(data);
+
+  // Fire-and-forget emails (after response sent)
   sendDealCreatedEmail(data).catch(() => {});
   if (data.stage === 'Won' && (data.delivery_pillar_id || data.delivery_pillar)) {
     sendDealWonEmail(data).catch(() => {});
@@ -48,8 +51,10 @@ router.post('/', requireAuth, async (req, res) => {
 });
 
 router.put('/:id', requireAuth, async (req, res) => {
+  // Fetch existing deal to compare stage/delivery_pillar before update
   const { data: existing } = await supabase
     .from('deals').select('stage, delivery_pillar_id, delivery_pillar').eq('id', req.params.id).single();
+
   const { data, error } = await supabase
     .from('deals')
     .update(req.body)
@@ -58,11 +63,15 @@ router.put('/:id', requireAuth, async (req, res) => {
     .single();
   if (error) return res.status(400).json({ error: error.message });
   res.json(data);
-  const isNowWon = data.stage === 'Won';
-  const hasDelivery = !!(data.delivery_pillar_id || data.delivery_pillar);
+
+  // Check if deal_won_delivery trigger conditions are now met
   const wasWon = existing?.stage === 'Won';
+  const isNowWon = data.stage === 'Won';
   const hadDelivery = !!(existing?.delivery_pillar_id || existing?.delivery_pillar);
-  if (isNowWon && hasDelivery && (!wasWon || !hadDelivery)) {
+  const hasDelivery = !!(data.delivery_pillar_id || data.delivery_pillar);
+
+  const triggerWonEmail = isNowWon && hasDelivery && (!wasWon || !hadDelivery);
+  if (triggerWonEmail) {
     sendDealWonEmail(data).catch(() => {});
   }
 });
@@ -76,6 +85,7 @@ router.delete('/:id', requireAuth, async (req, res) => {
   res.json({ success: true });
 });
 
+// POST retry a failed notification (admin)
 router.post('/notifications/:notifId/retry', requireAuth, async (req, res) => {
   try {
     const { retryNotification } = require('../services/emailService');
