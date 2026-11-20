@@ -73,52 +73,119 @@ async function alreadySent(deal_id, notification_type) {
 function dealCreatedHtml(deal) {
   const row = (label, value) => `
     <tr>
-      <td style="padding:8px 12px;background:#f9fafb;font-weight:600;color:#374151;width:40%;border-bottom:1px solid #e5e7eb;">${label}</td>
-      <td style="padding:8px 12px;color:#111827;border-bottom:1px solid #e5e7eb;">${esc(value)}</td>
+      <td style="font-family:Arial,sans-serif;padding:9px 14px;background:#f9fafb;font-weight:700;font-size:13px;color:#1e3a5f;width:38%;border-bottom:1px solid #e5e7eb;">${label}</td>
+      <td style="font-family:Arial,sans-serif;padding:9px 14px;font-size:13px;color:#111827;border-bottom:1px solid #e5e7eb;">${esc(value)}</td>
     </tr>`;
+
+  const amountRow = (label, value) => `
+    <tr>
+      <td style="font-family:Arial,sans-serif;padding:9px 14px;background:#dbeafe;font-weight:700;font-size:13px;color:#1e3a5f;width:38%;border-bottom:1px solid #bfdbfe;">${label}</td>
+      <td style="font-family:Arial,sans-serif;padding:9px 14px;font-size:13px;font-weight:700;color:#1d4ed8;background:#dbeafe;border-bottom:1px solid #bfdbfe;">${esc(value)}</td>
+    </tr>`;
+
   const section = (title) => `
-    <tr><td colspan="2" style="padding:12px;background:#1e3a5f;color:#fff;font-weight:700;font-size:14px;letter-spacing:0.5px;">${title}</td></tr>`;
+    <tr><td colspan="2" style="font-family:Arial,sans-serif;padding:10px 14px;background:#1e3a5f;color:#fff;font-weight:700;font-size:13px;letter-spacing:0.8px;">${title}</td></tr>`;
+
+  const stage      = deal.stage || '—';
+  const candidate  = deal.candidate_name || deal.candidateName || '—';
+  const dealName   = deal.name || deal.title || '—';
+  const company    = deal.company_name || deal.company || deal.companyName || '—';
+  const owner      = deal.owner || deal.deal_owner || '—';
+  const amount     = fmt(deal.amount);
+  const expRev     = fmt(deal.expected_revenue);
+  const closeDate  = deal.close_date || deal.closeDate || '—';
+  const prob       = deal.probability != null ? deal.probability + '%' : '—';
+  const source     = deal.campaign || deal.source || '—';
+  const contactName = deal.contact_name || deal.contactName || '—';
+  const clientPoc  = deal.client_poc || deal.clientPoc || '—';
+  const clientPocEmail = deal.client_poc_email || deal.clientPocEmail || '—';
+  const clientPocDesig = deal.client_poc_designation || deal.clientPocDesignation || '—';
+  const recruiter  = deal.recruiter_name || deal.recruiterName || '—';
+  const clientSpoc = deal.client_spoc || deal.clientSpoc || '—';
+  const sourcer    = deal.sourcer || '—';
+  const creditSharing = deal.credit_sharing != null ? deal.credit_sharing + '%' : '—';
+  const candMgmt   = deal.candidate_mgmt || deal.candidateMgmt || deal.candidate_management || '—';
+  const description = deal.description || deal.notes || '—';
 
   return `<!DOCTYPE html>
 <html><head><meta charset="UTF-8"></head>
 <body style="font-family:Arial,sans-serif;background:#f3f4f6;margin:0;padding:20px;">
-  <div style="max-width:640px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.1);">
-    <div style="background:#1e3a5f;padding:24px;text-align:center;">
-      <h1 style="color:#fff;margin:0;font-size:22px;">SearchKraft CRM</h1>
-      <p style="color:#93c5fd;margin:6px 0 0;">New Deal Created</p>
+  <div style="max-width:640px;margin:0 auto;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.12);">
+
+    <!-- Header -->
+    <div style="background:#1e3a5f;padding:28px 24px;text-align:center;">
+      <h1 style="font-family:Arial,sans-serif;color:#fff;margin:0;font-size:26px;font-weight:700;letter-spacing:1px;">SearchKraft</h1>
+      <p style="font-family:Arial,sans-serif;color:#4ade80;margin:8px 0 0;font-size:15px;font-weight:600;">&#10003; New Deal Registered</p>
     </div>
-    <div style="padding:20px;">
-      <p style="color:#374151;font-size:15px;">Hi Accounts Team,</p>
-      <p style="color:#6b7280;">A new deal has been created in SearchKraft CRM. Please find the details below.</p>
-      <table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;margin-top:16px;">
+
+    <div style="padding:24px;">
+
+      <!-- Greeting -->
+      <p style="font-family:Arial,sans-serif;font-size:15px;font-weight:700;color:#111827;margin:0 0 6px;">Hi,</p>
+      <p style="font-family:Arial,sans-serif;font-size:14px;color:#374151;margin:0 0 20px;">A new deal has been created.</p>
+
+      <!-- Quick Summary Banner -->
+      <div style="background:#f1f5f9;border-left:4px solid #1e3a5f;border-radius:6px;padding:14px 18px;margin-bottom:24px;">
+        <table style="width:100%;border-collapse:collapse;">
+          <tr>
+            <td style="font-family:Arial,sans-serif;font-size:13px;color:#374151;padding:3px 0;width:50%;">
+              <span style="font-weight:700;color:#1e3a5f;">Deal:</span> ${esc(dealName)}
+            </td>
+            <td style="font-family:Arial,sans-serif;font-size:13px;color:#374151;padding:3px 0;width:50%;">
+              <span style="font-weight:700;color:#1e3a5f;">Stage:</span> ${esc(stage)}
+            </td>
+          </tr>
+          <tr>
+            <td style="font-family:Arial,sans-serif;font-size:13px;color:#374151;padding:3px 0;">
+              <span style="font-weight:700;color:#1e3a5f;">Amount:</span> ${amount}
+            </td>
+            <td style="font-family:Arial,sans-serif;font-size:13px;color:#374151;padding:3px 0;">
+              <span style="font-weight:700;color:#1e3a5f;">Owner:</span> ${esc(owner)}
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- Main Table -->
+      <table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;">
         ${section('DEAL INFORMATION')}
-        ${row('Deal Name', deal.title)}
-        ${row('Company / Account', deal.company_name)}
-        ${row('Deal Owner', deal.deal_owner)}
-        ${row('Amount', fmt(deal.amount))}
-        ${row('Closing Date', deal.close_date)}
-        ${row('Stage', deal.stage)}
-        ${row('Type', deal.type)}
-        ${row('Probability (%)', deal.probability != null ? deal.probability + '%' : null)}
-        ${row('Expected Revenue', fmt(deal.expected_revenue))}
-        ${row('Next Step', deal.next_step)}
-        ${row('Lead Source', deal.lead_source)}
-        ${row('Campaign Source', deal.campaign_source)}
-        ${row('Contact Name', deal.contact_name)}
-        ${row('Candidate Name', deal.candidate_name)}
+        ${row('Deal Name', dealName)}
+        ${row('Company / Account', company)}
+        ${row('Deal Owner', owner)}
+        ${amountRow('Amount', amount)}
+        ${row('Closing Date', closeDate)}
+        ${row('Stage', stage)}
+        ${row('Probability (%)', prob)}
+        ${row('Expected Revenue', expRev)}
+        ${row('Source', source)}
+        ${row('Contact Name', contactName)}
+        ${row('Candidate Name', candidate)}
+
+        ${section('CLIENT CONTACT DETAILS')}
+        ${row('Client POC', clientPoc)}
+        ${row('Email ID', clientPocEmail)}
+        ${row('Designation', clientPocDesig)}
+
         ${section('RECRUITMENT DETAILS')}
-        ${row('Recruiter Name', deal.recruiter_name)}
-        ${row('Client SPOC', deal.client_spoc)}
-        ${row('Sourcer', deal.sourcer)}
-        ${row('Credit Sharing (%)', deal.credit_sharing != null ? deal.credit_sharing + '%' : null)}
-        ${row('Candidate Management', deal.candidate_management)}
+        ${row('Recruiter Name', recruiter)}
+        ${row('Client SPOC', clientSpoc)}
+        ${row('Sourcer', sourcer)}
+        ${row('Credit Sharing (%)', creditSharing)}
+        ${row('Candidate Management', candMgmt)}
+
         ${section('DESCRIPTION INFORMATION')}
-        ${row('Description', deal.description || deal.notes)}
+        ${row('Description', description)}
       </table>
+
     </div>
-    <div style="padding:16px;background:#f9fafb;text-align:center;color:#9ca3af;font-size:12px;">
-      SearchKraft CRM · This is an automated notification
+
+    <!-- Footer -->
+    <div style="padding:20px 24px;background:#f9fafb;border-top:1px solid #e5e7eb;">
+      <p style="font-family:Arial,sans-serif;font-size:13px;font-weight:700;color:#1e3a5f;margin:0 0 2px;">Regards,</p>
+      <p style="font-family:Arial,sans-serif;font-size:13px;font-weight:700;color:#1e3a5f;margin:0;">SearchKraft</p>
+      <p style="font-family:Arial,sans-serif;font-size:11px;color:#9ca3af;margin:8px 0 0;">This is an automated notification · Do not reply to this email</p>
     </div>
+
   </div>
 </body></html>`;
 }
@@ -163,7 +230,12 @@ function dealWonHtml(deal, deliveryName) {
  */
 async function sendDealCreatedEmail(deal) {
   const RECIPIENTS = ['vikram@searchkraft.in', 'finance@searchkraft.in'];
-  const subject = `New Deal Created – ${deal.company_name || deal.title} | SearchKraft CRM`;
+  const stage     = deal.stage || '';
+  const candidate = deal.candidate_name || deal.candidateName || '';
+  const dealName  = deal.name || deal.title || '';
+  const company   = deal.company_name || deal.company || deal.companyName || '';
+  const subjectParts = [stage, candidate, dealName, company].filter(Boolean);
+  const subject = `🎯 ${subjectParts.join(' | ')}`;
   const html = dealCreatedHtml(deal);
 
   // Log + send for each recipient
