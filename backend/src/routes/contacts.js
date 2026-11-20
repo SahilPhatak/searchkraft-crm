@@ -24,10 +24,7 @@ router.get('/:id', requireAuth, async (req, res) => {
 
 router.post('/', requireAuth, async (req, res) => {
   const body = { ...req.body }
-  const q = body.id
-    ? supabase.from('contacts').upsert(body, { onConflict: 'id' }).select().single()
-    : supabase.from('contacts').insert(body).select().single()
-  const { data, error } = await q;
+  const { data, error } = await supabase.from('contacts').insert(body).select().single();
   if (error) return res.status(400).json({ error: error.message });
   res.status(201).json(data);
 });
