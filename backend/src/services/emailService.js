@@ -152,14 +152,15 @@ function dealWonHtml(deal, deliveryName) {
  * Fire-and-forget — never throws, always logs.
  */
 async function sendDealCreatedEmail(deal) {
-  const ACCOUNTS_EMAIL = 'vikram@searchkraft.in';
+  const RECIPIENTS = ['vikram@searchkraft.in', 'finance@searchkraft.in'];
+  const TO = RECIPIENTS.join(', ');
   const subject = `New Deal Created – ${deal.company || deal.company_name || deal.name || deal.title} | SearchKraft CRM`;
 
   // Log pending first
   const { data: log } = await supabase.from('email_notifications').insert({
     deal_id: deal.id,
     notification_type: 'deal_created',
-    recipient_email: ACCOUNTS_EMAIL,
+    recipient_email: TO,
     subject,
     status: 'pending',
   }).select().single();
@@ -167,11 +168,11 @@ async function sendDealCreatedEmail(deal) {
   try {
     const transporter = createTransporter();
     await transporter.sendMail({
-      from: FROM(), to: ACCOUNTS_EMAIL, subject,
+      from: FROM(), to: TO, subject,
       html: dealCreatedHtml(deal),
     });
     if (log) await updateNotificationStatus(log.id, 'sent');
-    console.log(`[Email] deal_created sent to ${ACCOUNTS_EMAIL} for deal ${deal.id}`);
+    console.log(`[Email] deal_created sent to ${TO} for deal ${deal.id}`);
   } catch (err) {
     console.error(`[Email] deal_created failed for deal ${deal.id}:`, err.message);
     if (log) await updateNotificationStatus(log.id, 'failed', err.message);
@@ -261,7 +262,7 @@ async function retryNotification(notificationId) {
   if (!deal) throw new Error('Deal not found');
 
   if (notif.notification_type === 'deal_created') {
-    await supabase.from('email_notifications').update({ status: 'pending' }).eq('id', notificationId);
+    await supabase.from('email_notifications').update({ status: 'pending', recipient_email: 'vikram@searchkraft.in, finance@searchkraft.in' }).eq('id', notificationId);
     await sendDealCreatedEmail(deal);
   } else if (notif.notification_type === 'deal_won_delivery') {
     // Reset idempotency by deleting old sent record if exists
