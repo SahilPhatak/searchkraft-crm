@@ -35,6 +35,7 @@ export function Dashboard() {
   const { data: contacts = [] } = useQuery({ queryKey: ['contacts'], queryFn: () => api.get('/api/contacts') })
   const { data: deals = [] } = useQuery({ queryKey: ['deals'], queryFn: () => api.get('/api/deals') })
   const { data: tasks = [] } = useQuery({ queryKey: ['tasks'], queryFn: () => api.get('/api/tasks') })
+  const { data: business = [] } = useQuery({ queryKey: ['business_onboarded'], queryFn: () => api.get('/api/business-onboarded') })
 
   const openDeals = deals.filter((d) => d.stage !== 'closed_won' && d.stage !== 'closed_lost')
   const totalDealValue = openDeals.reduce((sum, d) => sum + (d.amount || 0), 0)
@@ -55,6 +56,39 @@ export function Dashboard() {
         <StatCard title="Open Deals" value={openDeals.length} icon={Handshake} description={formatCurrency(totalDealValue)} color="purple" />
         <StatCard title="Pending Tasks" value={pendingTasks.length} icon={CheckSquare} color="orange" />
       </div>
+
+      {/* Total Positions card */}
+      {business.length > 0 && (() => {
+        const active = business.filter(b => b.status === 'active').length
+        const hold = business.filter(b => b.status === 'inactive' || b.status === 'pending').length
+        const churned = business.filter(b => b.status === 'churned').length
+        return (
+          <Card className="border-l-4 border-l-teal-500">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Total Positions</p>
+                  <p className="text-4xl font-bold text-teal-600">{business.length}</p>
+                </div>
+                <div className="flex gap-6 text-sm">
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-green-600">{active}</p>
+                    <p className="text-xs text-muted-foreground">active</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-yellow-600">{hold}</p>
+                    <p className="text-xs text-muted-foreground">hold</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-red-500">{churned}</p>
+                    <p className="text-xs text-muted-foreground">churned</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )
+      })()}
 
       <div className="grid gap-6 md:grid-cols-2">
         {/* Recent Leads */}
