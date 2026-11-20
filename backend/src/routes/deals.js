@@ -42,13 +42,14 @@ router.post('/', requireAuth, async (req, res) => {
     : supabase.from('deals').insert(body).select().single()
   const { data, error } = await query;
   if (error) return res.status(400).json({ error: error.message });
-  res.status(201).json(data);
 
-  // Fire-and-forget emails (after response sent)
-  sendDealCreatedEmail(data).catch(err => console.error('[Email] sendDealCreatedEmail uncaught:', err.message, err.stack));
+  // Send emails BEFORE responding so Render free tier doesn't kill async work
+  await sendDealCreatedEmail(data);
   if (data.stage === 'Won' && (data.delivery_pillar_id || data.delivery_pillar)) {
-    sendDealWonEmail(data).catch(() => {});
+    await sendDealWonEmail(data);
   }
+
+  res.status(201).json(data);
 });
 
 router.put('/:id', requireAuth, async (req, res) => {
