@@ -1,164 +1,186 @@
-import { useState, useRef } from 'react'
+import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { DataTable } from '@/components/DataTable'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { api } from '@/lib/api'
-import { generateId, formatDate } from '@/lib/utils'
-import { supabase } from '@/lib/supabase'
-import { Upload, Paperclip, FileText, ExternalLink } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 
-const types = ['proposal', 'contract', 'invoice', 'report', 'presentation', 'nda', 'agreement', 'other']
-const categories = ['sales', 'legal', 'finance', 'marketing', 'hr', 'technical', 'other']
+const DOC_TYPES = ['Contract','Proposal','Invoice','NDA','SOW','Report','Other']
+const OWNER_OPTIONS = ['Samyadeep','Vikram','Sahil','Urmila']
 
-const columns = [
-  { key: 'name', label: 'Name', render: (v, row) => (
-    <div>
-      <div className="font-medium text-sm">{v}</div>
-      {row.description && <div className="text-xs text-muted-foreground truncate max-w-[200px]">{row.description}</div>}
-    </div>
-  )},
-  { key: 'type', label: 'Type', render: (v) => <Badge variant="secondary" className="capitalize text-xs">{v}</Badge> },
-  { key: 'category', label: 'Category', render: (v) => v ? <span className="capitalize text-xs text-muted-foreground">{v}</span> : '—' },
-  { key: 'file_url', label: 'File', render: (v) => v ? (
-    <a href={v} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-blue-600 hover:underline text-xs">
-      <ExternalLink className="w-3 h-3" /> View
-    </a>
-  ) : '—' },
-  { key: 'created_at', label: 'Created', render: (v) => formatDate(v) },
-]
-
-const empty = { name: '', type: 'proposal', category: 'sales', file_url: '', description: '' }
-
-export function Documents() {
-  const qc = useQueryClient()
-  const { toast } = useToast()
-  const [open, setOpen] = useState(false)
-  const [form, setForm] = useState(empty)
-  const [editing, setEditing] = useState(null)
-  const [uploading, setUploading] = useState(false)
-  const fileRef = useRef(null)
-
-  const { data = [], isLoading } = useQuery({ queryKey: ['documents'], queryFn: () => api.get('/api/documents') })
-
-  const save = useMutation({
-    mutationFn: (d) => editing
-      ? api.put(`/api/documents/${editing.id}`, d)
-      : api.post('/api/documents', { ...d, id: generateId() }),
-    onSuccess: () => { qc.invalidateQueries(['documents']); close(); toast({ title: editing ? 'Document updated' : 'Document saved' }) },
-    onError: (e) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+function DocModal({ doc, onClose, onSave, saving }) {
+  const [f, setF] = useState(doc ? { ...doc } : {
+    title: '', type: '', owner: '', relatedTo: '', description: '', url: ''
   })
-
-  const remove = useMutation({
-    mutationFn: (id) => api.delete(`/api/documents/${id}`),
-    onSuccess: () => { qc.invalidateQueries(['documents']); toast({ title: 'Document deleted' }) },
-  })
-
-  const handleUpload = async (file) => {
-    if (!file) return
-    setUploading(true)
-    try {
-      const ext = file.name.split('.').pop()
-      const path = `documents/${generateId()}.${ext}`
-      const { data: upload, error } = await supabase.storage.from('documents').upload(path, file, { upsert: true })
-      if (error) throw error
-      const { data: { publicUrl } } = supabase.storage.from('documents').getPublicUrl(path)
-      setForm(f => ({ ...f, file_url: publicUrl, name: f.name || file.name.replace(`.${ext}`, '') }))
-      toast({ title: 'File uploaded!', description: file.name })
-    } catch (err) {
-      // Fallback: store a fake URL if storage isn't set up
-      toast({ title: 'Upload info', description: 'Supabase Storage bucket "documents" may not be set up. Enter file URL manually.', variant: 'destructive' })
-    } finally {
-      setUploading(false)
-    }
-  }
-
-  const close = () => { setOpen(false); setEditing(null); setForm(empty) }
+  const set = (k, v) => setF(p => ({ ...p, [k]: v }))
 
   return (
-    <>
-      <DataTable
-        data={data} columns={columns}
-        onAdd={() => setOpen(true)}
-        onEdit={(row) => { setEditing(row); setForm({ ...row }); setOpen(true) }}
-        onDelete={(row) => { if (confirm(`Delete "${row.name}"?`)) remove.mutate(row.id) }}
-        searchFields={['name', 'type', 'category', 'description']}
-        title="Documents" isLoading={isLoading}
-      />
-
-      <Dialog open={open} onOpenChange={(v) => { if (!v) close() }}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>{editing ? 'Edit Document' : 'Add Document'}</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="col-span-2">
-                <Label>Document Name *</Label>
-                <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-              </div>
-              <div>
-                <Label>Type</Label>
-                <Select value={form.type} onValueChange={(v) => setForm({ ...form, type: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{types.map((t) => <SelectItem key={t} value={t} className="capitalize">{t}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Category</Label>
-                <Select value={form.category || 'other'} onValueChange={(v) => setForm({ ...form, category: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{categories.map((c) => <SelectItem key={c} value={c} className="capitalize">{c}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* File upload */}
-            <div>
-              <Label>File Upload / URL</Label>
-              <div className="mt-1 space-y-2">
-                <div
-                  onClick={() => fileRef.current?.click()}
-                  className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:border-primary hover:bg-muted/30 transition-colors"
-                >
-                  <Upload className="w-5 h-5 mx-auto mb-1 text-muted-foreground" />
-                  <div className="text-xs text-muted-foreground">
-                    {uploading ? 'Uploading…' : 'Click to upload file'}
-                  </div>
-                  <input ref={fileRef} type="file" className="hidden" onChange={e => handleUpload(e.target.files?.[0])} />
-                </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <div className="h-px flex-1 bg-border" /> or paste URL <div className="h-px flex-1 bg-border" />
-                </div>
-                <Input
-                  placeholder="https://example.com/file.pdf"
-                  value={form.file_url || ''}
-                  onChange={(e) => setForm({ ...form, file_url: e.target.value })}
-                />
-                {form.file_url && (
-                  <a href={form.file_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline">
-                    <ExternalLink className="w-3 h-3" /> Preview file
-                  </a>
-                )}
-              </div>
-            </div>
-
-            <div>
-              <Label>Description</Label>
-              <textarea value={form.description || ''} onChange={(e) => setForm({ ...form, description: e.target.value })}
-                className="flex min-h-[70px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
-            </div>
-
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={close}>Cancel</Button>
-              <Button onClick={() => save.mutate(form)} disabled={save.isPending || !form.name}>{save.isPending ? 'Saving…' : 'Save'}</Button>
-            </DialogFooter>
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal-box" style={{ maxWidth: 500 }}>
+        <div className="modal-hdr">
+          <span>{doc ? 'Edit Document' : 'Add Document'}</span>
+          <button className="modal-close" onClick={onClose}>×</button>
+        </div>
+        <div className="modal-body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 16px' }}>
+          <div className="lf-field" style={{ gridColumn: '1/-1' }}>
+            <label>Document Title *</label>
+            <input type="text" value={f.title || ''} onChange={e => set('title', e.target.value)} />
           </div>
-        </DialogContent>
-      </Dialog>
-    </>
+          <div className="lf-field">
+            <label>Type</label>
+            <select value={f.type || ''} onChange={e => set('type', e.target.value)}>
+              <option value="">-None-</option>
+              {DOC_TYPES.map(o => <option key={o}>{o}</option>)}
+            </select>
+          </div>
+          <div className="lf-field">
+            <label>Owner</label>
+            <select value={f.owner || ''} onChange={e => set('owner', e.target.value)}>
+              <option value="">-None-</option>
+              {OWNER_OPTIONS.map(o => <option key={o}>{o}</option>)}
+            </select>
+          </div>
+          <div className="lf-field" style={{ gridColumn: '1/-1' }}>
+            <label>Related To (Account / Deal)</label>
+            <input type="text" value={f.relatedTo || f.related_to || ''} onChange={e => set('relatedTo', e.target.value)} />
+          </div>
+          <div className="lf-field" style={{ gridColumn: '1/-1' }}>
+            <label>URL / Link</label>
+            <input type="url" placeholder="https://" value={f.url || ''} onChange={e => set('url', e.target.value)} />
+          </div>
+          <div className="lf-field" style={{ gridColumn: '1/-1' }}>
+            <label>Description</label>
+            <textarea value={f.description || ''} onChange={e => set('description', e.target.value)} rows={3} />
+          </div>
+        </div>
+        <div className="modal-footer">
+          <button className="crm-toolbar-btn" onClick={onClose}>Cancel</button>
+          <button className="crm-btn-primary" disabled={!f.title || saving} onClick={() => onSave(f)}>
+            {saving ? 'Saving…' : 'Save Document'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default function Documents() {
+  const [search, setSearch] = useState('')
+  const [modal, setModal] = useState(null)
+  const qc = useQueryClient()
+  const { toast } = useToast()
+
+  const { data: docs = [], isLoading } = useQuery({
+    queryKey: ['documents'], queryFn: () => api.get('/api/documents')
+  })
+
+  const saveMutation = useMutation({
+    mutationFn: d => d.id ? api.put(`/api/documents/${d.id}`, d) : api.post('/api/documents', d),
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries(['documents'])
+      setModal(null)
+      toast({ title: vars.id ? 'Document updated' : 'Document added' })
+    },
+    onError: e => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: id => api.delete(`/api/documents/${id}`),
+    onSuccess: () => { qc.invalidateQueries(['documents']); toast({ title: 'Document deleted' }) },
+    onError: e => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  })
+
+  const filtered = useMemo(() => {
+    if (!search) return docs
+    const q = search.toLowerCase()
+    return docs.filter(d =>
+      (d.title || '').toLowerCase().includes(q) ||
+      (d.type || '').toLowerCase().includes(q) ||
+      (d.relatedTo || d.related_to || '').toLowerCase().includes(q)
+    )
+  }, [docs, search])
+
+  return (
+    <div className="crm-page-wrap">
+      <div style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid var(--border-color)', padding: '0 20px', background: 'var(--surface)', flexShrink: 0 }}>
+        <button className="crm-subtab active">All Documents</button>
+      </div>
+
+      <div className="crm-toolbar">
+        <div style={{ flex: 1 }} />
+        <div className="crm-search">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" style={{ opacity: 0.45, flexShrink: 0 }}>
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input placeholder="Search documents…" value={search} onChange={e => setSearch(e.target.value)} />
+        </div>
+        <button className="crm-btn-primary" onClick={() => setModal('create')}>+ Add Document</button>
+      </div>
+
+      <div className="crm-tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Type</th>
+              <th>Related To</th>
+              <th>Owner</th>
+              <th>Link</th>
+              <th>Created</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {isLoading ? (
+              <tr><td colSpan={7} style={{ textAlign: 'center', padding: 32, color: 'var(--fg3)' }}>Loading…</td></tr>
+            ) : filtered.length === 0 ? (
+              <tr><td colSpan={7}>
+                <div className="empty-state">
+                  <div className="empty-state-icon">📄</div>
+                  <div>{search ? 'No documents match your search' : 'No documents yet'}</div>
+                  {!search && <button className="crm-btn-primary" onClick={() => setModal('create')}>+ Add Document</button>}
+                </div>
+              </td></tr>
+            ) : filtered.map(d => (
+              <tr key={d.id}>
+                <td className="name-cell" onClick={() => setModal(d)}>{d.title || '—'}</td>
+                <td>{d.type ? <span className="badge badge-purple">{d.type}</span> : '—'}</td>
+                <td>{d.relatedTo || d.related_to || '—'}</td>
+                <td>{d.owner || '—'}</td>
+                <td>
+                  {d.url ? (
+                    <a href={d.url} target="_blank" rel="noopener noreferrer"
+                      style={{ color: 'var(--sk-accent)', fontSize: 12, textDecoration: 'none' }}
+                      onClick={e => e.stopPropagation()}>
+                      🔗 Open
+                    </a>
+                  ) : '—'}
+                </td>
+                <td><span className="mono">{(d.created_at || '').slice(0, 10) || '—'}</span></td>
+                <td>
+                  <div className="row-actions">
+                    <button className="row-act-btn" onClick={() => setModal(d)}>Edit</button>
+                    <button className="row-act-btn del" onClick={() => window.confirm('Delete this document?') && deleteMutation.mutate(d.id)}>Delete</button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="crm-tbl-footer">
+        <span>Total Records <strong style={{ color: 'var(--fg)' }}>{filtered.length}</strong>
+          {search && <span style={{ marginLeft: 6, color: 'var(--fg3)' }}>(filtered from {docs.length})</span>}
+        </span>
+      </div>
+
+      {modal && (
+        <DocModal
+          doc={modal === 'create' ? null : modal}
+          onClose={() => setModal(null)}
+          onSave={d => saveMutation.mutate(d)}
+          saving={saveMutation.isPending}
+        />
+      )}
+    </div>
   )
 }

@@ -1,170 +1,225 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { DataTable } from '@/components/DataTable'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { Card, CardContent } from '@/components/ui/card'
 import { api } from '@/lib/api'
-import { generateId, formatDate } from '@/lib/utils'
-import { TrendingUp, Users, CheckCircle, AlertCircle } from 'lucide-react'
+import { useToast } from '@/components/ui/use-toast'
 
-const statuses = ['active', 'inactive', 'pending', 'churned']
-const statusColors = { active: 'success', inactive: 'secondary', pending: 'warning', churned: 'destructive' }
+const OWNER_OPTIONS = ['Samyadeep','Vikram','Sahil','Urmila']
+const STATUS_OPTIONS = ['Active','Completed','On Hold','Cancelled']
 
-const columns = [
-  { key: 'business_name', label: 'Business' },
-  { key: 'owner_name', label: 'Owner' },
-  { key: 'email', label: 'Email' },
-  { key: 'phone', label: 'Phone' },
-  { key: 'revenue', label: 'Revenue', render: (v) => v ? `₹${parseFloat(v).toLocaleString()}` : '—' },
-  { key: 'status', label: 'Status', render: (v) => <Badge variant={statusColors[v] || 'secondary'} className="capitalize text-xs">{v}</Badge> },
-  { key: 'onboarded_date', label: 'Onboarded', render: (v) => formatDate(v) },
-]
+const STATUS_BADGE = {
+  active: 'badge-green', completed: 'badge-blue',
+  'on hold': 'badge-amber', cancelled: 'badge-red'
+}
 
-const empty = { business_name: '', owner_name: '', email: '', phone: '', status: 'active', onboarded_date: '', revenue: '', notes: '' }
+function statusBadge(s) {
+  const key = (s || '').toLowerCase()
+  return <span className={`badge ${STATUS_BADGE[key] || 'badge-gray'}`}>{s || 'Active'}</span>
+}
 
-export function Business() {
-  const qc = useQueryClient()
-  const [open, setOpen] = useState(false)
-  const [form, setForm] = useState(empty)
-  const [editing, setEditing] = useState(null)
+function fmt(n) {
+  if (!n) return '—'
+  return '₹' + Number(n).toLocaleString('en-IN')
+}
 
-  const { data = [], isLoading } = useQuery({
-    queryKey: ['business_onboarded'],
-    queryFn: () => api.get('/api/business-onboarded'),
+function BusinessModal({ record, onClose, onSave, saving }) {
+  const [f, setF] = useState(record ? { ...record } : {
+    clientName: '', companyName: '', owner: '', status: 'Active',
+    positionTitle: '', startDate: '', joiningDate: '', salary: '',
+    recruiterName: '', clientSpoc: '', notes: ''
   })
-
-  const save = useMutation({
-    mutationFn: (d) => editing
-      ? api.put(`/api/business-onboarded/${editing.id}`, d)
-      : api.post('/api/business-onboarded', { ...d, id: generateId() }),
-    onSuccess: () => { qc.invalidateQueries(['business_onboarded']); close() },
-  })
-
-  const remove = useMutation({
-    mutationFn: (id) => api.delete(`/api/business-onboarded/${id}`),
-    onSuccess: () => qc.invalidateQueries(['business_onboarded']),
-  })
-
-  const close = () => { setOpen(false); setEditing(null); setForm(empty) }
-
-  // KPI calculations
-  const active = data.filter(b => b.status === 'active')
-  const inactive = data.filter(b => b.status === 'inactive')
-  const churned = data.filter(b => b.status === 'churned')
-  const totalRevenue = data.reduce((s, b) => s + (parseFloat(b.revenue) || 0), 0)
-  const activeRevenue = active.reduce((s, b) => s + (parseFloat(b.revenue) || 0), 0)
-
-  const now = new Date()
-  const thisMonth = data.filter(b => {
-    const d = new Date(b.onboarded_date || b.created_at)
-    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
-  }).length
-
-  const kpis = [
-    { label: 'Total Onboarded', value: data.length, icon: Users, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-950' },
-    { label: 'Active Businesses', value: active.length, icon: CheckCircle, color: 'text-green-500', bg: 'bg-green-50 dark:bg-green-950' },
-    { label: 'Churned', value: churned.length, icon: AlertCircle, color: 'text-red-500', bg: 'bg-red-50 dark:bg-red-950' },
-    { label: 'Onboarded This Month', value: thisMonth, icon: TrendingUp, color: 'text-purple-500', bg: 'bg-purple-50 dark:bg-purple-950' },
-  ]
+  const set = (k, v) => setF(p => ({ ...p, [k]: v }))
 
   return (
-    <div className="p-6 space-y-5">
-      {/* KPI tiles */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {kpis.map((k, i) => {
-          const Icon = k.icon
-          return (
-            <Card key={i}>
-              <CardContent className="p-4">
-                <div className={`w-9 h-9 rounded-lg ${k.bg} flex items-center justify-center mb-3`}>
-                  <Icon className={`w-4.5 h-4.5 ${k.color}`} />
-                </div>
-                <div className="text-2xl font-bold">{k.value}</div>
-                <div className="text-xs text-muted-foreground mt-0.5">{k.label}</div>
-              </CardContent>
-            </Card>
-          )
-        })}
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal-box" style={{ maxWidth: 600 }}>
+        <div className="modal-hdr">
+          <span>{record ? 'Edit Record' : 'Add Onboarded Business'}</span>
+          <button className="modal-close" onClick={onClose}>×</button>
+        </div>
+        <div className="modal-body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 16px' }}>
+          <div className="lf-field">
+            <label>Client / Candidate Name *</label>
+            <input type="text" value={f.clientName || f.client_name || ''} onChange={e => set('clientName', e.target.value)} />
+          </div>
+          <div className="lf-field">
+            <label>Company</label>
+            <input type="text" value={f.companyName || f.company_name || ''} onChange={e => set('companyName', e.target.value)} />
+          </div>
+          <div className="lf-field">
+            <label>Position Title</label>
+            <input type="text" value={f.positionTitle || f.position_title || ''} onChange={e => set('positionTitle', e.target.value)} />
+          </div>
+          <div className="lf-field">
+            <label>Status</label>
+            <select value={f.status || 'Active'} onChange={e => set('status', e.target.value)}>
+              {STATUS_OPTIONS.map(o => <option key={o}>{o}</option>)}
+            </select>
+          </div>
+          <div className="lf-field">
+            <label>Start Date</label>
+            <input type="date" value={f.startDate || f.start_date || ''} onChange={e => set('startDate', e.target.value)} />
+          </div>
+          <div className="lf-field">
+            <label>Joining Date</label>
+            <input type="date" value={f.joiningDate || f.joining_date || ''} onChange={e => set('joiningDate', e.target.value)} />
+          </div>
+          <div className="lf-field">
+            <label>Salary / CTC (₹)</label>
+            <input type="number" min="0" value={f.salary || ''} onChange={e => set('salary', e.target.value)} />
+          </div>
+          <div className="lf-field">
+            <label>Owner</label>
+            <select value={f.owner || ''} onChange={e => set('owner', e.target.value)}>
+              <option value="">-None-</option>
+              {OWNER_OPTIONS.map(o => <option key={o}>{o}</option>)}
+            </select>
+          </div>
+          <div className="lf-field">
+            <label>Recruiter</label>
+            <input type="text" value={f.recruiterName || f.recruiter_name || ''} onChange={e => set('recruiterName', e.target.value)} />
+          </div>
+          <div className="lf-field">
+            <label>Client SPOC</label>
+            <select value={f.clientSpoc || f.client_spoc || ''} onChange={e => set('clientSpoc', e.target.value)}>
+              <option value="">-None-</option>
+              {['Vikram','Samyadeep'].map(o => <option key={o}>{o}</option>)}
+            </select>
+          </div>
+          <div className="lf-field" style={{ gridColumn: '1/-1' }}>
+            <label>Notes</label>
+            <textarea value={f.notes || ''} onChange={e => set('notes', e.target.value)} rows={2} />
+          </div>
+        </div>
+        <div className="modal-footer">
+          <button className="crm-toolbar-btn" onClick={onClose}>Cancel</button>
+          <button className="crm-btn-primary" disabled={!(f.clientName || f.client_name) || saving} onClick={() => onSave(f)}>
+            {saving ? 'Saving…' : 'Save'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default function Business() {
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
+  const [modal, setModal] = useState(null)
+  const qc = useQueryClient()
+  const { toast } = useToast()
+
+  const { data: records = [], isLoading } = useQuery({
+    queryKey: ['business'], queryFn: () => api.get('/api/business')
+  })
+
+  const saveMutation = useMutation({
+    mutationFn: d => d.id ? api.put(`/api/business/${d.id}`, d) : api.post('/api/business', d),
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries(['business'])
+      setModal(null)
+      toast({ title: vars.id ? 'Record updated' : 'Record added' })
+    },
+    onError: e => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: id => api.delete(`/api/business/${id}`),
+    onSuccess: () => { qc.invalidateQueries(['business']); toast({ title: 'Record deleted' }) },
+    onError: e => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  })
+
+  const filtered = useMemo(() => {
+    return records.filter(r => {
+      if (statusFilter && (r.status || '').toLowerCase() !== statusFilter.toLowerCase()) return false
+      if (!search) return true
+      const q = search.toLowerCase()
+      return (r.clientName || r.client_name || '').toLowerCase().includes(q) ||
+        (r.companyName || r.company_name || '').toLowerCase().includes(q) ||
+        (r.positionTitle || r.position_title || '').toLowerCase().includes(q)
+    })
+  }, [records, search, statusFilter])
+
+  return (
+    <div className="crm-page-wrap">
+      <div style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid var(--border-color)', padding: '0 20px', background: 'var(--surface)', flexShrink: 0 }}>
+        <button className="crm-subtab active">Business Onboarded</button>
       </div>
 
-      {/* Revenue summary */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-xs text-muted-foreground mb-1">Total Revenue (All)</div>
-            <div className="text-2xl font-bold text-foreground">₹{totalRevenue.toLocaleString()}</div>
-            <div className="text-xs text-muted-foreground mt-1">{data.length} businesses</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-xs text-muted-foreground mb-1">Active Revenue</div>
-            <div className="text-2xl font-bold text-green-600">₹{activeRevenue.toLocaleString()}</div>
-            <div className="text-xs text-muted-foreground mt-1">{active.length} active businesses</div>
-          </CardContent>
-        </Card>
+      <div className="crm-toolbar">
+        <select className="crm-toolbar-btn" value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ cursor: 'pointer' }}>
+          <option value="">All Statuses</option>
+          {STATUS_OPTIONS.map(s => <option key={s}>{s}</option>)}
+        </select>
+        <div style={{ flex: 1 }} />
+        <div className="crm-search">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" style={{ opacity: 0.45, flexShrink: 0 }}>
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input placeholder="Search…" value={search} onChange={e => setSearch(e.target.value)} />
+        </div>
+        <button className="crm-btn-primary" onClick={() => setModal('create')}>+ Add Record</button>
       </div>
 
-      {/* Table */}
-      <DataTable
-        data={data} columns={columns}
-        onAdd={() => setOpen(true)}
-        onEdit={(row) => { setEditing(row); setForm({ ...row }); setOpen(true) }}
-        onDelete={(row) => { if (confirm(`Remove "${row.business_name}"?`)) remove.mutate(row.id) }}
-        searchFields={['business_name', 'owner_name', 'email']}
-        title="Business Onboarded" isLoading={isLoading}
-      />
-
-      <Dialog open={open} onOpenChange={(v) => { if (!v) close() }}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>{editing ? 'Edit Business' : 'Onboard Business'}</DialogTitle></DialogHeader>
-          <form onSubmit={(e) => { e.preventDefault(); save.mutate(form) }} className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="col-span-2 space-y-1.5">
-                <Label>Business Name *</Label>
-                <Input value={form.business_name} onChange={(e) => setForm({ ...form, business_name: e.target.value })} required />
-              </div>
-              {[['owner_name', 'Owner Name'], ['email', 'Email'], ['phone', 'Phone']].map(([f, l]) => (
-                <div key={f} className="space-y-1.5">
-                  <Label>{l}</Label>
-                  <Input value={form[f] || ''} onChange={(e) => setForm({ ...form, [f]: e.target.value })} />
+      <div className="crm-tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Client / Candidate</th>
+              <th>Company</th>
+              <th>Position</th>
+              <th>Status</th>
+              <th>Joining Date</th>
+              <th>Salary / CTC</th>
+              <th>Recruiter</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {isLoading ? (
+              <tr><td colSpan={8} style={{ textAlign: 'center', padding: 32, color: 'var(--fg3)' }}>Loading…</td></tr>
+            ) : filtered.length === 0 ? (
+              <tr><td colSpan={8}>
+                <div className="empty-state">
+                  <div className="empty-state-icon">🤝</div>
+                  <div>{search || statusFilter ? 'No records match your filter' : 'No business onboarded yet'}</div>
+                  {!search && !statusFilter && <button className="crm-btn-primary" onClick={() => setModal('create')}>+ Add Record</button>}
                 </div>
-              ))}
-              <div className="space-y-1.5">
-                <Label>Revenue (₹)</Label>
-                <Input type="number" value={form.revenue || ''} onChange={(e) => setForm({ ...form, revenue: e.target.value })} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Status</Label>
-                <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {statuses.map((s) => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label>Onboarded Date</Label>
-                <Input type="date" value={form.onboarded_date || ''} onChange={(e) => setForm({ ...form, onboarded_date: e.target.value })} />
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Notes</Label>
-              <textarea className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                value={form.notes || ''} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={close}>Cancel</Button>
-              <Button type="submit" disabled={save.isPending}>{save.isPending ? 'Saving…' : 'Save'}</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+              </td></tr>
+            ) : filtered.map(r => (
+              <tr key={r.id}>
+                <td className="name-cell" onClick={() => setModal(r)}>{r.clientName || r.client_name || '—'}</td>
+                <td>{r.companyName || r.company_name || '—'}</td>
+                <td>{r.positionTitle || r.position_title || '—'}</td>
+                <td>{statusBadge(r.status)}</td>
+                <td><span className="mono">{r.joiningDate || r.joining_date || '—'}</span></td>
+                <td><span className="mono">{fmt(r.salary)}</span></td>
+                <td>{r.recruiterName || r.recruiter_name || '—'}</td>
+                <td>
+                  <div className="row-actions">
+                    <button className="row-act-btn" onClick={() => setModal(r)}>Edit</button>
+                    <button className="row-act-btn del" onClick={() => window.confirm('Delete this record?') && deleteMutation.mutate(r.id)}>Delete</button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="crm-tbl-footer">
+        <span>Total Records <strong style={{ color: 'var(--fg)' }}>{filtered.length}</strong>
+          {(search || statusFilter) && <span style={{ marginLeft: 6, color: 'var(--fg3)' }}>(filtered from {records.length})</span>}
+        </span>
+      </div>
+
+      {modal && (
+        <BusinessModal
+          record={modal === 'create' ? null : modal}
+          onClose={() => setModal(null)}
+          onSave={d => saveMutation.mutate(d)}
+          saving={saveMutation.isPending}
+        />
+      )}
     </div>
   )
 }
