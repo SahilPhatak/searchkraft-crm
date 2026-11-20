@@ -92,7 +92,6 @@ function dealCreatedHtml(deal) {
   const closeDate  = deal.close_date || deal.closeDate || '—';
   const prob       = deal.probability != null ? deal.probability + '%' : '—';
   const source     = deal.campaign || deal.source || '—';
-  const contactName = deal.contact_name || deal.contactName || '—';
   const clientPoc  = deal.client_poc || deal.clientPoc || '—';
   const clientPocEmail = deal.client_poc_email || deal.clientPocEmail || '—';
   const clientPocDesig = deal.client_poc_designation || deal.clientPocDesignation || '—';
@@ -101,85 +100,88 @@ function dealCreatedHtml(deal) {
   const sourcer    = deal.sourcer || '—';
   const creditSharing = deal.credit_sharing != null ? deal.credit_sharing + '%' : '—';
   const candMgmt   = deal.candidate_mgmt || deal.candidateMgmt || deal.candidate_management || '—';
-  const description = deal.description || deal.notes || '—';
+
+  const sectionHeader = (icon, title) => `
+    <tr><td colspan="2" style="padding:0">
+      <div style="background:#eff6ff;border-left:4px solid #2563eb;padding:10px 16px;margin-top:16px;">
+        <span style="font-family:Arial,sans-serif;font-size:13px;font-weight:700;color:#1e40af;">${icon} ${title}</span>
+      </div>
+    </td></tr>`;
+
+  const detailRow = (label, value) => `
+    <tr>
+      <td style="font-family:Arial,sans-serif;padding:9px 16px;font-size:13px;color:#6b7280;width:40%;border-bottom:1px solid #f3f4f6;">${label}</td>
+      <td style="font-family:Arial,sans-serif;padding:9px 16px;font-size:13px;color:#111827;font-weight:500;border-bottom:1px solid #f3f4f6;">${esc(value)}</td>
+    </tr>`;
+
+  const amountDetailRow = (label, value) => `
+    <tr>
+      <td style="font-family:Arial,sans-serif;padding:9px 16px;font-size:13px;color:#6b7280;width:40%;border-bottom:1px solid #f3f4f6;">${label}</td>
+      <td style="font-family:Arial,sans-serif;padding:9px 16px;font-size:13px;color:#2563eb;font-weight:700;border-bottom:1px solid #f3f4f6;">${esc(value)}</td>
+    </tr>`;
 
   return `<!DOCTYPE html>
 <html><head><meta charset="UTF-8"></head>
 <body style="font-family:Arial,sans-serif;background:#f3f4f6;margin:0;padding:20px;">
-  <div style="max-width:640px;margin:0 auto;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.12);">
+  <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.10);">
 
     <!-- Header -->
-    <div style="background:#1e3a5f;padding:28px 24px;text-align:center;">
-      <h1 style="font-family:Arial,sans-serif;color:#fff;margin:0;font-size:26px;font-weight:700;letter-spacing:1px;">SearchKraft</h1>
-      <p style="font-family:Arial,sans-serif;color:#4ade80;margin:8px 0 0;font-size:15px;font-weight:600;">&#10003; New Deal Registered</p>
+    <div style="background:#1e3a8a;padding:28px 24px;text-align:center;">
+      <h1 style="font-family:Arial,sans-serif;color:#fff;margin:0;font-size:24px;font-weight:700;letter-spacing:1px;">SearchKraft CRM</h1>
+      <p style="font-family:Arial,sans-serif;color:#93c5fd;margin:6px 0 0;font-size:13px;">Recruitment Management System</p>
     </div>
 
-    <div style="padding:24px;">
+    <!-- Badge -->
+    <div style="text-align:center;padding:20px 24px 0;">
+      <span style="display:inline-block;background:#fef3c7;color:#92400e;font-family:Arial,sans-serif;font-size:12px;font-weight:700;padding:6px 18px;border-radius:20px;letter-spacing:0.8px;">&#128204; NEW DEAL CREATED</span>
+    </div>
 
-      <!-- Greeting -->
-      <p style="font-family:Arial,sans-serif;font-size:15px;font-weight:700;color:#111827;margin:0 0 6px;">Hi,</p>
-      <p style="font-family:Arial,sans-serif;font-size:14px;color:#374151;margin:0 0 20px;">A new deal has been created.</p>
+    <div style="padding:20px 24px 24px;">
+      <p style="font-family:Arial,sans-serif;font-size:14px;color:#374151;margin:16px 0 4px;">Hi Team,</p>
+      <p style="font-family:Arial,sans-serif;font-size:14px;color:#6b7280;margin:0 0 20px;">A new deal has been created in SearchKraft CRM. Please find the details below.</p>
 
-      <!-- Quick Summary Banner -->
-      <div style="background:#f1f5f9;border-left:4px solid #1e3a5f;border-radius:6px;padding:14px 18px;margin-bottom:24px;">
-        <table style="width:100%;border-collapse:collapse;">
-          <tr>
-            <td style="font-family:Arial,sans-serif;font-size:13px;color:#374151;padding:3px 0;width:50%;">
-              <span style="font-weight:700;color:#1e3a5f;">Deal:</span> ${esc(dealName)}
-            </td>
-            <td style="font-family:Arial,sans-serif;font-size:13px;color:#374151;padding:3px 0;width:50%;">
-              <span style="font-weight:700;color:#1e3a5f;">Stage:</span> ${esc(stage)}
-            </td>
-          </tr>
-          <tr>
-            <td style="font-family:Arial,sans-serif;font-size:13px;color:#374151;padding:3px 0;">
-              <span style="font-weight:700;color:#1e3a5f;">Amount:</span> ${amount}
-            </td>
-            <td style="font-family:Arial,sans-serif;font-size:13px;color:#374151;padding:3px 0;">
-              <span style="font-weight:700;color:#1e3a5f;">Owner:</span> ${esc(owner)}
-            </td>
-          </tr>
-        </table>
-      </div>
+      <!-- Details Table -->
+      <table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
 
-      <!-- Main Table -->
-      <table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;">
-        ${section('DEAL INFORMATION')}
-        ${row('Deal Name', dealName)}
-        ${row('Company / Account', company)}
-        ${row('Deal Owner', owner)}
-        ${amountRow('Amount', amount)}
-        ${row('Closing Date', closeDate)}
-        ${row('Stage', stage)}
-        ${row('Probability (%)', prob)}
-        ${row('Expected Revenue', expRev)}
-        ${row('Source', source)}
-        ${row('Contact Name', contactName)}
-        ${row('Candidate Name', candidate)}
+        ${sectionHeader('👤', 'Candidate Details')}
+        ${detailRow('Candidate Name', candidate)}
+        ${detailRow('Deal Name', dealName)}
+        ${detailRow('Company / Account', company)}
+        ${detailRow('Stage', stage)}
 
-        ${section('CLIENT CONTACT DETAILS')}
-        ${row('Client POC', clientPoc)}
-        ${row('Email ID', clientPocEmail)}
-        ${row('Designation', clientPocDesig)}
+        ${sectionHeader('💼', 'Deal Details')}
+        ${amountDetailRow('Amount', amount)}
+        ${detailRow('Expected Revenue', expRev)}
+        ${detailRow('Probability', prob)}
+        ${detailRow('Close Date', closeDate)}
+        ${detailRow('Source', source)}
 
-        ${section('RECRUITMENT DETAILS')}
-        ${row('Recruiter Name', recruiter)}
-        ${row('Client SPOC', clientSpoc)}
-        ${row('Sourcer', sourcer)}
-        ${row('Credit Sharing (%)', creditSharing)}
-        ${row('Candidate Management', candMgmt)}
+        ${sectionHeader('🏢', 'Client Contact Details')}
+        ${detailRow('Client POC', clientPoc)}
+        ${detailRow('Email ID', clientPocEmail)}
+        ${detailRow('Designation', clientPocDesig)}
 
-        ${section('DESCRIPTION INFORMATION')}
-        ${row('Description', description)}
+        ${sectionHeader('🔍', 'Internal Details')}
+        ${detailRow('Deal Owner', owner)}
+        ${detailRow('Recruiter Name', recruiter)}
+        ${detailRow('Client SPOC', clientSpoc)}
+        ${detailRow('Sourcer', sourcer)}
+        ${detailRow('Credit Sharing (%)', creditSharing)}
+        ${detailRow('Candidate Management', candMgmt)}
+
       </table>
+
+      <!-- CTA Button -->
+      <div style="text-align:center;margin-top:24px;">
+        <a href="https://searchkraft-crm.vercel.app/#/deals" style="display:inline-block;background:#2563eb;color:#fff;font-family:Arial,sans-serif;font-size:14px;font-weight:600;padding:12px 32px;border-radius:8px;text-decoration:none;">View Deal in CRM →</a>
+      </div>
 
     </div>
 
     <!-- Footer -->
-    <div style="padding:20px 24px;background:#f9fafb;border-top:1px solid #e5e7eb;">
-      <p style="font-family:Arial,sans-serif;font-size:13px;font-weight:700;color:#1e3a5f;margin:0 0 2px;">Regards,</p>
-      <p style="font-family:Arial,sans-serif;font-size:13px;font-weight:700;color:#1e3a5f;margin:0;">SearchKraft</p>
-      <p style="font-family:Arial,sans-serif;font-size:11px;color:#9ca3af;margin:8px 0 0;">This is an automated notification · Do not reply to this email</p>
+    <div style="padding:16px 24px;background:#f9fafb;border-top:1px solid #e5e7eb;text-align:center;">
+      <p style="font-family:Arial,sans-serif;font-size:11px;color:#9ca3af;margin:0;">This is an auto-generated notification from SearchKraft CRM.</p>
+      <p style="font-family:Arial,sans-serif;font-size:11px;color:#9ca3af;margin:4px 0 0;">© ${new Date().getFullYear()} SearchKraft. All rights reserved.</p>
     </div>
 
   </div>
@@ -231,7 +233,7 @@ async function sendDealCreatedEmail(deal) {
   const dealName  = deal.name || deal.title || '';
   const company   = deal.company_name || deal.company || deal.companyName || '';
   const subjectParts = [stage, candidate, dealName, company].filter(Boolean);
-  const subject = `🎯 ${subjectParts.join(' | ')}`;
+  const subject = subjectParts.join(' | ');
   const html = dealCreatedHtml(deal);
 
   // Log + send for each recipient
