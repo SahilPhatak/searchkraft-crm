@@ -43,10 +43,10 @@ router.post('/', requireAuth, async (req, res) => {
   const { data, error } = await query;
   if (error) return res.status(400).json({ error: error.message });
 
-  // Send emails BEFORE responding so Render free tier doesn't kill async work
-  await sendDealCreatedEmail(data);
+  // Send emails BEFORE responding — Render free tier kills async work after response
+  try { await sendDealCreatedEmail(data); } catch(err) { console.error('[Email] sendDealCreatedEmail failed:', err.message); }
   if (data.stage === 'Won' && (data.delivery_pillar_id || data.delivery_pillar)) {
-    await sendDealWonEmail(data);
+    try { await sendDealWonEmail(data); } catch(err) { console.error('[Email] sendDealWonEmail failed:', err.message); }
   }
 
   res.status(201).json(data);
