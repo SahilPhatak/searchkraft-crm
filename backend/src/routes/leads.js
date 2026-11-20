@@ -26,11 +26,11 @@ router.get('/:id', requireAuth, async (req, res) => {
 
 // POST /api/leads — create
 router.post('/', requireAuth, async (req, res) => {
-  const { data, error } = await supabase
-    .from('leads')
-    .upsert(req.body, { onConflict: 'id' })
-    .select()
-    .single();
+  const body = { ...req.body }
+  const q = body.id
+    ? supabase.from('leads').upsert(body, { onConflict: 'id' }).select().single()
+    : supabase.from('leads').insert(body).select().single()
+  const { data, error } = await q;
   if (error) return res.status(400).json({ error: error.message });
   res.status(201).json(data);
 });

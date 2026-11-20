@@ -23,11 +23,11 @@ router.get('/:id', requireAuth, async (req, res) => {
 });
 
 router.post('/', requireAuth, async (req, res) => {
-  const { data, error } = await supabase
-    .from('activities')
-    .upsert(req.body, { onConflict: 'id' })
-    .select()
-    .single();
+  const body = { ...req.body }
+  const q = body.id
+    ? supabase.from('activities').upsert(body, { onConflict: 'id' }).select().single()
+    : supabase.from('activities').insert(body).select().single()
+  const { data, error } = await q;
   if (error) return res.status(400).json({ error: error.message });
   res.status(201).json(data);
 });
