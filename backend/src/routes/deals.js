@@ -36,11 +36,11 @@ router.get('/:id/notifications', requireAuth, async (req, res) => {
 
 router.post('/', requireAuth, async (req, res) => {
   const body = { ...req.body }
-  // If no id provided, use insert not upsert to avoid multi-row issues
-  const query = body.id
-    ? supabase.from('deals').upsert(body, { onConflict: 'id' }).select().single()
-    : supabase.from('deals').insert(body).select().single()
-  const { data, error } = await query;
+  // Always use insert on POST — the frontend may send a client-generated id
+  // but upsert can return multiple rows if the id already exists, breaking .single()
+  // Strip the id so Supabase generates a fresh one (or keep it if truly desired)
+  // We keep the id so the frontend local DB stays in sync, but force insert not upsert
+  const { data, error } = await supabase.from('deals').insert(body).select().single();
   if (error) return res.status(400).json({ error: error.message });
 
   // Send emails BEFORE responding — Render free tier kills async work after response
