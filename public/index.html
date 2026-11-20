@@ -4327,6 +4327,7 @@ function toSupabase(collection, data) {
 
 async function upsert(collection, id, data) {
   const now = new Date().toISOString();
+  const isCreate = !id; // capture BEFORE id may be reassigned below
   let mergedData;
   if (id) {
     // Always merge with the full existing record so no fields get wiped on edit
@@ -4349,12 +4350,11 @@ async function upsert(collection, id, data) {
     const payload = toSupabase(collection, mergedData);
     try {
       if (route) {
-        // Use backend API — use the original `id` param (null for creates) to decide PUT vs POST
-        // mergedData.id is always set (even for new records) so we must NOT use it here
-        if (id) {
-          await apiFetch(route + '/' + id, { method: 'PUT', body: JSON.stringify(payload) });
-        } else {
+        // Use isCreate (captured before id was reassigned to newId) to decide POST vs PUT
+        if (isCreate) {
           await apiFetch(route, { method: 'POST', body: JSON.stringify(payload) });
+        } else {
+          await apiFetch(route + '/' + id, { method: 'PUT', body: JSON.stringify(payload) });
         }
       } else {
         // Fallback to Supabase direct for unmapped tables
