@@ -152,29 +152,29 @@ function dealWonHtml(deal, deliveryName) {
  * Fire-and-forget — never throws, always logs.
  */
 async function sendDealCreatedEmail(deal) {
-  const ACCOUNTS_EMAIL = 'vikram@searchkraft.in';
+  const RECIPIENTS = ['vikram@searchkraft.in', 'finance@searchkraft.in'];
   const subject = `New Deal Created – ${deal.company_name || deal.title} | SearchKraft CRM`;
+  const html = dealCreatedHtml(deal);
 
-  // Log pending first
-  const { data: log } = await supabase.from('email_notifications').insert({
-    deal_id: deal.id,
-    notification_type: 'deal_created',
-    recipient_email: ACCOUNTS_EMAIL,
-    subject,
-    status: 'pending',
-  }).select().single();
+  // Log + send for each recipient
+  for (const recipient of RECIPIENTS) {
+    const { data: log } = await supabase.from('email_notifications').insert({
+      deal_id: deal.id,
+      notification_type: 'deal_created',
+      recipient_email: recipient,
+      subject,
+      status: 'pending',
+    }).select().single();
 
-  try {
-    const transporter = createTransporter();
-    await transporter.sendMail({
-      from: FROM(), to: ACCOUNTS_EMAIL, subject,
-      html: dealCreatedHtml(deal),
-    });
-    if (log) await updateNotificationStatus(log.id, 'sent');
-    console.log(`[Email] deal_created sent to ${ACCOUNTS_EMAIL} for deal ${deal.id}`);
-  } catch (err) {
-    console.error(`[Email] deal_created failed for deal ${deal.id}:`, err.message);
-    if (log) await updateNotificationStatus(log.id, 'failed', err.message);
+    try {
+      const transporter = createTransporter();
+      await transporter.sendMail({ from: FROM(), to: recipient, subject, html });
+      if (log) await updateNotificationStatus(log.id, 'sent');
+      console.log(`[Email] deal_created sent to ${recipient} for deal ${deal.id}`);
+    } catch (err) {
+      console.error(`[Email] deal_created failed for ${recipient} deal ${deal.id}:`, err.message);
+      if (log) await updateNotificationStatus(log.id, 'failed', err.message);
+    }
   }
 }
 

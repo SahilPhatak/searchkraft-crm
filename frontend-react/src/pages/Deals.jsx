@@ -4,9 +4,9 @@ import { api } from '@/lib/api'
 import { useToast } from '@/components/ui/use-toast'
 
 const DEAL_STAGES = ['Prospect','Proposal Sent','Negotiation','Interview Scheduled','Offer Extended','Joined','Absconded','Declined','On Hold']
-const WON_STAGES = new Set(['Joined','Closed Won'])
-const LOST_STAGES = new Set(['Absconded','Declined','Closed Lost'])
 const OWNER_OPTIONS = ['Samyadeep','Vikram','Sahil','Urmila']
+const DEAL_TYPES = ['New Business','Existing Business – Renewal','Existing Business – Upgrade','Existing Business – Downgrade']
+const SOURCE_OPTIONS = ['Cold Call','Email','Web','Partner','Social','Referral','Other']
 
 const STAGE_BADGE = {
   joined: 'badge-green', 'closed won': 'badge-green',
@@ -17,6 +17,7 @@ const STAGE_BADGE = {
   negotiation: 'badge-amber',
   'interview scheduled': 'badge-purple',
   'offer extended': 'badge-amber',
+  offered: 'badge-amber',
 }
 
 function stageBadge(s) {
@@ -29,31 +30,63 @@ function fmt(n) {
   return '₹' + Number(n).toLocaleString('en-IN')
 }
 
+function SectionHeader({ title }) {
+  return (
+    <div style={{
+      gridColumn: '1/-1', background: '#1e3a5f', color: '#fff',
+      fontWeight: 700, fontSize: 12, letterSpacing: '0.5px',
+      padding: '7px 12px', borderRadius: 6, marginTop: 6
+    }}>{title}</div>
+  )
+}
+
 function DealModal({ deal, onClose, onSave, saving }) {
   const [f, setF] = useState(deal ? { ...deal } : {
-    name: '', companyName: '', owner: '', stage: 'Prospect',
-    amount: '', closeDate: '', probability: 10,
-    source: '', recruiterName: '', clientSpoc: '', description: ''
+    name: '', company: '', owner: '', stage: 'Prospect',
+    amount: '', close_date: '', probability: 10,
+    source: '', deal_type: '', next_step: '', campaign: '',
+    contact_name: '', candidate_name: '',
+    recruiter_name: '', client_spoc: '', sourcer: '',
+    credit_sharing: '', candidate_mgmt: '', description: ''
   })
   const set = (k, v) => setF(p => ({ ...p, [k]: v }))
-
   const expectedRevenue = Math.round((Number(f.amount) || 0) * (Number(f.probability) || 0) / 100)
+
+  const handleSave = () => {
+    const payload = {
+      ...f,
+      // normalise camelCase aliases to snake_case for backend
+      company: f.company || f.companyName || f.company_name || '',
+      recruiter_name: f.recruiter_name || f.recruiterName || '',
+      client_spoc: f.client_spoc || f.clientSpoc || '',
+      candidate_name: f.candidate_name || f.candidateName || '',
+      contact_name: f.contact_name || f.contactName || '',
+      next_step: f.next_step || f.nextStep || '',
+      deal_type: f.deal_type || f.dealType || '',
+      credit_sharing: f.credit_sharing !== '' ? f.credit_sharing : null,
+      candidate_mgmt: f.candidate_mgmt || f.candidateMgmt || '',
+      expected_revenue: expectedRevenue,
+    }
+    onSave(payload)
+  }
 
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="modal-box" style={{ maxWidth: 600 }}>
+      <div className="modal-box" style={{ maxWidth: 680 }}>
         <div className="modal-hdr">
           <span>{deal ? 'Edit Deal' : 'Create Deal'}</span>
           <button className="modal-close" onClick={onClose}>×</button>
         </div>
-        <div className="modal-body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 16px' }}>
+        <div className="modal-body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 16px' }}>
+          <SectionHeader title="DEAL INFORMATION" />
+
           <div className="lf-field" style={{ gridColumn: '1/-1' }}>
             <label>Deal Name *</label>
             <input type="text" value={f.name || ''} onChange={e => set('name', e.target.value)} />
           </div>
           <div className="lf-field">
-            <label>Company / Account *</label>
-            <input type="text" value={f.companyName || ''} onChange={e => set('companyName', e.target.value)} />
+            <label>Company / Account</label>
+            <input type="text" value={f.company || f.companyName || f.company_name || ''} onChange={e => set('company', e.target.value)} />
           </div>
           <div className="lf-field">
             <label>Stage</label>
@@ -75,7 +108,7 @@ function DealModal({ deal, onClose, onSave, saving }) {
           </div>
           <div className="lf-field">
             <label>Closing Date</label>
-            <input type="date" value={f.closeDate || f.close_date || ''} onChange={e => set('closeDate', e.target.value)} />
+            <input type="date" value={f.close_date || f.closeDate || ''} onChange={e => set('close_date', e.target.value)} />
           </div>
           <div className="lf-field">
             <label>Deal Owner</label>
@@ -85,24 +118,78 @@ function DealModal({ deal, onClose, onSave, saving }) {
             </select>
           </div>
           <div className="lf-field">
-            <label>Recruiter</label>
-            <input type="text" value={f.recruiterName || f.recruiter_name || ''} onChange={e => set('recruiterName', e.target.value)} />
+            <label>Type</label>
+            <select value={f.deal_type || f.dealType || ''} onChange={e => set('deal_type', e.target.value)}>
+              <option value="">-None-</option>
+              {DEAL_TYPES.map(t => <option key={t}>{t}</option>)}
+            </select>
+          </div>
+          <div className="lf-field">
+            <label>Source</label>
+            <select value={f.source || ''} onChange={e => set('source', e.target.value)}>
+              <option value="">-None-</option>
+              {SOURCE_OPTIONS.map(s => <option key={s}>{s}</option>)}
+            </select>
+          </div>
+          <div className="lf-field">
+            <label>Next Step</label>
+            <input type="text" value={f.next_step || f.nextStep || ''} onChange={e => set('next_step', e.target.value)} />
+          </div>
+          <div className="lf-field">
+            <label>Campaign Source</label>
+            <input type="text" value={f.campaign || ''} onChange={e => set('campaign', e.target.value)} />
+          </div>
+          <div className="lf-field">
+            <label>Contact Name</label>
+            <input type="text" value={f.contact_name || f.contactName || ''} onChange={e => set('contact_name', e.target.value)} />
+          </div>
+          <div className="lf-field">
+            <label>Candidate Name</label>
+            <input type="text" value={f.candidate_name || f.candidateName || ''} onChange={e => set('candidate_name', e.target.value)} />
+          </div>
+
+          <SectionHeader title="RECRUITMENT DETAILS" />
+
+          <div className="lf-field">
+            <label>Recruiter Name</label>
+            <input type="text" value={f.recruiter_name || f.recruiterName || ''} onChange={e => set('recruiter_name', e.target.value)} />
           </div>
           <div className="lf-field">
             <label>Client SPOC</label>
-            <select value={f.clientSpoc || f.client_spoc || ''} onChange={e => set('clientSpoc', e.target.value)}>
+            <select value={f.client_spoc || f.clientSpoc || ''} onChange={e => set('client_spoc', e.target.value)}>
               <option value="">-None-</option>
               {['Vikram','Samyadeep'].map(o => <option key={o}>{o}</option>)}
             </select>
           </div>
+          <div className="lf-field">
+            <label>Sourcer</label>
+            <select value={f.sourcer || ''} onChange={e => set('sourcer', e.target.value)}>
+              <option value="">-None-</option>
+              {['Samyadeep','Sahil','Urmila'].map(o => <option key={o}>{o}</option>)}
+            </select>
+          </div>
+          <div className="lf-field">
+            <label>Credit Sharing (%)</label>
+            <input type="number" min="0" max="100" step="1" placeholder="e.g. 50" value={f.credit_sharing ?? f.creditSharing ?? ''} onChange={e => set('credit_sharing', e.target.value)} />
+          </div>
           <div className="lf-field" style={{ gridColumn: '1/-1' }}>
-            <label>Description</label>
-            <textarea value={f.description || ''} onChange={e => set('description', e.target.value)} rows={2} />
+            <label>Candidate Management</label>
+            <select value={f.candidate_mgmt || f.candidateMgmt || ''} onChange={e => set('candidate_mgmt', e.target.value)}>
+              <option value="">-None-</option>
+              {['Urmila','Sahil','Samyadeep'].map(o => <option key={o}>{o}</option>)}
+            </select>
+          </div>
+
+          <SectionHeader title="DESCRIPTION" />
+
+          <div className="lf-field" style={{ gridColumn: '1/-1' }}>
+            <label>Description / Notes</label>
+            <textarea value={f.description || f.notes || ''} onChange={e => set('description', e.target.value)} rows={3} />
           </div>
         </div>
         <div className="modal-footer">
           <button className="crm-toolbar-btn" onClick={onClose}>Cancel</button>
-          <button className="crm-btn-primary" disabled={!f.name || !f.companyName || saving} onClick={() => onSave(f)}>
+          <button className="crm-btn-primary" disabled={!f.name || saving} onClick={handleSave}>
             {saving ? 'Saving…' : 'Save Deal'}
           </button>
         </div>
@@ -145,8 +232,9 @@ export default function Deals() {
       if (!search) return true
       const q = search.toLowerCase()
       return (d.name || '').toLowerCase().includes(q) ||
-        (d.companyName || d.company_name || '').toLowerCase().includes(q) ||
-        (d.owner || '').toLowerCase().includes(q)
+        (d.company || d.company_name || '').toLowerCase().includes(q) ||
+        (d.owner || '').toLowerCase().includes(q) ||
+        (d.candidate_name || '').toLowerCase().includes(q)
     })
   }, [deals, search, stageFilter])
 
@@ -157,12 +245,7 @@ export default function Deals() {
       </div>
 
       <div className="crm-toolbar">
-        <select
-          className="crm-toolbar-btn"
-          value={stageFilter}
-          onChange={e => setStageFilter(e.target.value)}
-          style={{ cursor: 'pointer' }}
-        >
+        <select className="crm-toolbar-btn" value={stageFilter} onChange={e => setStageFilter(e.target.value)} style={{ cursor: 'pointer' }}>
           <option value="">All Stages</option>
           {DEAL_STAGES.map(s => <option key={s}>{s}</option>)}
         </select>
@@ -181,9 +264,10 @@ export default function Deals() {
           <thead>
             <tr>
               <th>Deal Name</th>
-              <th>Account</th>
-              <th>Stage</th>
+              <th>Company</th>
+              <th>Candidate</th>
               <th>Amount</th>
+              <th>Stage</th>
               <th>Close Date</th>
               <th>Owner</th>
               <th>Recruiter</th>
@@ -192,9 +276,9 @@ export default function Deals() {
           </thead>
           <tbody>
             {isLoading ? (
-              <tr><td colSpan={8} style={{ textAlign: 'center', padding: 32, color: 'var(--fg3)' }}>Loading…</td></tr>
+              <tr><td colSpan={9} style={{ textAlign: 'center', padding: 32, color: 'var(--fg3)' }}>Loading…</td></tr>
             ) : filtered.length === 0 ? (
-              <tr><td colSpan={8}>
+              <tr><td colSpan={9}>
                 <div className="empty-state">
                   <div className="empty-state-icon">💼</div>
                   <div>{search || stageFilter ? 'No deals match your filter' : 'No deals yet'}</div>
@@ -204,12 +288,13 @@ export default function Deals() {
             ) : filtered.map(d => (
               <tr key={d.id}>
                 <td className="name-cell" onClick={() => setModal(d)}>{d.name || '—'}</td>
-                <td>{d.companyName || d.company_name || '—'}</td>
-                <td>{stageBadge(d.stage)}</td>
+                <td>{d.company || d.company_name || '—'}</td>
+                <td>{d.candidate_name || d.candidateName || '—'}</td>
                 <td><span className="mono">{fmt(d.amount || d.value)}</span></td>
-                <td>{d.closeDate || d.close_date || '—'}</td>
+                <td>{stageBadge(d.stage)}</td>
+                <td>{d.close_date || d.closeDate || '—'}</td>
                 <td>{d.owner || '—'}</td>
-                <td>{d.recruiterName || d.recruiter_name || '—'}</td>
+                <td>{d.recruiter_name || d.recruiterName || '—'}</td>
                 <td>
                   <div className="row-actions">
                     <button className="row-act-btn" onClick={() => setModal(d)}>Edit</button>
