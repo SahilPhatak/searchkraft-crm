@@ -3306,12 +3306,19 @@ window.addEventListener('popstate', (e) => {
 });
 
 // Auto-refresh data when tab gets focus (catches data added by other users)
+// Throttled: at most once every 60s, and never re-renders mid-fetch (prevents blank screen)
+let _lastVisibilityRefresh = 0;
 window.addEventListener('visibilitychange', async () => {
-  if (document.visibilityState === 'visible' && LOGGED_IN_USER) {
+  if (document.visibilityState !== 'visible' || !LOGGED_IN_USER) return;
+  const now = Date.now();
+  if (now - _lastVisibilityRefresh < 60000) return; // ignore if refreshed <60s ago
+  _lastVisibilityRefresh = now;
+  // Load silently in background — don't re-render (avoids blank screen on Render cold start)
+  try {
     await load();
-    const curPage = getHashPage();
-    if (curPage === 'dashboard') renderDashboard();
-    else updateNavBadges();
+    updateNavBadges();
+  } catch(e) {
+    console.warn('[visibilitychange] background refresh failed:', e.message);
   }
 });
 
@@ -3446,10 +3453,20 @@ function startRealtimeSync() {
       });
   });
 
-  // Fallback: poll every 30 seconds in case Supabase Realtime replication is not enabled
+  // Fallback: poll every 5 minutes in case Supabase Realtime replication is not enabled
+  // Only re-renders if DB has data — prevents blank screen on Render cold-start
   window._pollInterval = setInterval(async () => {
-    try { await load(); await loadBusinessOnboarded(); refreshCurrentPage(); } catch(e) {}
-  }, 30000);
+    try {
+      const prevDealsLen = DB.deals.length;
+      const prevLeadsLen = DB.leads.length;
+      await load();
+      await loadBusinessOnboarded();
+      // Only re-render if something actually changed AND we have data
+      const hasData = DB.deals.length > 0 || DB.leads.length > 0 || DB.contacts.length > 0;
+      const changed = DB.deals.length !== prevDealsLen || DB.leads.length !== prevLeadsLen;
+      if (hasData && changed) refreshCurrentPage();
+    } catch(e) { console.warn('[poll] background refresh failed:', e.message); }
+  }, 300000); // 5 minutes
 }
 
 function stopRealtimeSync() {
@@ -4585,6 +4602,8 @@ async function deleteCRMRecord(collection, id) {
 }
 
 function refreshCurrentPage() {
+  // Don't re-render if DB is empty — backend may still be waking up (Render cold start)
+  if (!DB.deals.length && !DB.leads.length && !DB.contacts.length && !DB.companies.length) return;
   const active = document.querySelector('.nav-item.active');
   if (active) renderPage(active.dataset.page);
 }
