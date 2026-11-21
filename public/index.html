@@ -8204,6 +8204,8 @@ function closeGenericModal() {
 }
 
 function showToast(msg, color) {
+  // Some callers pass a status word instead of a colour — map it so the toast stays visible
+  if (color === 'error') color = '#dc2626'; else if (color === 'success' || color === 'info') color = null;
   const existing = document.getElementById('sk-toast');
   if (existing) existing.remove();
   const t = document.createElement('div');
@@ -8299,7 +8301,8 @@ function clearFilter(filterId) {
 
 function _populateOwnerDropdowns() {
   // Fill owner dropdowns with real users when filter panels open
-  const owners = [...new Set((DB.users||[]).map(u => u.name || u.email).filter(Boolean))];
+  // Records store the owner's FIRST name (see ownerField/getTeamNames) — filter options must match
+  const owners = [...new Set(getTeamNames().filter(Boolean))];
   ['lf-owner','ctf-owner','cf-owner','df-owner'].forEach(id => {
     const sel = document.getElementById(id);
     if (!sel) return;
@@ -8439,7 +8442,7 @@ function _updateBulkBar(tbodyId) {
     <button onclick="_bulkSetStage('${module}','${tbodyId}')" style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.5);color:#fff;padding:5px 14px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600">📋 Apply Stage</button>
   ` : '';
   // Build owner options
-  const ownerOpts = (DB.users||[]).map(u=>`<option value="${u.id}" style="color:#000">${u.name}</option>`).join('');
+  const ownerOpts = getTeamNames().map(n=>`<option value="${n}" style="color:#000">${n}</option>`).join('');
   bar.innerHTML = `
     <span style="font-weight:700">${count} record${count>1?'s':''} selected</span>
     <button onclick="_bulkDelete('${module}','${tbodyId}')" style="background:rgba(239,68,68,0.3);border:1px solid rgba(239,68,68,0.6);color:#fff;padding:5px 14px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600">🗑 Delete</button>
@@ -8470,59 +8473,71 @@ async function _bulkDelete(module, tbodyId) {
   const checked = [...tbody.querySelectorAll('input[type="checkbox"]:checked')];
   const ids = checked.map(cb => { const tr = cb.closest('tr'); return tr ? tr.dataset.id : null; }).filter(Boolean);
   if (!ids.length) return;
+  // Same permission rule as single-row delete (deleteCRMRecord)
+  const permMod = { companies:'accounts', contacts:'contacts', leads:'leads', deals:'deals' }[module] || module;
+  if (!canDo(permMod, 'delete')) { alert('Permission denied: you do not have delete access for this module.'); return; }
   if (!confirm(`Delete ${ids.length} record${ids.length>1?'s':''}? This cannot be undone.`)) return;
   for (const id of ids) {
     try {
+      const rec = DB[module].find(r => r.id === id);
       await apiFetch(`/api/${module}/${id}`, { method: 'DELETE' });
       DB[module] = DB[module].filter(r => r.id !== id);
+      audit('Delete', module, rec?.name || rec?.title || id);
     } catch(e) { console.error('Bulk delete failed for', id, e); }
   }
   _clearSelection(tbodyId);
   refreshCurrentPage();
-  showToast(`${ids.length} record${ids.length>1?'s':''} deleted`, 'success');
+  showToast(`${ids.length} record${ids.length>1?'s':''} deleted`);
 }
 
 async function _bulkAssignOwner(module, tbodyId) {
   const sel = document.getElementById('bulk-owner-sel-' + tbodyId);
-  if (!sel || !sel.value) { showToast('Please select an owner first', 'error'); return; }
+  if (!sel || !sel.value) { showToast('Please select an owner first', '#dc2626'); return; }
   const ownerId = sel.value;
-  const ownerName = (DB.users||[]).find(u=>u.id===ownerId)?.name || ownerId;
+  const ownerName = ownerId; // first name, same format ownerField() saves
   const tbody = document.getElementById(tbodyId);
   if (!tbody) return;
   const ids = [...tbody.querySelectorAll('input[type="checkbox"]:checked')].map(cb=>{const tr=cb.closest('tr');return tr?tr.dataset.id:null;}).filter(Boolean);
   if (!ids.length) return;
+  // Send ONLY the changed column — the backend passes the body straight to Supabase,
+  // which rejects unknown (camelCase) columns. Accounts keep their owner in bd_owner.
+  const col = module === 'companies' ? 'bd_owner' : 'owner';
+  let ok = 0, failed = 0;
   for (const id of ids) {
     try {
-      const rec = DB[module].find(r=>r.id===id);
-      if (!rec) continue;
-      await apiFetch(`/api/${module}/${id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({...rec, owner: ownerName, ownerId}) });
-      const r = DB[module].find(r=>r.id===id); if(r){r.owner=ownerName;r.ownerId=ownerId;}
-    } catch(e) { console.error('Bulk assign owner failed for', id, e); }
+      await apiFetch(`/api/${module}/${id}`, { method:'PUT', body: JSON.stringify({ [col]: ownerName, updated_at: new Date().toISOString() }) });
+      const r = DB[module].find(r=>r.id===id);
+      if (r) { if (module === 'companies') { r.bdOwner = ownerName; r.bd_owner = ownerName; } else r.owner = ownerName; }
+      ok++;
+    } catch(e) { failed++; console.error('Bulk assign owner failed for', id, e); }
   }
   _clearSelection(tbodyId);
   refreshCurrentPage();
-  showToast(`${ids.length} record${ids.length>1?'s':''} assigned to ${ownerName}`, 'success');
+  if (failed) showToast(`${ok} assigned, ${failed} failed — please retry`, '#dc2626');
+  else showToast(`${ok} record${ok>1?'s':''} assigned to ${ownerName}`);
 }
 
 async function _bulkSetStage(module, tbodyId) {
   const sel = document.getElementById('bulk-stage-sel-' + tbodyId);
-  if (!sel || !sel.value) { showToast('Please select a stage first', 'error'); return; }
+  if (!sel || !sel.value) { showToast('Please select a stage first', '#dc2626'); return; }
   const stage = sel.value;
   const tbody = document.getElementById(tbodyId);
   if (!tbody) return;
   const ids = [...tbody.querySelectorAll('input[type="checkbox"]:checked')].map(cb=>{const tr=cb.closest('tr');return tr?tr.dataset.id:null;}).filter(Boolean);
   if (!ids.length) return;
+  let ok = 0, failed = 0;
   for (const id of ids) {
     try {
-      const rec = DB[module].find(r=>r.id===id);
-      if (!rec) continue;
-      await apiFetch(`/api/${module}/${id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({...rec, stage}) });
+      // Send ONLY the changed column (backend forwards the body to Supabase as-is)
+      await apiFetch(`/api/${module}/${id}`, { method:'PUT', body: JSON.stringify({ stage, updated_at: new Date().toISOString() }) });
       const r = DB[module].find(r=>r.id===id); if(r) r.stage=stage;
-    } catch(e) { console.error('Bulk set stage failed for', id, e); }
+      ok++;
+    } catch(e) { failed++; console.error('Bulk set stage failed for', id, e); }
   }
   _clearSelection(tbodyId);
   refreshCurrentPage();
-  showToast(`${ids.length} record${ids.length>1?'s':''} moved to ${stage}`, 'success');
+  if (failed) showToast(`${ok} moved, ${failed} failed — please retry`, '#dc2626');
+  else showToast(`${ok} record${ok>1?'s':''} moved to ${stage}`);
 }
 
 function _bulkExportCSV(module, tbodyId) {
@@ -8540,7 +8555,7 @@ function _bulkExportCSV(module, tbodyId) {
   a.href = URL.createObjectURL(blob);
   a.download = `${module}_export_${new Date().toISOString().slice(0,10)}.csv`;
   a.click();
-  showToast(`Exported ${rows.length} record${rows.length>1?'s':''} to CSV`, 'success');
+  showToast(`Exported ${rows.length} record${rows.length>1?'s':''} to CSV`);
 }
 
 function addDescEntry() {
