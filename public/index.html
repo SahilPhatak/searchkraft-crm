@@ -8374,6 +8374,7 @@ const MODAL_FORMS = {
         <div class="lf-field"><label>Annual Revenue</label><div style="display:flex;align-items:center;gap:6px"><span style="font-size:13px;color:var(--fg2);white-space:nowrap">Rs.</span><input id="f-annualRevenue" type="number" min="0" style="flex:1" value="${r.annualRevenue||''}"></div></div>
         <div class="lf-field"><label>SIC Code</label><input id="f-sicCode" type="text" value="${r.sicCode||''}"></div>
         <div class="lf-field"><label>Delivery Pillar</label><select id="f-deliveryPillar"><option value="">-None-</option>${['Samyadeep','Vikram'].map(s=>`<option ${(r.deliveryPillar||r.delivery_pillar)===s?'selected':''}>${s}</option>`).join('')}</select></div>
+        <div class="lf-field"><label>Status</label><select id="f-status"><option value="Active" ${(r.status||'Active')==='Active'?'selected':''}>Active</option><option value="Inactive" ${r.status==='Inactive'?'selected':''}>Inactive</option></select></div>
       </div>
 
       <!-- Address Information -->
@@ -8439,7 +8440,7 @@ const MODAL_FORMS = {
       const prevDeliveryPillar = existing.deliveryPillar || existing.delivery_pillar || '';
       const r = {
         name:v('name'), bdOwner:v('bdOwner'),
-        status: existing.status || 'Active',
+        status: v('status') || existing.status || 'Active',
         phone:v('phone'), fax:v('fax'), accountSite:v('accountSite'),
         website:v('website'), parentAccount:v('parentAccount'),
         accountNumber:v('accountNumber'), tickerSymbol:v('tickerSymbol'),
