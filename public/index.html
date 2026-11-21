@@ -3025,7 +3025,15 @@ async function deleteRecord(table, id) {
 
 // load() — fetches all CRM data via backend API into local DB cache
 // Graceful: if a request fails, that collection stays as-is
+let _loadInFlight = false; // prevents concurrent load() calls
 async function load() {
+  if (_loadInFlight) return; // already fetching — don't start another
+  _loadInFlight = true;
+  // Show a subtle ↻ spinner in the topbar while fetching so users know it's refreshing
+  const _topbarEl = document.getElementById('topbar-title');
+  const _origTitle = _topbarEl ? _topbarEl.textContent : '';
+  if (_topbarEl && _origTitle && !_origTitle.endsWith(' ↻')) _topbarEl.textContent = _origTitle + ' ↻';
+  try {
   const safe = async (path, label) => {
     try {
       const data = await apiFetch(path);
@@ -3048,15 +3056,22 @@ async function load() {
   ]);
   // Use the global normRecord function (defined at top of config.js)
   const norm = normRecord;
-  // Only overwrite DB cache if backend returned data (null = request failed, keep existing cache)
-  if (leads      !== null) DB.leads      = leads.map(norm);
-  if (contacts   !== null) DB.contacts   = contacts.map(norm);
-  if (companies  !== null) DB.companies  = companies.map(norm);
-  if (deals      !== null) DB.deals      = deals.map(norm);
-  if (tasks      !== null) DB.tasks      = tasks.map(norm);
-  if (activities !== null) DB.activities = activities.map(norm);
-  if (users      !== null) DB.users      = users.map(norm);
-  if (documents  !== null) DB.documents  = documents.map(norm);
+  // Guard: never replace a non-empty cache with an empty array.
+  // An empty array from the backend during Render cold-start is indistinguishable
+  // from "no records", so if we already have data we keep it — prevents blank page.
+  const safeSet = (key, incoming) => {
+    if (incoming === null) return; // request failed — keep existing
+    if (incoming.length === 0 && DB[key].length > 0) return; // cold-start empty — keep existing
+    DB[key] = incoming.map(norm);
+  };
+  safeSet('leads',     leads);
+  safeSet('contacts',  contacts);
+  safeSet('companies', companies);
+  safeSet('deals',     deals);
+  safeSet('tasks',      tasks);
+  safeSet('activities', activities);
+  safeSet('users',      users);
+  safeSet('documents',  documents);
   // Load audit log from backend (merge with any in-memory entries from this session)
   const auditFromDB = (auditRows||[]).map(r => ({
     id: r.id, ts: r.created_at, user: r.user_name, action: r.action, module: r.module, record: r.record_name
@@ -3065,6 +3080,11 @@ async function load() {
   DB.audit = [...DB.audit.filter(r => !existingIds.has(r.id)), ...auditFromDB]
     .sort((a,b) => (b.ts||'').localeCompare(a.ts||'')).slice(0, 500);
   updateNavBadges();
+  } finally {
+    _loadInFlight = false;
+    // Restore topbar title (remove the ↻ spinner)
+    if (_topbarEl && _origTitle) _topbarEl.textContent = _origTitle;
+  }
 }
 
 // Legacy save() — kept for compatibility; actual saves go through saveRecord()
