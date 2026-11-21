@@ -798,9 +798,21 @@
         <div id="companies-filter" style="display:none;width:260px;min-width:260px;border-right:1px solid var(--border);padding:0;overflow-y:auto;background:var(--surface);flex-direction:column">
           <div style="padding:14px 16px 0">
           <div style="font-size:14px;font-weight:700;color:var(--fg);margin-bottom:12px">Filter Accounts by</div>
-          <div style="display:flex;align-items:center;gap:8px;border:1.5px solid var(--border);border-radius:8px;padding:7px 10px;margin-bottom:14px;background:var(--bg)">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--fg3)" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input type="text" placeholder="Search" style="border:none;outline:none;background:none;font-size:13px;color:var(--fg);flex:1">
+          <!-- Quick Filters — functional -->
+          <div style="margin-bottom:14px;display:flex;flex-direction:column;gap:8px">
+            <div><div style="font-size:11px;font-weight:600;color:var(--fg2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Status</div>
+              <select id="cf-status" data-filter-key="status" style="width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg);color:var(--fg);font-size:13px">
+                <option value="">Any Status</option><option>Active</option><option>Inactive</option>
+              </select></div>
+            <div><div style="font-size:11px;font-weight:600;color:var(--fg2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Industry</div>
+              <select id="cf-industry" data-filter-key="industry" style="width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg);color:var(--fg);font-size:13px">
+                <option value="">Any Industry</option>
+                <option>Technology</option><option>Finance</option><option>Healthcare</option><option>Education</option><option>Manufacturing</option><option>Retail</option><option>Real Estate</option><option>Media</option><option>Consulting</option><option>Other</option>
+              </select></div>
+            <div><div style="font-size:11px;font-weight:600;color:var(--fg2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Owner</div>
+              <select id="cf-owner" data-filter-key="bdOwner" style="width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg);color:var(--fg);font-size:13px">
+                <option value="">Any Owner</option>
+              </select></div>
           </div>
           <div class="filter-section-hdr" onclick="toggleSection(this,'companies-sys-sec')"><span>System Defined Filters</span><span class="fsh-arrow">▾</span></div>
           <div id="companies-sys-sec">
@@ -876,7 +888,7 @@
           <div class="table-wrap" style="border-radius:0;border-left:none;border-right:none;border-top:none;flex:1;min-height:0;overflow-y:auto">
             <table>
               <thead><tr>
-                <th style="width:36px"><input type="checkbox" style="accent-color:var(--accent)" onchange="selectAll('companies-body',this)"></th>
+                <th style="width:36px"><input type="checkbox" id="companies-master-cb" style="accent-color:var(--accent)" onchange="selectAll('companies-body',this)"></th>
                 <th>Account Name</th><th>Lane / Domain</th><th>City</th><th>Status</th><th>BD Owner</th><th>Actions</th>
               </tr></thead>
               <tbody id="companies-body"></tbody>
@@ -929,9 +941,17 @@
         <div id="contacts-filter" style="display:none;width:260px;min-width:260px;border-right:1px solid var(--border);padding:0;overflow-y:auto;background:var(--surface);flex-direction:column">
           <div style="padding:14px 16px 0">
           <div style="font-size:14px;font-weight:700;color:var(--fg);margin-bottom:12px">Filter Contacts by</div>
-          <div style="display:flex;align-items:center;gap:8px;border:1.5px solid var(--border);border-radius:8px;padding:7px 10px;margin-bottom:14px;background:var(--bg)">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--fg3)" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input type="text" placeholder="Search" style="border:none;outline:none;background:none;font-size:13px;color:var(--fg);flex:1">
+          <!-- Quick Filters — functional -->
+          <div style="margin-bottom:14px;display:flex;flex-direction:column;gap:8px">
+            <div><div style="font-size:11px;font-weight:600;color:var(--fg2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Owner</div>
+              <select id="ctf-owner" data-filter-key="owner" style="width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg);color:var(--fg);font-size:13px">
+                <option value="">Any Owner</option>
+              </select></div>
+            <div><div style="font-size:11px;font-weight:600;color:var(--fg2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Lead Source</div>
+              <select id="ctf-source" data-filter-key="leadSource" style="width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg);color:var(--fg);font-size:13px">
+                <option value="">Any Source</option>
+                <option>Cold Call</option><option>Email</option><option>Existing Client</option><option>Partner</option><option>Direct Mail</option><option>Conference</option><option>Trade Show</option><option>Web Site</option><option>Word of Mouth</option><option>Other</option>
+              </select></div>
           </div>
           <div class="filter-section-hdr" onclick="toggleSection(this,'contacts-sys-sec')"><span>System Defined Filters</span><span class="fsh-arrow">▾</span></div>
           <div id="contacts-sys-sec">
@@ -1028,7 +1048,7 @@
           <div class="table-wrap" style="border-radius:0;border-left:none;border-right:none;border-top:none;flex:1;min-height:0;overflow-y:auto">
             <table>
               <thead><tr>
-                <th style="width:36px"><input type="checkbox" style="accent-color:var(--accent)" onchange="selectAll('contacts-body',this)"></th>
+                <th style="width:36px"><input type="checkbox" id="contacts-master-cb" style="accent-color:var(--accent)" onchange="selectAll('contacts-body',this)"></th>
                 <th>Name</th><th>Title</th><th>Company</th><th>Email</th><th>Phone</th><th>Actions</th>
               </tr></thead>
               <tbody id="contacts-body"></tbody>
@@ -1087,9 +1107,22 @@
         <div id="leads-filter" style="display:none;width:260px;min-width:260px;border-right:1px solid var(--border);padding:0;overflow-y:auto;background:var(--surface);display:none;flex-direction:column">
           <div style="padding:14px 16px 0">
           <div style="font-size:14px;font-weight:700;color:var(--fg);margin-bottom:12px">Filter Leads by</div>
-          <div style="display:flex;align-items:center;gap:8px;border:1.5px solid var(--border);border-radius:8px;padding:7px 10px;margin-bottom:14px;background:var(--bg)">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--fg3)" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input type="text" placeholder="Search" style="border:none;outline:none;background:none;font-size:13px;color:var(--fg);flex:1">
+          <!-- Quick Filters — functional -->
+          <div style="margin-bottom:14px;display:flex;flex-direction:column;gap:8px">
+            <div><div style="font-size:11px;font-weight:600;color:var(--fg2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Stage</div>
+              <select id="lf-stage" data-filter-key="stage" style="width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg);color:var(--fg);font-size:13px">
+                <option value="">Any Stage</option>
+                <option>New</option><option>Contacted</option><option>Pre Qualified</option><option>Qualified</option><option>Not Qualified</option><option>Junk Lead</option><option>Proposal Sent</option><option>Negotiation</option><option>Follow Up</option><option>Won</option><option>Lost</option>
+              </select></div>
+            <div><div style="font-size:11px;font-weight:600;color:var(--fg2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Owner</div>
+              <select id="lf-owner" data-filter-key="owner" style="width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg);color:var(--fg);font-size:13px">
+                <option value="">Any Owner</option>
+              </select></div>
+            <div><div style="font-size:11px;font-weight:600;color:var(--fg2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Source</div>
+              <select id="lf-source" data-filter-key="source" style="width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg);color:var(--fg);font-size:13px">
+                <option value="">Any Source</option>
+                <option>Cold Call</option><option>Email</option><option>Existing Client</option><option>Partner</option><option>Direct Mail</option><option>Conference</option><option>Trade Show</option><option>Web Site</option><option>Word of Mouth</option><option>Other</option>
+              </select></div>
           </div>
           <div class="filter-section-hdr" onclick="toggleSection(this,'leads-sys-sec')">
             <span>System Defined Filters</span><span class="fsh-arrow">▾</span>
@@ -1238,7 +1271,7 @@
             <div class="table-wrap" style="border-radius:0;border-left:none;border-right:none;border-top:none;flex:1;min-height:0;overflow-y:auto">
               <table>
                 <thead><tr>
-                  <th style="width:36px"><input type="checkbox" style="accent-color:var(--accent)" onchange="selectAll('leads-body',this)"></th>
+                  <th style="width:36px"><input type="checkbox" id="leads-master-cb" style="accent-color:var(--accent)" onchange="selectAll('leads-body',this)"></th>
                   <th>Lead Name</th><th>Title</th><th>Company</th><th>Lead Status</th><th>Email</th><th>Phone</th><th>Owner</th><th>Actions</th>
                 </tr></thead>
                 <tbody id="leads-body"></tbody>
@@ -1296,9 +1329,17 @@
         <div id="deals-filter" style="display:none;width:260px;min-width:260px;border-right:1px solid var(--border);padding:0;overflow-y:auto;background:var(--surface);flex-direction:column">
           <div style="padding:14px 16px 0">
           <div style="font-size:14px;font-weight:700;color:var(--fg);margin-bottom:12px">Filter Deals by</div>
-          <div style="display:flex;align-items:center;gap:8px;border:1.5px solid var(--border);border-radius:8px;padding:7px 10px;margin-bottom:14px;background:var(--bg)">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--fg3)" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input type="text" placeholder="Search" style="border:none;outline:none;background:none;font-size:13px;color:var(--fg);flex:1">
+          <!-- Quick Filters — functional -->
+          <div style="margin-bottom:14px;display:flex;flex-direction:column;gap:8px">
+            <div><div style="font-size:11px;font-weight:600;color:var(--fg2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Stage</div>
+              <select id="df-stage" data-filter-key="stage" style="width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg);color:var(--fg);font-size:13px">
+                <option value="">Any Stage</option>
+                <option>Sourcing</option><option>Screening</option><option>Shortlisted</option><option>Interviewing</option><option>Offered</option><option>Joined</option><option>Declined</option><option>Closed Won</option><option>Closed Lost</option>
+              </select></div>
+            <div><div style="font-size:11px;font-weight:600;color:var(--fg2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Owner</div>
+              <select id="df-owner" data-filter-key="owner" style="width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg);color:var(--fg);font-size:13px">
+                <option value="">Any Owner</option>
+              </select></div>
           </div>
           <div class="filter-section-hdr" onclick="toggleSection(this,'deals-sys-sec')"><span>System Defined Filters</span><span class="fsh-arrow">▾</span></div>
           <div id="deals-sys-sec">
@@ -1382,7 +1423,7 @@
             <div class="table-wrap" style="border-radius:0;border-left:none;border-right:none;border-top:none;flex:1;min-height:0;overflow-y:auto">
               <table>
                 <thead><tr>
-                  <th style="width:36px"><input type="checkbox" style="accent-color:var(--accent)"></th>
+                  <th style="width:36px"><input type="checkbox" id="deals-master-cb" style="accent-color:var(--accent)" onchange="selectAll('deals-body',this)"></th>
                   <th>Deal Name</th><th>Company</th><th>Candidate Name</th><th>Amount</th><th>Stage</th><th>Close Date</th><th>Owner</th><th>Actions</th>
                 </tr></thead>
                 <tbody id="deals-body"></tbody>
@@ -6126,15 +6167,22 @@ function renderTable(type, q='') {
     const companyLaneMap = {};
     (DB.leads||[]).forEach(l => { const cname=(l.company||'').toLowerCase(); if(cname&&l.lane) companyLaneMap[cname]=l.lane; });
     const getLane = (r) => r.lane || companyLaneMap[(r.name||'').toLowerCase()] || '—';
-    const allRows = DB.companies.filter(r=>!Q||r.name.toLowerCase().includes(Q)||getLane(r).toLowerCase().includes(Q)||r.city?.toLowerCase().includes(Q));
+    const AF = _activeFilters.companies || {};
+    const allRows = DB.companies.filter(r=>{
+      if (Q && !r.name.toLowerCase().includes(Q) && !getLane(r).toLowerCase().includes(Q) && !(r.city||'').toLowerCase().includes(Q)) return false;
+      if (AF.status && (r.status||'Active') !== AF.status) return false;
+      if (AF.industry && (r.industry||'') !== AF.industry) return false;
+      if (AF.bdOwner && (r.bdOwner||r.owner||'') !== AF.bdOwner) return false;
+      return true;
+    });
     if (Q) companiesPage = 1;
     const totalPages = Math.max(1, Math.ceil(allRows.length / PAGE_SIZE));
     companiesPage = Math.min(companiesPage, totalPages);
     const rows = allRows.slice((companiesPage-1)*PAGE_SIZE, companiesPage*PAGE_SIZE);
     const ccount = document.getElementById('companies-count'); if(ccount) ccount.textContent=allRows.length;
     const cpi = document.getElementById('companies-page-info'); if(cpi) cpi.textContent=allRows.length?`${(companiesPage-1)*PAGE_SIZE+1}–${Math.min(companiesPage*PAGE_SIZE,allRows.length)} of ${allRows.length}`:'0';
-    document.getElementById('companies-body').innerHTML = rows.length ? rows.map(r=>`<tr>
-      <td><input type="checkbox" style="accent-color:var(--accent)"></td>
+    document.getElementById('companies-body').innerHTML = rows.length ? rows.map(r=>`<tr data-id="${r.id}">
+      <td><input type="checkbox" style="accent-color:var(--accent)" onchange="_onRowCheckbox('companies-body','companies-master-cb')"></td>
       <td class="name-cell" onclick="openModal('company','${r.id}')">${r.name}</td>
       <td>${getLane(r)}</td><td>${r.city||'—'}</td>
       <td>${badge(r.status)}</td><td>${r.bdOwner||'—'}</td>
@@ -6147,12 +6195,15 @@ function renderTable(type, q='') {
   }
 
   else if (type==='contacts') {
+    const AFC = _activeFilters.contacts || {};
     const allRows = DB.contacts.filter(r=>{
       if (r.stage && LEAD_STAGES.includes(r.stage)) return false;
-      if (!Q) return true;
-      return (r.name||'').toLowerCase().includes(Q)||(r.email||'').toLowerCase().includes(Q)||
-             (r.phone||'').toLowerCase().includes(Q)||(r.company||getCompanyName(r.companyId)||'').toLowerCase().includes(Q)||
-             (r.title||'').toLowerCase().includes(Q);
+      if (Q && !(r.name||'').toLowerCase().includes(Q) && !(r.email||'').toLowerCase().includes(Q) &&
+          !(r.phone||'').toLowerCase().includes(Q) && !(r.company||getCompanyName(r.companyId)||'').toLowerCase().includes(Q) &&
+          !(r.title||'').toLowerCase().includes(Q)) return false;
+      if (AFC.owner && (r.owner||'') !== AFC.owner) return false;
+      if (AFC.leadSource && (r.leadSource||r.lead_source||'') !== AFC.leadSource) return false;
+      return true;
     });
     if (Q) contactsPage = 1;
     const totalPages = Math.max(1, Math.ceil(allRows.length / PAGE_SIZE));
@@ -6160,8 +6211,8 @@ function renderTable(type, q='') {
     const rows = allRows.slice((contactsPage-1)*PAGE_SIZE, contactsPage*PAGE_SIZE);
     const ctcount = document.getElementById('contacts-count'); if(ctcount) ctcount.textContent=allRows.length;
     const ctpi = document.getElementById('contacts-page-info'); if(ctpi) ctpi.textContent=allRows.length?`${(contactsPage-1)*PAGE_SIZE+1}–${Math.min(contactsPage*PAGE_SIZE,allRows.length)} of ${allRows.length}`:'0';
-    document.getElementById('contacts-body').innerHTML = rows.length ? rows.map(r=>`<tr>
-      <td><input type="checkbox" style="accent-color:var(--accent)"></td>
+    document.getElementById('contacts-body').innerHTML = rows.length ? rows.map(r=>`<tr data-id="${r.id}">
+      <td><input type="checkbox" style="accent-color:var(--accent)" onchange="_onRowCheckbox('contacts-body','contacts-master-cb')"></td>
       <td class="name-cell" onclick="openModal('contact','${r.id}')">${r.name}</td>
       <td>${r.title||'—'}</td><td>${r.company||getCompanyName(r.companyId)||'—'}</td>
       <td style="font-family:'Inter',system-ui,sans-serif;color:var(--fg2)">${r.email||'—'}</td>
@@ -6175,13 +6226,19 @@ function renderTable(type, q='') {
   }
 
   else if (type==='leads') {
+    const AFL = _activeFilters.leads || {};
     const allRows = DB.leads.filter(r=>{
-      if (!Q) return true;
-      const fullName = ((r.first_name||r.firstName||'') + ' ' + (r.last_name||r.lastName||'')).trim().toLowerCase();
-      const name=(r.name||'').toLowerCase(), email=(r.email||'').toLowerCase();
-      const company=(r.company||r.companyName||getCompanyName(r.companyId)||'').toLowerCase();
-      const phone=(r.phone||'').toLowerCase(), title=(r.title||'').toLowerCase(), owner=(r.owner||'').toLowerCase();
-      return fullName.includes(Q)||name.includes(Q)||email.includes(Q)||company.includes(Q)||phone.includes(Q)||title.includes(Q)||owner.includes(Q);
+      if (Q) {
+        const fullName = ((r.first_name||r.firstName||'') + ' ' + (r.last_name||r.lastName||'')).trim().toLowerCase();
+        const name=(r.name||'').toLowerCase(), email=(r.email||'').toLowerCase();
+        const company=(r.company||r.companyName||getCompanyName(r.companyId)||'').toLowerCase();
+        const phone=(r.phone||'').toLowerCase(), title=(r.title||'').toLowerCase(), owner=(r.owner||'').toLowerCase();
+        if (!fullName.includes(Q)&&!name.includes(Q)&&!email.includes(Q)&&!company.includes(Q)&&!phone.includes(Q)&&!title.includes(Q)&&!owner.includes(Q)) return false;
+      }
+      if (AFL.stage && (r.stage||'') !== AFL.stage) return false;
+      if (AFL.owner && (r.owner||'') !== AFL.owner) return false;
+      if (AFL.source && (r.source||r.leadSource||'') !== AFL.source) return false;
+      return true;
     });
     if (Q) leadsPage = 1;
     const totalPages = Math.max(1, Math.ceil(allRows.length / PAGE_SIZE));
@@ -6190,8 +6247,8 @@ function renderTable(type, q='') {
     const lcount = document.getElementById('leads-count'); if(lcount) lcount.textContent=allRows.length;
     const lpi = document.getElementById('leads-page-info'); if(lpi) lpi.textContent=allRows.length?`${(leadsPage-1)*PAGE_SIZE+1}–${Math.min(leadsPage*PAGE_SIZE,allRows.length)} of ${allRows.length}`:'0';
     const stageColor = s=>({New:'#6366f1',Contacted:'#0ea5e9','Pre Qualified':'#f59e0b',Qualified:'#10b981','Not Qualified':'#ef4444','Junk Lead':'#9ca3af','Proposal Sent':'#8b5cf6',Negotiation:'#f97316','Follow Up':'#06b6d4',Won:'#22c55e',Lost:'#ef4444','Lost Lead':'#9ca3af'}[s]||'#9ca3af');
-    document.getElementById('leads-body').innerHTML = rows.length ? rows.map(r=>`<tr>
-      <td><input type="checkbox" style="accent-color:var(--accent)"></td>
+    document.getElementById('leads-body').innerHTML = rows.length ? rows.map(r=>`<tr data-id="${r.id}">
+      <td><input type="checkbox" style="accent-color:var(--accent)" onchange="_onRowCheckbox('leads-body','leads-master-cb')"></td>
       <td class="name-cell" onclick="openModal('lead','${r.id}')">${r.name||r.title||'—'}</td>
       <td>${r.title||'—'}</td>
       <td>${r.company||r.companyName||getCompanyName(r.companyId)||'—'}</td>
@@ -6208,11 +6265,14 @@ function renderTable(type, q='') {
   }
 
   else if (type==='deals') {
+    const AFD = _activeFilters.deals || {};
     const allRows = (DB.deals||[]).filter(r=>{
-      if (!Q) return true;
-      return (r.name||'').toLowerCase().includes(Q)||(r.companyName||'').toLowerCase().includes(Q)||
-             (r.candidateName||'').toLowerCase().includes(Q)||(r.stage||'').toLowerCase().includes(Q)||
-             (r.owner||'').toLowerCase().includes(Q);
+      if (Q && !(r.name||'').toLowerCase().includes(Q) && !(r.companyName||'').toLowerCase().includes(Q) &&
+          !(r.candidateName||'').toLowerCase().includes(Q) && !(r.stage||'').toLowerCase().includes(Q) &&
+          !(r.owner||'').toLowerCase().includes(Q)) return false;
+      if (AFD.stage && (r.stage||'') !== AFD.stage) return false;
+      if (AFD.owner && (r.owner||'') !== AFD.owner) return false;
+      return true;
     });
     if (Q) dealsPage = 1;
     const totalPages = Math.max(1, Math.ceil(allRows.length / PAGE_SIZE));
@@ -6220,8 +6280,8 @@ function renderTable(type, q='') {
     const rows = allRows.slice((dealsPage-1)*PAGE_SIZE, dealsPage*PAGE_SIZE);
     const dcount = document.getElementById('deals-count'); if(dcount) dcount.textContent=allRows.length;
     const dpi = document.getElementById('deals-page-info'); if(dpi) dpi.textContent=allRows.length?`${(dealsPage-1)*PAGE_SIZE+1}–${Math.min(dealsPage*PAGE_SIZE,allRows.length)} of ${allRows.length}`:'0';
-    document.getElementById('deals-body').innerHTML = rows.length ? rows.map(r=>`<tr>
-      <td><input type="checkbox" style="accent-color:var(--accent)"></td>
+    document.getElementById('deals-body').innerHTML = rows.length ? rows.map(r=>`<tr data-id="${r.id}">
+      <td><input type="checkbox" style="accent-color:var(--accent)" onchange="_onRowCheckbox('deals-body','deals-master-cb')"></td>
       <td class="name-cell" onclick="openModal('deal','${r.id}')">${r.name||'—'}</td>
       <td>${r.companyName||'—'}</td>
       <td>${r.candidateName||'—'}</td>
@@ -6317,8 +6377,8 @@ function renderLeadsBoard() {
             ondragstart="dragLeadCard(event,'${c.id}')"
             ondragend="this.classList.remove('dragging')"
             onclick="openModal('lead','${c.id}')">
-            <div class="k-name">${c.title}</div>
-            <div class="k-meta">${getCompanyName(c.companyId)}</div>
+            <div class="k-name">${c.name||c.title||'—'}</div>
+            <div class="k-meta">${c.company||getCompanyName(c.companyId)||'—'}</div>
             <div class="k-tags"><span class="badge badge-gray">${fmt(c.value||0)}</span><span class="badge badge-blue">${c.owner||''}</span></div>
           </div>`).join('')}
       </div>
@@ -7271,7 +7331,10 @@ function switchDealTab(view, el) {
 }
 function toggleFilter(id) {
   const el = document.getElementById(id);
-  if(el) el.style.display = el.style.display==='none'?'block':'none';
+  if (!el) return;
+  const opening = el.style.display === 'none';
+  el.style.display = opening ? 'flex' : 'none';
+  if (opening) _populateOwnerDropdowns();
 }
 function toggleSection(hdrEl, sectionId) {
   const sec = document.getElementById(sectionId);
@@ -8160,17 +8223,41 @@ document.addEventListener('click', function(e) {
   const mo = document.getElementById('user-modal-overlay');
   if (mo && e.target === mo) closeUserModal();
 });
+// Active filter state per module: { leads: {stage:'', owner:'', source:''}, ... }
+const _activeFilters = { leads:{}, contacts:{}, companies:{}, deals:{} };
+
 function applyFilter(filterId, module) {
-  // collect checked system filters and field filters — for now close panel and show toast
+  // Read the quick-filter selects inside the panel
+  const panel = document.getElementById(filterId);
+  if (panel) {
+    const f = {};
+    panel.querySelectorAll('select[data-filter-key]').forEach(sel => {
+      if (sel.value) f[sel.dataset.filterKey] = sel.value;
+    });
+    _activeFilters[module] = f;
+  }
   toggleFilter(filterId);
-  const existing = document.getElementById('filter-toast');
-  if (existing) existing.remove();
-  const t = document.createElement('div');
-  t.id = 'filter-toast';
-  t.textContent = 'Filter applied';
-  t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;padding:10px 24px;border-radius:8px;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,0.18);pointer-events:none';
-  document.body.appendChild(t);
-  setTimeout(()=>t.remove(), 2000);
+  // Re-render the table with active filters
+  if (module==='leads')     renderTable('leads','');
+  else if (module==='contacts')  renderTable('contacts','');
+  else if (module==='accounts')  renderTable('companies','');
+  else if (module==='deals')     renderTable('deals','');
+  // Show active filter badge on Filter button
+  _updateFilterBadge(module);
+}
+
+function _updateFilterBadge(module) {
+  const moduleMap = { leads:'leads', contacts:'contacts', accounts:'companies', deals:'deals', companies:'companies' };
+  const type = moduleMap[module] || module;
+  const count = Object.keys(_activeFilters[type]||{}).length;
+  // Find the filter button for this section
+  document.querySelectorAll(`#page-${type} .crm-toolbar-btn, #page-${type === 'companies' ? 'companies' : type} .crm-toolbar-btn`).forEach(btn => {
+    if (btn.textContent.includes('Filter')) {
+      btn.textContent = count > 0 ? `⊟ Filter (${count})` : '⊟ Filter';
+      btn.style.color = count > 0 ? 'var(--accent)' : '';
+      btn.style.fontWeight = count > 0 ? '700' : '';
+    }
+  });
 }
 function toggleFilterExpand(e, expandId, labelEl) {
   e.stopPropagation();
@@ -8199,6 +8286,26 @@ function clearFilter(filterId) {
   panel.querySelectorAll('[id$=-expand]').forEach(e => e.style.display = 'none');
   panel.querySelectorAll('.act-radio-dot').forEach(d => d.classList.remove('selected'));
   panel.querySelectorAll('[id$=-due-range]').forEach(r => r.style.display = 'none');
+  panel.querySelectorAll('select[data-filter-key]').forEach(sel => sel.value = '');
+  // Determine module and clear active filters + re-render
+  const moduleMap = { 'leads-filter':'leads', 'contacts-filter':'contacts', 'companies-filter':'companies', 'deals-filter':'deals' };
+  const module = moduleMap[filterId];
+  if (module) {
+    _activeFilters[module] = {};
+    _updateFilterBadge(module === 'companies' ? 'accounts' : module);
+    renderTable(module === 'companies' ? 'companies' : module, '');
+  }
+}
+
+function _populateOwnerDropdowns() {
+  // Fill owner dropdowns with real users when filter panels open
+  const owners = [...new Set((DB.users||[]).map(u => u.name || u.email).filter(Boolean))];
+  ['lf-owner','ctf-owner','cf-owner','df-owner'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const cur = sel.value;
+    sel.innerHTML = `<option value="">Any Owner</option>` + owners.map(o=>`<option${o===cur?' selected':''}>${o}</option>`).join('');
+  });
 }
 function selectActivityFilter(label, type) {
   ['without','overdue','due'].forEach(t => {
@@ -8282,6 +8389,79 @@ function selectAll(tbodyId, masterCb) {
   const tbody = document.getElementById(tbodyId);
   if (!tbody) return;
   tbody.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = masterCb.checked);
+  _updateBulkBar(tbodyId);
+}
+
+function _onRowCheckbox(tbodyId, masterCbId) {
+  _updateBulkBar(tbodyId);
+  // Sync master checkbox state
+  const tbody = document.getElementById(tbodyId);
+  const master = document.getElementById(masterCbId);
+  if (!tbody || !master) return;
+  const all = tbody.querySelectorAll('input[type="checkbox"]');
+  const checked = tbody.querySelectorAll('input[type="checkbox"]:checked');
+  master.indeterminate = checked.length > 0 && checked.length < all.length;
+  master.checked = checked.length === all.length && all.length > 0;
+}
+
+function _updateBulkBar(tbodyId) {
+  const tbody = document.getElementById(tbodyId);
+  if (!tbody) return;
+  const checked = [...tbody.querySelectorAll('input[type="checkbox"]:checked')];
+  const count = checked.length;
+  // Find or create bulk bar
+  const tableWrap = tbody.closest('.table-wrap') || tbody.closest('div');
+  const pageEl = tbody.closest('.page');
+  if (!pageEl) return;
+  let bar = pageEl.querySelector('.bulk-action-bar');
+  if (count === 0) { if (bar) bar.style.display = 'none'; return; }
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.className = 'bulk-action-bar';
+    bar.style.cssText = 'position:sticky;bottom:0;left:0;right:0;background:var(--accent);color:#fff;padding:10px 20px;display:flex;align-items:center;gap:14px;font-size:13px;font-weight:600;z-index:100;border-top:2px solid rgba(255,255,255,0.3)';
+    pageEl.appendChild(bar);
+  }
+  bar.style.display = 'flex';
+  // Determine module from tbodyId
+  const moduleMap = { 'leads-body':'leads','contacts-body':'contacts','companies-body':'companies','deals-body':'deals' };
+  const module = moduleMap[tbodyId] || '';
+  const ids = checked.map(cb => {
+    const tr = cb.closest('tr');
+    return tr ? tr.dataset.id : null;
+  }).filter(Boolean);
+  bar.innerHTML = `
+    <span>${count} record${count>1?'s':''} selected</span>
+    <button onclick="_bulkDelete('${module}','${tbodyId}')" style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.5);color:#fff;padding:5px 14px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600">🗑 Delete Selected</button>
+    <button onclick="_clearSelection('${tbodyId}')" style="background:none;border:1px solid rgba(255,255,255,0.4);color:#fff;padding:5px 14px;border-radius:6px;cursor:pointer;font-size:13px">✕ Cancel</button>
+  `;
+}
+
+function _clearSelection(tbodyId) {
+  const tbody = document.getElementById(tbodyId);
+  if (tbody) tbody.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+  // reset master
+  const masterMap = { 'leads-body':'leads-master-cb','contacts-body':'contacts-master-cb','companies-body':'companies-master-cb','deals-body':'deals-master-cb' };
+  const master = document.getElementById(masterMap[tbodyId]);
+  if (master) { master.checked = false; master.indeterminate = false; }
+  _updateBulkBar(tbodyId);
+}
+
+async function _bulkDelete(module, tbodyId) {
+  const tbody = document.getElementById(tbodyId);
+  if (!tbody) return;
+  const checked = [...tbody.querySelectorAll('input[type="checkbox"]:checked')];
+  const ids = checked.map(cb => { const tr = cb.closest('tr'); return tr ? tr.dataset.id : null; }).filter(Boolean);
+  if (!ids.length) return;
+  if (!confirm(`Delete ${ids.length} record${ids.length>1?'s':''}? This cannot be undone.`)) return;
+  for (const id of ids) {
+    try {
+      await apiFetch(`/api/${module}/${id}`, { method: 'DELETE' });
+      DB[module] = DB[module].filter(r => r.id !== id);
+    } catch(e) { console.error('Bulk delete failed for', id, e); }
+  }
+  _clearSelection(tbodyId);
+  refreshCurrentPage();
+  showToast(`${ids.length} record${ids.length>1?'s':''} deleted`, 'success');
 }
 
 function addDescEntry() {
