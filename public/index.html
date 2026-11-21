@@ -3348,10 +3348,13 @@ function countNewRecords(records, section) {
   try {
     const seenAt = localStorage.getItem(getSeenKey(section));
     const loginAt = localStorage.getItem(getLoginKey());
-    // Baseline: when user last SAW this section, or when they last logged in, whichever is later
-    const baseline = seenAt && loginAt ? (seenAt > loginAt ? seenAt : loginAt) : (seenAt || loginAt);
-    if (!baseline) return 0; // no baseline yet — show nothing
-    return records.filter(r => (r.createdAt || r.created_at || '') > baseline).length;
+    // Use seenAt if user has visited the section, else loginAt
+    // Never count records older than 7 days as "new" to prevent badge buildup after localStorage reset
+    const baseline = seenAt || loginAt;
+    if (!baseline) return 0;
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const effectiveBaseline = baseline > sevenDaysAgo ? baseline : sevenDaysAgo;
+    return records.filter(r => (r.createdAt || r.created_at || '') > effectiveBaseline).length;
   } catch(e) { return 0; }
 }
 function updateNavBadges() {
@@ -6626,8 +6629,7 @@ function renderReports() {
   if (leadsLastMonth === 0 && leadsThisMonth === 0) {
     pctLabel = '—'; pctColor = 'var(--fg3)';
   } else if (leadsLastMonth === 0 && leadsThisMonth > 0) {
-    pct = 100 * leadsThisMonth;
-    pctLabel = '+' + pct + '% vs last month'; pctColor = 'var(--green)';
+    pctLabel = 'New this month'; pctColor = 'var(--green)';
   } else {
     pct = Math.round((leadsThisMonth - leadsLastMonth) / leadsLastMonth * 100);
     pctLabel = (pct >= 0 ? '+' : '') + pct + '% vs last month';
