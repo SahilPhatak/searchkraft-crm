@@ -3026,13 +3026,16 @@ async function deleteRecord(table, id) {
 // load() — fetches all CRM data via backend API into local DB cache
 // Graceful: if a request fails, that collection stays as-is
 let _loadInFlight = false; // prevents concurrent load() calls
+let _loadPromise = null;   // shared promise so concurrent callers all await the same fetch
 async function load() {
-  if (_loadInFlight) return; // already fetching — don't start another
+  // If already fetching, return the SAME promise — all callers await together
+  if (_loadInFlight && _loadPromise) return _loadPromise;
   _loadInFlight = true;
-  // Show a subtle ↻ spinner in the topbar while fetching so users know it's refreshing
+  _loadPromise = (async () => {
+  // Show a subtle ↻ spinner in the topbar while fetching
   const _topbarEl = document.getElementById('topbar-title');
-  const _origTitle = _topbarEl ? _topbarEl.textContent : '';
-  if (_topbarEl && _origTitle && !_origTitle.endsWith(' ↻')) _topbarEl.textContent = _origTitle + ' ↻';
+  const _origTitle = (_topbarEl ? _topbarEl.textContent : '').replace(/ ↻$/, '');
+  if (_topbarEl && _origTitle) _topbarEl.textContent = _origTitle + ' ↻';
   try {
   const safe = async (path, label) => {
     try {
@@ -3083,8 +3086,13 @@ async function load() {
   } finally {
     _loadInFlight = false;
     // Restore topbar title (remove the ↻ spinner)
-    if (_topbarEl && _origTitle) _topbarEl.textContent = _origTitle;
+    const _elNow = document.getElementById('topbar-title');
+    if (_elNow) _elNow.textContent = _elNow.textContent.replace(/ ↻$/, '');
   }
+  })();
+  // Clear promise reference after it settles (doesn't affect awaiting callers)
+  _loadPromise.finally(() => { _loadPromise = null; });
+  return _loadPromise;
 }
 
 // Legacy save() — kept for compatibility; actual saves go through saveRecord()
@@ -3262,12 +3270,20 @@ function renderPage(pg) {
     else if (pg==='business-onboarded') { markSectionSeen('business-onboarded'); renderBusinessOnboarded(); }
   } catch(err) {
     console.error('[renderPage] Error rendering', pg, err);
-    if (el) el.innerHTML = `<div style="padding:40px;text-align:center;color:var(--fg2)">
-      <div style="font-size:32px;margin-bottom:12px">⚠️</div>
-      <div style="font-weight:600;margin-bottom:8px">Could not load this page</div>
-      <div style="font-size:13px;margin-bottom:16px">${err.message||'Unknown error'}</div>
-      <button onclick="location.reload()" style="padding:8px 18px;background:var(--primary);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px">Reload</button>
-    </div>`;
+    // Auto-retry once after a short delay (handles transient errors during load)
+    if (!renderPage._retrying) {
+      renderPage._retrying = true;
+      setTimeout(() => { renderPage._retrying = false; try { renderPage(pg); } catch(e2) {
+        // Second failure — show error UI with soft-retry (no hard reload)
+        if (el) el.innerHTML = `<div style="padding:40px;text-align:center;color:var(--fg2)">
+          <div style="font-size:32px;margin-bottom:12px">⚠️</div>
+          <div style="font-weight:600;margin-bottom:8px">Could not load this page</div>
+          <div style="font-size:13px;margin-bottom:16px;opacity:0.7">${err.message||'Unknown error'}</div>
+          <button onclick="renderPage('${pg}')" style="padding:8px 18px;background:var(--primary);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px;margin-right:8px">Try Again</button>
+          <button onclick="navigateTo('dashboard')" style="padding:8px 18px;background:var(--bg2);color:var(--fg);border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:14px">Go to Dashboard</button>
+        </div>`;
+      }}, 800);
+    }
   }
 }
 
@@ -3329,18 +3345,17 @@ window.addEventListener('popstate', (e) => {
 });
 
 // Auto-refresh data when tab gets focus (catches data added by other users)
-// Throttled: at most once every 60s, and never re-renders mid-fetch (prevents blank screen)
+// Throttled: at most once every 90s. NEVER re-renders — only refreshes data in background.
+// safeSet() in load() ensures we never blank the page with an empty response.
 let _lastVisibilityRefresh = 0;
 window.addEventListener('visibilitychange', async () => {
   if (document.visibilityState !== 'visible' || !LOGGED_IN_USER) return;
   const now = Date.now();
-  if (now - _lastVisibilityRefresh < 60000) return; // ignore if refreshed <60s ago
+  if (now - _lastVisibilityRefresh < 90000) return; // ignore if refreshed <90s ago
   _lastVisibilityRefresh = now;
-  // Load silently in background — don't re-render (avoids blank screen on Render cold start)
-  try {
-    await load();
-    updateNavBadges();
-  } catch(e) {
+  // Load silently in background — no re-render triggered here
+  // (safeSet in load() protects cache; existing page content stays visible)
+  try { await load(); } catch(e) {
     console.warn('[visibilitychange] background refresh failed:', e.message);
   }
 });
@@ -4622,8 +4637,8 @@ async function deleteCRMRecord(collection, id) {
 }
 
 function refreshCurrentPage() {
-  // Don't re-render if DB is empty — backend may still be waking up (Render cold start)
-  if (!DB.deals.length && !DB.leads.length && !DB.contacts.length && !DB.companies.length) return;
+  // safeSet() in load() ensures DB always retains previous data even on cold-start empty responses
+  // so it's always safe to re-render here
   const active = document.querySelector('.nav-item.active');
   if (active) renderPage(active.dataset.page);
 }
@@ -4678,7 +4693,7 @@ function filterQAP(q) {
 async function refreshDashboard() {
   const icon = document.getElementById('refresh-icon');
   if (icon) { icon.style.animation = 'spin 0.8s linear infinite'; icon.style.transformOrigin = 'center'; }
-  await load();
+  try { await load(); } catch(e) { console.warn('[refreshDashboard] load failed:', e.message); }
   renderDashboard();
   if (icon) icon.style.animation = '';
 }
