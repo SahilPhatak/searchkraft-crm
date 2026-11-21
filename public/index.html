@@ -8429,9 +8429,27 @@ function _updateBulkBar(tbodyId) {
     const tr = cb.closest('tr');
     return tr ? tr.dataset.id : null;
   }).filter(Boolean);
+  // Build stage options for assign-stage dropdown
+  const stageOpts = module==='leads' ? LEAD_STAGES : module==='deals' ? DEAL_STAGES : [];
+  const stageDropdown = stageOpts.length ? `
+    <select id="bulk-stage-sel-${tbodyId}" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.5);color:#fff;padding:5px 10px;border-radius:6px;cursor:pointer;font-size:13px;max-width:140px">
+      <option value="">— Set Stage —</option>
+      ${stageOpts.map(s=>`<option value="${s}" style="color:#000">${s}</option>`).join('')}
+    </select>
+    <button onclick="_bulkSetStage('${module}','${tbodyId}')" style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.5);color:#fff;padding:5px 14px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600">📋 Apply Stage</button>
+  ` : '';
+  // Build owner options
+  const ownerOpts = (DB.users||[]).map(u=>`<option value="${u.id}" style="color:#000">${u.name}</option>`).join('');
   bar.innerHTML = `
-    <span>${count} record${count>1?'s':''} selected</span>
-    <button onclick="_bulkDelete('${module}','${tbodyId}')" style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.5);color:#fff;padding:5px 14px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600">🗑 Delete Selected</button>
+    <span style="font-weight:700">${count} record${count>1?'s':''} selected</span>
+    <button onclick="_bulkDelete('${module}','${tbodyId}')" style="background:rgba(239,68,68,0.3);border:1px solid rgba(239,68,68,0.6);color:#fff;padding:5px 14px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600">🗑 Delete</button>
+    <select id="bulk-owner-sel-${tbodyId}" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.5);color:#fff;padding:5px 10px;border-radius:6px;cursor:pointer;font-size:13px;max-width:140px">
+      <option value="">— Assign Owner —</option>
+      ${ownerOpts}
+    </select>
+    <button onclick="_bulkAssignOwner('${module}','${tbodyId}')" style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.5);color:#fff;padding:5px 14px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600">👤 Assign</button>
+    ${stageDropdown}
+    <button onclick="_bulkExportCSV('${module}','${tbodyId}')" style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.5);color:#fff;padding:5px 14px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600">⬇ Export CSV</button>
     <button onclick="_clearSelection('${tbodyId}')" style="background:none;border:1px solid rgba(255,255,255,0.4);color:#fff;padding:5px 14px;border-radius:6px;cursor:pointer;font-size:13px">✕ Cancel</button>
   `;
 }
@@ -8462,6 +8480,67 @@ async function _bulkDelete(module, tbodyId) {
   _clearSelection(tbodyId);
   refreshCurrentPage();
   showToast(`${ids.length} record${ids.length>1?'s':''} deleted`, 'success');
+}
+
+async function _bulkAssignOwner(module, tbodyId) {
+  const sel = document.getElementById('bulk-owner-sel-' + tbodyId);
+  if (!sel || !sel.value) { showToast('Please select an owner first', 'error'); return; }
+  const ownerId = sel.value;
+  const ownerName = (DB.users||[]).find(u=>u.id===ownerId)?.name || ownerId;
+  const tbody = document.getElementById(tbodyId);
+  if (!tbody) return;
+  const ids = [...tbody.querySelectorAll('input[type="checkbox"]:checked')].map(cb=>{const tr=cb.closest('tr');return tr?tr.dataset.id:null;}).filter(Boolean);
+  if (!ids.length) return;
+  for (const id of ids) {
+    try {
+      const rec = DB[module].find(r=>r.id===id);
+      if (!rec) continue;
+      await apiFetch(`/api/${module}/${id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({...rec, owner: ownerName, ownerId}) });
+      const r = DB[module].find(r=>r.id===id); if(r){r.owner=ownerName;r.ownerId=ownerId;}
+    } catch(e) { console.error('Bulk assign owner failed for', id, e); }
+  }
+  _clearSelection(tbodyId);
+  refreshCurrentPage();
+  showToast(`${ids.length} record${ids.length>1?'s':''} assigned to ${ownerName}`, 'success');
+}
+
+async function _bulkSetStage(module, tbodyId) {
+  const sel = document.getElementById('bulk-stage-sel-' + tbodyId);
+  if (!sel || !sel.value) { showToast('Please select a stage first', 'error'); return; }
+  const stage = sel.value;
+  const tbody = document.getElementById(tbodyId);
+  if (!tbody) return;
+  const ids = [...tbody.querySelectorAll('input[type="checkbox"]:checked')].map(cb=>{const tr=cb.closest('tr');return tr?tr.dataset.id:null;}).filter(Boolean);
+  if (!ids.length) return;
+  for (const id of ids) {
+    try {
+      const rec = DB[module].find(r=>r.id===id);
+      if (!rec) continue;
+      await apiFetch(`/api/${module}/${id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({...rec, stage}) });
+      const r = DB[module].find(r=>r.id===id); if(r) r.stage=stage;
+    } catch(e) { console.error('Bulk set stage failed for', id, e); }
+  }
+  _clearSelection(tbodyId);
+  refreshCurrentPage();
+  showToast(`${ids.length} record${ids.length>1?'s':''} moved to ${stage}`, 'success');
+}
+
+function _bulkExportCSV(module, tbodyId) {
+  const tbody = document.getElementById(tbodyId);
+  if (!tbody) return;
+  const ids = new Set([...tbody.querySelectorAll('input[type="checkbox"]:checked')].map(cb=>{const tr=cb.closest('tr');return tr?tr.dataset.id:null;}).filter(Boolean));
+  if (!ids.size) return;
+  const rows = (DB[module]||[]).filter(r=>ids.has(r.id));
+  if (!rows.length) return;
+  const cols = Object.keys(rows[0]).filter(k=>k!=='id'&&!k.startsWith('_'));
+  const esc = v => '"'+(String(v===null||v===undefined?'':v).replace(/"/g,'""'))+'"';
+  const csv = [cols.map(esc).join(','), ...rows.map(r=>cols.map(c=>esc(r[c])).join(','))].join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${module}_export_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  showToast(`Exported ${rows.length} record${rows.length>1?'s':''} to CSV`, 'success');
 }
 
 function addDescEntry() {
