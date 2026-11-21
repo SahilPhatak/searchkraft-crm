@@ -3220,22 +3220,32 @@ function renderPage(pg) {
     el.style.display = flexPages.includes(pg) ? 'flex' : 'block';
     el.classList.add('active');
   }
-  if (pg==='dashboard') renderDashboard();
-  else if (pg==='my-day') renderWorkqueue();
-  else if (pg==='calendar') { renderCalendar(); gcalLoadState(); }
-  else if (pg==='companies') { markSectionSeen('companies'); renderTable('companies',''); }
-  else if (pg==='contacts')  { markSectionSeen('contacts');  renderTable('contacts',''); }
-  else if (pg==='leads')     { markSectionSeen('leads');     renderLeadsBoard(); renderTable('leads',''); }
-  else if (pg==='deals')     { markSectionSeen('deals');     renderDealsBoard(); renderTable('deals',''); }
-  else if (pg==='activities'){ markSectionSeen('activities');renderActivities(); }
-  else if (pg==='tasks')     { markSectionSeen('tasks');     renderTable('tasks',''); }
-  else if (pg==='documents') renderDocuments();
-  else if (pg==='commercial') renderCommercial();
-  else if (pg==='reports') renderReports();
-  else if (pg==='team') renderTable('team','');
-  else if (pg==='audit') renderAudit();
-  else if (pg==='setup') { const firstTab = document.querySelector('.setup-tab'); if(firstTab) firstTab.click(); }
-  else if (pg==='business-onboarded') { markSectionSeen('business-onboarded'); renderBusinessOnboarded(); }
+  try {
+    if (pg==='dashboard') renderDashboard();
+    else if (pg==='my-day') renderWorkqueue();
+    else if (pg==='calendar') { renderCalendar(); gcalLoadState(); }
+    else if (pg==='companies') { markSectionSeen('companies'); renderTable('companies',''); }
+    else if (pg==='contacts')  { markSectionSeen('contacts');  renderTable('contacts',''); }
+    else if (pg==='leads')     { markSectionSeen('leads');     renderLeadsBoard(); renderTable('leads',''); }
+    else if (pg==='deals')     { markSectionSeen('deals');     renderDealsBoard(); renderTable('deals',''); }
+    else if (pg==='activities'){ markSectionSeen('activities');renderActivities(); }
+    else if (pg==='tasks')     { markSectionSeen('tasks');     renderTable('tasks',''); }
+    else if (pg==='documents') renderDocuments();
+    else if (pg==='commercial') renderCommercial();
+    else if (pg==='reports') renderReports();
+    else if (pg==='team') renderTable('team','');
+    else if (pg==='audit') renderAudit();
+    else if (pg==='setup') { const firstTab = document.querySelector('.setup-tab'); if(firstTab) firstTab.click(); }
+    else if (pg==='business-onboarded') { markSectionSeen('business-onboarded'); renderBusinessOnboarded(); }
+  } catch(err) {
+    console.error('[renderPage] Error rendering', pg, err);
+    if (el) el.innerHTML = `<div style="padding:40px;text-align:center;color:var(--fg2)">
+      <div style="font-size:32px;margin-bottom:12px">⚠️</div>
+      <div style="font-weight:600;margin-bottom:8px">Could not load this page</div>
+      <div style="font-size:13px;margin-bottom:16px">${err.message||'Unknown error'}</div>
+      <button onclick="location.reload()" style="padding:8px 18px;background:var(--primary);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px">Reload</button>
+    </div>`;
+  }
 }
 
 // ---- NAVIGATION + URL HASH ROUTING ----
@@ -4669,9 +4679,9 @@ function renderDashboard() {
   const leadsThisMonth = DB.leads.filter(l => (l.createdAt||'').startsWith(monthStr));
   // Deals created this month
   const dealsThisMonth = DB.deals.filter(d => (d.createdAt||'').startsWith(monthStr));
-  // Revenue this month = sum of Closed Won expected revenue (won in this month)
+  // Revenue this month = sum of Joined deals by joining/close date (not creation date)
   const revenueThisMonth = DB.deals
-    .filter(d => isWon(d) && (d.wonAt||d.closeDate||d.createdAt||'').startsWith(monthStr))
+    .filter(d => isWon(d) && (d.closeDate||'').startsWith(monthStr))
     .reduce((a,d)=>a+Number(d.expectedRevenue||d.amount||d.value||0),0);
   // Open + overdue tasks
   const todayStr = today();
@@ -4692,10 +4702,10 @@ function renderDashboard() {
     const dateStr = d.createdAt || '';
     return lqMonths.some(m => dateStr.startsWith(m));
   });
-  // Won deals: check wonAt or closeDate falling in this quarter (not just created)
+  // Won deals: check closeDate (joining date) falling in this quarter
   const lqWon = DB.deals.filter(d => {
     if (!isWon(d)) return false;
-    const dateStr = d.wonAt || d.closeDate || d.createdAt || '';
+    const dateStr = d.closeDate || '';
     return lqMonths.some(m => dateStr.startsWith(m));
   });
   const lqRevenue = lqWon.reduce((a,d)=>a+Number(d.expectedRevenue||d.amount||d.value||0),0);
@@ -5008,10 +5018,10 @@ function renderMonthlyRevenue() {
   const fyMonths = [3,4,5,6,7,8,9,10,11,0,1,2];
   const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-  // Sum Closed Won revenue per FY-month index (0=Apr … 11=Mar)
+  // Sum Closed Won revenue per FY-month index (0=Apr … 11=Mar) using joining/close date
   const monthly = Array(12).fill(0);
   DB.deals.filter(d => isWon(d)).forEach(d => {
-    const dt = d.wonAt || d.closeDate || d.createdAt || '';
+    const dt = d.closeDate || '';
     if (!dt) return;
     const dYr = parseInt(dt.slice(0,4),10);
     const dMo = parseInt(dt.slice(5,7),10) - 1; // 0-based calendar month
@@ -6642,7 +6652,7 @@ function renderReports() {
   const el_ll = document.getElementById('an-leads-last');
   if (el_ll) el_ll.textContent = '';
 
-  const wonDeals = DB.deals.filter(d=>isWon(d)&&recLocalYM(d,'wonAt')===thisMonth);
+  const wonDeals = DB.deals.filter(d=>isWon(d)&&recLocalYM(d,'closeDate')===thisMonth);
   const revenue = wonDeals.reduce((s,d)=>s+Number(d.expectedRevenue||d.amount||0),0);
   const el_rev = document.getElementById('an-revenue');
   if (el_rev) el_rev.textContent = fmt(revenue);
@@ -6705,9 +6715,9 @@ function renderReports() {
       DB.deals.filter(d=>isWon(d)).filter(d=>recLocalYM(d,'closeDate')===sm3).length,
     ]},
     { label:'Revenue Won', vals:[
-      monthSum(DB.deals.filter(d=>d.stage==='Joined'),'wonAt','expectedRevenue',sm1),
-      monthSum(DB.deals.filter(d=>d.stage==='Joined'),'wonAt','expectedRevenue',sm2),
-      monthSum(DB.deals.filter(d=>d.stage==='Joined'),'wonAt','expectedRevenue',sm3)
+      monthSum(DB.deals.filter(d=>d.stage==='Joined'),'closeDate','expectedRevenue',sm1),
+      monthSum(DB.deals.filter(d=>d.stage==='Joined'),'closeDate','expectedRevenue',sm2),
+      monthSum(DB.deals.filter(d=>d.stage==='Joined'),'closeDate','expectedRevenue',sm3)
     ], isCurrency:true },
     { label:'Open Amount', vals:[
       monthSum(DB.deals.filter(d=>d.stage==='Offered'),'createdAt','expectedRevenue',sm1),
