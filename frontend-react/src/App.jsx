@@ -1,96 +1,55 @@
 import { useEffect } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { HashRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { QueryClientProvider } from '@tanstack/react-query'
+import { queryClient } from '@/lib/data'
 import { useAuthStore } from '@/store/authStore'
-import { useUiStore } from '@/store/uiStore'
 import { AppLayout } from '@/components/layout/AppLayout'
-
-// Pages (mix of named + default exports)
+import { LoadingScreen } from '@/components/LoadingScreen'
 import { Login } from '@/pages/Login'
-import { Dashboard } from '@/pages/Dashboard'
-import { Contacts } from '@/pages/Contacts'
-import { Companies } from '@/pages/Companies'
-import { Tasks } from '@/pages/Tasks'
-import { Activities } from '@/pages/Activities'
-import { Documents } from '@/pages/Documents'
-import { Business } from '@/pages/Business'
-import { Calendar } from '@/pages/Calendar'
+import { SetPassword } from '@/pages/SetPassword'
+import { NotYetMigrated } from '@/pages/NotYetMigrated'
 
-// New pages (default exports)
-import Leads from '@/pages/Leads'
-import Deals from '@/pages/Deals'
-import Setup from '@/pages/Setup'
-import Reports from '@/pages/Reports'
-import AuditLog from '@/pages/AuditLog'
-import Team from '@/pages/Team'
-import PersonalSettings from '@/pages/PersonalSettings'
+// Hash routing (#/leads, #/deals …) — identical URLs to production, so existing
+// bookmarks and shared links keep working after the switch.
+const PAGES = [
+  'dashboard', 'reports', 'leads', 'contacts', 'companies', 'deals', 'business-onboarded',
+  'documents', 'tasks', 'activities', 'team', 'audit', 'setup', 'calendar', 'my-day',
+  'commercial', 'personal-settings',
+]
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: { staleTime: 1000 * 30, retry: 1 },
-  },
-})
+// Pages move from NotYetMigrated to their real component as each phase lands.
+const PAGE_COMPONENTS = {}
 
-function ProtectedRoute({ children }) {
-  const { user, loading } = useAuthStore()
-  if (loading) return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="animate-spin h-8 w-8 rounded-full border-4 border-blue-600 border-t-transparent" />
-    </div>
+function Gate() {
+  const status = useAuthStore((s) => s.status)
+  const initialize = useAuthStore((s) => s.initialize)
+  useEffect(() => { initialize() }, [initialize])
+
+  if (status === 'booting') return <LoadingScreen />
+  if (status === 'loadingData') return <LoadingScreen message="Loading your data…" />
+  if (status === 'signedOut') return <Login />
+  if (status === 'setPassword') return <SetPassword />
+
+  return (
+    <Routes>
+      <Route path="/" element={<AppLayout />}>
+        <Route index element={<Navigate to="/dashboard" replace />} />
+        {PAGES.map((p) => {
+          const C = PAGE_COMPONENTS[p]
+          return <Route key={p} path={p} element={C ? <C /> : <NotYetMigrated page={p} />} />
+        })}
+      </Route>
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+    </Routes>
   )
-  if (!user) return <Navigate to="/login" replace />
-  return children
-}
-
-function AppInitializer({ children }) {
-  const { initialize } = useAuthStore()
-  const { theme } = useUiStore()
-
-  useEffect(() => {
-    initialize()
-  }, [])
-
-  // Apply theme on mount
-  useEffect(() => {
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark')
-    } else {
-      document.documentElement.classList.remove('dark')
-    }
-  }, [theme])
-
-  return children
 }
 
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <AppInitializer>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-              <Route index element={<Navigate to="/dashboard" replace />} />
-              <Route path="dashboard"  element={<Dashboard />} />
-              <Route path="leads"      element={<Leads />} />
-              <Route path="contacts"   element={<Contacts />} />
-              <Route path="companies"  element={<Companies />} />
-              <Route path="deals"      element={<Deals />} />
-              <Route path="tasks"      element={<Tasks />} />
-              <Route path="activities" element={<Activities />} />
-              <Route path="documents"  element={<Documents />} />
-              <Route path="business"   element={<Business />} />
-              <Route path="calendar"   element={<Calendar />} />
-              <Route path="setup"      element={<Setup />} />
-              <Route path="reports"    element={<Reports />} />
-              <Route path="audit"      element={<AuditLog />} />
-              <Route path="team"       element={<Team />} />
-              <Route path="settings"   element={<PersonalSettings />} />
-            </Route>
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
-        </AppInitializer>
-      </BrowserRouter>
+      <HashRouter>
+        <Gate />
+      </HashRouter>
     </QueryClientProvider>
   )
 }

@@ -13,8 +13,8 @@
   ],
   "categories": ["business", "productivity"],
   "shortcuts": [
-    { "name": "Leads", "url": "/leads", "description": "Open Leads" },
-    { "name": "Contacts", "url": "/contacts", "description": "Open Contacts" },
-    { "name": "Deals", "url": "/deals", "description": "Open Deals" }
+    { "name": "Leads", "url": "/#/leads", "description": "Open Leads" },
+    { "name": "Contacts", "url": "/#/contacts", "description": "Open Contacts" },
+    { "name": "Deals", "url": "/#/deals", "description": "Open Deals" }
   ]
 }
