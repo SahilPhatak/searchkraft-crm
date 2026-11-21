@@ -3223,22 +3223,32 @@ function renderPage(pg) {
     el.style.display = flexPages.includes(pg) ? 'flex' : 'block';
     el.classList.add('active');
   }
-  if (pg==='dashboard') renderDashboard();
-  else if (pg==='my-day') renderWorkqueue();
-  else if (pg==='calendar') { renderCalendar(); gcalLoadState(); }
-  else if (pg==='companies') { markSectionSeen('companies'); renderTable('companies',''); }
-  else if (pg==='contacts')  { markSectionSeen('contacts');  renderTable('contacts',''); }
-  else if (pg==='leads')     { markSectionSeen('leads');     renderLeadsBoard(); renderTable('leads',''); }
-  else if (pg==='deals')     { markSectionSeen('deals');     renderDealsBoard(); renderTable('deals',''); }
-  else if (pg==='activities'){ markSectionSeen('activities');renderActivities(); }
-  else if (pg==='tasks')     { markSectionSeen('tasks');     renderTable('tasks',''); }
-  else if (pg==='documents') renderDocuments();
-  else if (pg==='commercial') renderCommercial();
-  else if (pg==='reports') renderReports();
-  else if (pg==='team') renderTable('team','');
-  else if (pg==='audit') renderAudit();
-  else if (pg==='setup') { const firstTab = document.querySelector('.setup-tab'); if(firstTab) firstTab.click(); }
-  else if (pg==='business-onboarded') { markSectionSeen('business-onboarded'); renderBusinessOnboarded(); }
+  try {
+    if (pg==='dashboard') renderDashboard();
+    else if (pg==='my-day') renderWorkqueue();
+    else if (pg==='calendar') { renderCalendar(); gcalLoadState(); }
+    else if (pg==='companies') { markSectionSeen('companies'); renderTable('companies',''); }
+    else if (pg==='contacts')  { markSectionSeen('contacts');  renderTable('contacts',''); }
+    else if (pg==='leads')     { markSectionSeen('leads');     renderLeadsBoard(); renderTable('leads',''); }
+    else if (pg==='deals')     { markSectionSeen('deals');     renderDealsBoard(); renderTable('deals',''); }
+    else if (pg==='activities'){ markSectionSeen('activities');renderActivities(); }
+    else if (pg==='tasks')     { markSectionSeen('tasks');     renderTable('tasks',''); }
+    else if (pg==='documents') renderDocuments();
+    else if (pg==='commercial') renderCommercial();
+    else if (pg==='reports') renderReports();
+    else if (pg==='team') renderTable('team','');
+    else if (pg==='audit') renderAudit();
+    else if (pg==='setup') { const firstTab = document.querySelector('.setup-tab'); if(firstTab) firstTab.click(); }
+    else if (pg==='business-onboarded') { markSectionSeen('business-onboarded'); renderBusinessOnboarded(); }
+  } catch(err) {
+    console.error('[renderPage] Error rendering', pg, err);
+    if (el) el.innerHTML = `<div style="padding:40px;text-align:center;color:var(--fg2)">
+      <div style="font-size:32px;margin-bottom:12px">⚠️</div>
+      <div style="font-weight:600;margin-bottom:8px">Could not load this page</div>
+      <div style="font-size:13px;margin-bottom:16px">${err.message||'Unknown error'}</div>
+      <button onclick="location.reload()" style="padding:8px 18px;background:var(--primary);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px">Reload</button>
+    </div>`;
+  }
 }
 
 // ---- NAVIGATION + URL HASH ROUTING ----
@@ -3299,12 +3309,19 @@ window.addEventListener('popstate', (e) => {
 });
 
 // Auto-refresh data when tab gets focus (catches data added by other users)
+// Throttled: at most once every 60s, and never re-renders mid-fetch (prevents blank screen)
+let _lastVisibilityRefresh = 0;
 window.addEventListener('visibilitychange', async () => {
-  if (document.visibilityState === 'visible' && LOGGED_IN_USER) {
+  if (document.visibilityState !== 'visible' || !LOGGED_IN_USER) return;
+  const now = Date.now();
+  if (now - _lastVisibilityRefresh < 60000) return; // ignore if refreshed <60s ago
+  _lastVisibilityRefresh = now;
+  // Load silently in background — don't re-render (avoids blank screen on Render cold start)
+  try {
     await load();
-    const curPage = getHashPage();
-    if (curPage === 'dashboard') renderDashboard();
-    else updateNavBadges();
+    updateNavBadges();
+  } catch(e) {
+    console.warn('[visibilitychange] background refresh failed:', e.message);
   }
 });
 
@@ -3350,14 +3367,11 @@ function markSectionSeen(section) {
 function countNewRecords(records, section) {
   try {
     const seenAt = localStorage.getItem(getSeenKey(section));
-    const loginAt = localStorage.getItem(getLoginKey());
-    // Use seenAt if user has visited the section, else loginAt
-    // Never count records older than 7 days as "new" to prevent badge buildup after localStorage reset
-    const baseline = seenAt || loginAt;
-    if (!baseline) return 0;
-    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    const effectiveBaseline = baseline > sevenDaysAgo ? baseline : sevenDaysAgo;
-    return records.filter(r => (r.createdAt || r.created_at || '') > effectiveBaseline).length;
+    // Only show badge for records added AFTER the user last visited this section.
+    // If they've never visited, use "now" so pre-existing records don't trigger the badge.
+    // This prevents the flickering 19 on Business Onboarded (all records were there before first visit).
+    if (!seenAt) return 0;
+    return records.filter(r => (r.createdAt || r.created_at || '') > seenAt).length;
   } catch(e) { return 0; }
 }
 function updateNavBadges() {
@@ -3439,10 +3453,20 @@ function startRealtimeSync() {
       });
   });
 
-  // Fallback: poll every 30 seconds in case Supabase Realtime replication is not enabled
+  // Fallback: poll every 5 minutes in case Supabase Realtime replication is not enabled
+  // Only re-renders if DB has data — prevents blank screen on Render cold-start
   window._pollInterval = setInterval(async () => {
-    try { await load(); await loadBusinessOnboarded(); refreshCurrentPage(); } catch(e) {}
-  }, 30000);
+    try {
+      const prevDealsLen = DB.deals.length;
+      const prevLeadsLen = DB.leads.length;
+      await load();
+      await loadBusinessOnboarded();
+      // Only re-render if something actually changed AND we have data
+      const hasData = DB.deals.length > 0 || DB.leads.length > 0 || DB.contacts.length > 0;
+      const changed = DB.deals.length !== prevDealsLen || DB.leads.length !== prevLeadsLen;
+      if (hasData && changed) refreshCurrentPage();
+    } catch(e) { console.warn('[poll] background refresh failed:', e.message); }
+  }, 300000); // 5 minutes
 }
 
 function stopRealtimeSync() {
@@ -4291,7 +4315,7 @@ const SUPA_COLS = {
     'fax','account_site','parent_account','account_number','ticker_symbol','account_type','ownership','annual_revenue','sic_code','delivery_pillar','lane',
     'billing_country','billing_flat','billing_street','billing_city','billing_state','billing_zip','billing_lat','billing_lng',
     'shipping_country','shipping_flat','shipping_street','shipping_city','shipping_state','shipping_zip','shipping_lat','shipping_lng','description'],
-  deals: ['id','name','stage','amount','value','expected_revenue','currency','close_date','probability','source','notes','contact','contact_id','company','company_id','owner','owner_id','won_at','lost_at','lost_reason','candidate_name','contact_name','next_step','campaign','deal_type','client_poc','client_poc_email','client_poc_designation','recruiter_name','sourcer','credit_sharing','candidate_mgmt','client_spoc','created_at','updated_at'],
+  deals: ['id','name','stage','amount','value','expected_revenue','currency','close_date','probability','source','notes','contact','contact_id','company','company_id','owner','owner_id','won_at','lost_at','lost_reason','candidate_name','contact_name','next_step','campaign','deal_type','recruiter_name','client_spoc','sourcer','credit_sharing','candidate_mgmt','client_poc','client_poc_email','client_poc_designation','created_at','updated_at'],
   tasks: ['id','title','type','description','due_date','status','priority','owner','owner_id','lead_id','contact_id','deal_id','related_to','completed_at','created_at','updated_at'],
   activities: ['id','type','subject','summary','description','date','time','duration','outcome','owner','owner_id','contact','lead_id','contact_id','deal_id','created_at','updated_at'],
   documents: ['id','name','client_id','client_name','category','stage','status','file_type','file_size','file_url','uploaded_by','owner_id','description','reference_number','start_date','expiry_date','created_at','updated_at'],
@@ -4578,6 +4602,8 @@ async function deleteCRMRecord(collection, id) {
 }
 
 function refreshCurrentPage() {
+  // Don't re-render if DB is empty — backend may still be waking up (Render cold start)
+  if (!DB.deals.length && !DB.leads.length && !DB.contacts.length && !DB.companies.length) return;
   const active = document.querySelector('.nav-item.active');
   if (active) renderPage(active.dataset.page);
 }
@@ -4672,9 +4698,9 @@ function renderDashboard() {
   const leadsThisMonth = DB.leads.filter(l => (l.createdAt||'').startsWith(monthStr));
   // Deals created this month
   const dealsThisMonth = DB.deals.filter(d => (d.createdAt||'').startsWith(monthStr));
-  // Revenue this month = sum of Closed Won expected revenue (won in this month)
+  // Revenue this month = sum of Joined deals by joining/close date (not creation date)
   const revenueThisMonth = DB.deals
-    .filter(d => isWon(d) && (d.wonAt||d.closeDate||d.createdAt||'').startsWith(monthStr))
+    .filter(d => isWon(d) && (d.closeDate||'').startsWith(monthStr))
     .reduce((a,d)=>a+Number(d.expectedRevenue||d.amount||d.value||0),0);
   // Open + overdue tasks
   const todayStr = today();
@@ -4695,10 +4721,10 @@ function renderDashboard() {
     const dateStr = d.createdAt || '';
     return lqMonths.some(m => dateStr.startsWith(m));
   });
-  // Won deals: check wonAt or closeDate falling in this quarter (not just created)
+  // Won deals: check closeDate (joining date) falling in this quarter
   const lqWon = DB.deals.filter(d => {
     if (!isWon(d)) return false;
-    const dateStr = d.wonAt || d.closeDate || d.createdAt || '';
+    const dateStr = d.closeDate || '';
     return lqMonths.some(m => dateStr.startsWith(m));
   });
   const lqRevenue = lqWon.reduce((a,d)=>a+Number(d.expectedRevenue||d.amount||d.value||0),0);
@@ -5011,10 +5037,10 @@ function renderMonthlyRevenue() {
   const fyMonths = [3,4,5,6,7,8,9,10,11,0,1,2];
   const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-  // Sum Closed Won revenue per FY-month index (0=Apr … 11=Mar)
+  // Sum Closed Won revenue per FY-month index (0=Apr … 11=Mar) using joining/close date
   const monthly = Array(12).fill(0);
   DB.deals.filter(d => isWon(d)).forEach(d => {
-    const dt = d.wonAt || d.closeDate || d.createdAt || '';
+    const dt = d.closeDate || '';
     if (!dt) return;
     const dYr = parseInt(dt.slice(0,4),10);
     const dMo = parseInt(dt.slice(5,7),10) - 1; // 0-based calendar month
@@ -6645,7 +6671,7 @@ function renderReports() {
   const el_ll = document.getElementById('an-leads-last');
   if (el_ll) el_ll.textContent = '';
 
-  const wonDeals = DB.deals.filter(d=>isWon(d)&&recLocalYM(d,'wonAt')===thisMonth);
+  const wonDeals = DB.deals.filter(d=>isWon(d)&&recLocalYM(d,'closeDate')===thisMonth);
   const revenue = wonDeals.reduce((s,d)=>s+Number(d.expectedRevenue||d.amount||0),0);
   const el_rev = document.getElementById('an-revenue');
   if (el_rev) el_rev.textContent = fmt(revenue);
@@ -6708,14 +6734,14 @@ function renderReports() {
       DB.deals.filter(d=>isWon(d)).filter(d=>recLocalYM(d,'closeDate')===sm3).length,
     ]},
     { label:'Revenue Won', vals:[
-      monthSum(DB.deals.filter(d=>d.stage==='Joined'),'wonAt','expectedRevenue',sm1),
-      monthSum(DB.deals.filter(d=>d.stage==='Joined'),'wonAt','expectedRevenue',sm2),
-      monthSum(DB.deals.filter(d=>d.stage==='Joined'),'wonAt','expectedRevenue',sm3)
+      monthSum(DB.deals.filter(d=>d.stage==='Joined'),'closeDate','expectedRevenue',sm1),
+      monthSum(DB.deals.filter(d=>d.stage==='Joined'),'closeDate','expectedRevenue',sm2),
+      monthSum(DB.deals.filter(d=>d.stage==='Joined'),'closeDate','expectedRevenue',sm3)
     ], isCurrency:true },
     { label:'Open Amount', vals:[
-      monthSum(DB.deals.filter(d=>d.stage==='Offered'),'createdAt','expectedRevenue',sm1),
-      monthSum(DB.deals.filter(d=>d.stage==='Offered'),'createdAt','expectedRevenue',sm2),
-      monthSum(DB.deals.filter(d=>d.stage==='Offered'),'createdAt','expectedRevenue',sm3),
+      monthSum(DB.deals.filter(d=>d.stage==='Offered'),'closeDate','expectedRevenue',sm1),
+      monthSum(DB.deals.filter(d=>d.stage==='Offered'),'closeDate','expectedRevenue',sm2),
+      monthSum(DB.deals.filter(d=>d.stage==='Offered'),'closeDate','expectedRevenue',sm3),
     ], isCurrency:true },
     { label:'Revenue Lost', vals:[
       monthSum(DB.deals.filter(d=>d.stage==='Declined'),'lostAt','expectedRevenue',sm1),
@@ -6861,9 +6887,9 @@ function renderReports() {
   // Revenue Target bar chart — 3 bars per month: Won / Lost / Open — premium grouped
   const el_bar = document.getElementById('revenue-bar-svg');
   if (el_bar) {
-    const wonMonths  = [sm1,sm2,sm3].map(mo=>monthSum(DB.deals.filter(d=>isWon(d)),              'wonAt',     'expectedRevenue', mo));
-    const lostMonths = [sm1,sm2,sm3].map(mo=>monthSum(DB.deals.filter(d=>isLost(d)),             'lostAt',    'expectedRevenue', mo));
-    const openMonths = [sm1,sm2,sm3].map(mo=>monthSum(DB.deals.filter(d=>!isWon(d)&&!isLost(d)),'createdAt', 'expectedRevenue', mo));
+    const wonMonths  = [sm1,sm2,sm3].map(mo=>monthSum(DB.deals.filter(d=>isWon(d)),              'closeDate', 'expectedRevenue', mo));
+    const lostMonths = [sm1,sm2,sm3].map(mo=>monthSum(DB.deals.filter(d=>isLost(d)),             'closeDate', 'expectedRevenue', mo));
+    const openMonths = [sm1,sm2,sm3].map(mo=>monthSum(DB.deals.filter(d=>!isWon(d)&&!isLost(d)),'closeDate', 'expectedRevenue', mo));
     const labels = [mLabel(sm1),mLabel(sm2),mLabel(sm3)];
 
     const W2 = el_bar.parentElement?.offsetWidth || 560;
@@ -8608,7 +8634,7 @@ const MODAL_FORMS = {
         <div class="lf-field"><label>No. of Employees</label><input id="f-numEmployees" type="number" value="${r.numEmployees||''}"></div>
         <div class="lf-field"><label>Secondary Email</label><input id="f-email2" type="email" value="${r.email2||''}"></div>
         <div class="lf-field"><label>Date of Handover</label><input id="f-handoverDate" type="date" value="${r.handoverDate||''}"></div>
-        <div class="lf-field"><label>Lane / Domain</label><select id="f-lane"><option value="">-None-</option>${['SaaS','AI','Healthtech','Logistics','Fintech','Ed Tech','Agri Tech','Travel Tech','Enterprise','E-commerce'].map(s=>`<option ${r.lane===s?'selected':''}>${s}</option>`).join('')}</select></div>
+        <div class="lf-field"><label>Lane / Domain</label><select id="f-lane"><option value="">-None-</option>${['SaaS','AI','Healthtech','Logistics','Fintech','Ed Tech','Agri Tech','Travel Tech','Enterprise','E-commerce','Media Tech','Quick Commerce'].map(s=>`<option ${r.lane===s?'selected':''}>${s}</option>`).join('')}</select></div>
         <div class="lf-field"><label>Source – Sales / Delivery</label><select id="f-sourceSD"><option value="">-None-</option>${['Sales','Delivery'].map(s=>`<option ${r.sourceSD===s?'selected':''}>${s}</option>`).join('')}</select></div>
         <div class="lf-checkbox"><label for="f-emailOptOut">Email Opt Out</label><input type="checkbox" id="f-emailOptOut" ${r.emailOptOut?'checked':''}></div>
         <div class="lf-checkbox"><label for="f-handoverDone">Handover Done</label><input type="checkbox" id="f-handoverDone" ${r.handoverDone?'checked':''}></div>
@@ -8733,7 +8759,8 @@ const MODAL_FORMS = {
         clientPoc:v('clientPoc'), clientPocEmail:v('clientPocEmail'), clientPocDesignation:v('clientPocDesignation'),
         recruiterName:v('recruiterName'), sourcer:v('sourcer'),
         creditSharing:v('creditSharing')!==''?Number(v('creditSharing')):undefined,
-        candidateMgmt:v('candidateMgmt'), clientSpoc:v('clientSpoc')
+        candidateMgmt:v('candidateMgmt'), clientSpoc:v('clientSpoc'),
+        clientPoc:v('clientPoc'), clientPocEmail:v('clientPocEmail'), clientPocDesignation:v('clientPocDesignation')
       };
       if (!r.name) return alert('Deal name required');
       if (!r.companyName) return alert('Company / Account is required');
